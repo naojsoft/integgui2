@@ -144,7 +144,7 @@ def getCmd(opebuf, cmdstr):
             plist = match.group(2).strip()
             cmds = match.group(3)
         else:
-            match = pattern2.match(contents)
+            match = pattern2.match(opebuf)
             if not match:
                 raise OPEerror("String contents do not match expected format")
 

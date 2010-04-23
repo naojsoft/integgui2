@@ -20,7 +20,8 @@ import remoteObjects as ro
 import Monitor
 import Bunch
 import cfg.g2soss
-import ope
+import ope, fits
+from cfg.INS import INSdata
 
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
@@ -32,6 +33,17 @@ color_bg = 'light grey'
 # Define sounds used in IntegGUI
 sound = Bunch.Bunch(success='doorbell.au',
                     failure='splat.au')
+
+# These are the status variables pulled from the status system. "%s" is
+# replaced by the 3-letter instrument mnemonic of the currently allocated
+# primary instrument in IntegGUI.
+#
+statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
+              (3, 'STATOBS.%s.OBSINFO3'), (4, 'STATOBS.%s.OBSINFO4'),
+              (5, 'STATOBS.%s.OBSINFO5'), # 6 is error log string
+              (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
+              ]
+
 
 class QueueEmpty(Exception):
     pass
@@ -330,18 +342,50 @@ class IntegGUI(object):
 
     def build_info(self, parent):
         self.w.infonb = Pmw.NoteBook(parent, tabpos='n')
+
+        page = self.w.infonb.add('obsinfo', tab_text='Info')
+        page.focus_set()
+        pagefr = self.w.infonb.page('obsinfo')
+
+        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
+                               #labelpos='n', label_text='FITS Data Frames',
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+        self.w.obstext = txt
+
+        tw = txt.component('text')
+        tw.configure(padx=5, pady=3, highlightthickness=0)
+
+        for i in xrange(1, 6):
+            tw.insert('%d.0' % i, '\n')
+
+        txt.pack(fill='both', expand=True, padx=4, pady=4)
+
         self.w.infonb.pack(padx=2, pady=2, fill='both', expand=1)
         
     def build_journal(self, parent):
-        txt = Pmw.ScrolledText(parent, text_wrap='none',
-                               labelpos='n', label_text='Data Frames',
+        self.w.jrnnb = Pmw.NoteBook(parent, tabpos='n')
+        
+        page = self.w.jrnnb.add('frames', tab_text='Frames')
+        page.focus_set()
+        pagefr = self.w.jrnnb.page('frames')
+
+        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
+                               columnheader=True,
+                               columnheader_width=1,
+                               columnheader_padx=5, columnheader_pady=3,
+                               labelpos='n', label_text='FITS Data Frames',
                                vscrollmode='dynamic', hscrollmode='dynamic')
         self.w.jnltext = txt
 
         tw = txt.component('text')
-        tw.configure(padx=5, pady=5, highlightthickness=0)
+        tw.configure(padx=5, pady=3, highlightthickness=0)
+
+        cw = txt.component('columnheader')
+        cw.configure(highlightthickness=0)
 
         txt.pack(fill='both', expand=True, padx=4, pady=4)
+
+        self.w.jrnnb.pack(padx=2, pady=2, fill='both', expand=1)
         
     def setPos(self, geom):
         self.w.root.geometry(geom)
@@ -468,8 +512,7 @@ class IntegGUI(object):
                 self.delpage(oldast_id)
                 
             page = self.w.infonb.add(ast_id, tab_text=title)
-            #self.w.infonb.tab(ast_id).focus_set()
-            page.focus_set()
+            #page.focus_set()
 
             txt = Pmw.ScrolledText(page, text_wrap='none',
                                    vscrollmode='dynamic', hscrollmode='dynamic')
@@ -491,7 +534,7 @@ class IntegGUI(object):
                 self.pages[ast_id] = Bunch.Bunch(tw=tw, title=title)
 
             self.pagelist.append(ast_id)
-            self.w.infonb.selectpage(ast_id)
+            #self.w.infonb.selectpage(ast_id)
 
         
     def parsefile(self, filepath):
@@ -508,7 +551,57 @@ class IntegGUI(object):
     def popup_error(self, errstr):
         tkMessageBox.showerror("IntegGUI Error", errstr)
 
+    
 
+    def update_frame(self, frameinfo):
+        self.logger.debug("UPDATE FRAME: %s" % str(frameinfo))
+        tw = self.w.jnltext.component('text')
+
+        frameid = frameinfo.frameid
+        with self.lock:
+            if hasattr(frameinfo, 'row'):
+                row = frameinfo.row
+                #index = tw.index(frameid)
+                index = 'none'
+                self.logger.debug("row=%d index=%s" % (row, index))
+                tw.delete('%s.first' % frameid, '%s.last' % frameid)
+                tw.insert('%d.0' % row, fits.format_str % frameinfo,
+                          (frameid,))
+
+            else:
+                row, col = str(tw.index('end')).split('.')
+                row = int(row)
+                self.logger.debug("row is %d" % row)
+                frameinfo.row = row
+                tw.insert('end', fits.format_str % frameinfo,
+                          (frameid,))
+        
+    def update_frames(self, framelist):
+
+        tw = self.w.jnltext.component('text')
+        tw.delete('1.0', 'end')
+        
+        # Create header
+        cw = self.w.jnltext.component('columnheader')
+        cw.insert('1.0', fits.header)
+
+        for frameinfo in framelist:
+            self.update_frame(frameinfo)
+
+    def update_obsinfo(self, obsdict):
+
+        self.logger.debug("obsinfo update: %s" % str(obsdict))
+        tw = self.w.obstext.component('text')
+
+        for i in xrange(1, 6):
+            try:
+                val = str(obsdict['OBSINFO%d' % i])
+                tw.delete('%d.0linestart' % i, '%d.0lineend' % i)
+                tw.insert('%d.0' % i, val)
+            except KeyError:
+                continue
+
+        
     def quit(self):
         self.ev_quit.set()
         sys.exit(0)
@@ -867,6 +960,8 @@ class IntegController(object):
         self.tag = 'IntegGUI'
         self.shares = ['logger', 'ev_quit', 'threadPool']
 
+        # Used for looking up instrument codes, etc.
+        self.insconfig = INSdata()
 
     def set_view(self, view):
         self.gui = view
@@ -906,11 +1001,46 @@ class IntegController(object):
         self.logger.info("Executor for '%s' shutting down..." % queueName)
 
 
+    def set_instrument(self, insname):
+        """Called when we notice a change of instrument.
+        """
+        try:
+            inscode = self.insconfig.getCodeByName(insname)
+        except KeyError:
+            # If no instrument allocated, then just look up a non-existent
+            # instrument status messages
+            inscode = "NOP"
+    
+        # Set up default fetch list and dictionary.
+        # _statDict_: dictionary whose keys are status variables we need
+        # _statvars_: list of (index, key) pairs (index is used by IntegGUI)
+        statvars = []
+        for (idx_t, key_t) in statvars_t:
+            if key_t:
+                keyCmn = key_t % "CMN"
+                key = key_t % inscode
+            statvars.append((idx_t, keyCmn))
+            statvars.append((idx_t, key))
+
+        with self.lock:
+            self.statvars = statvars
+
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
 
-    # this one is called if new data becomes available
-    def anon_arr(self, payload, name, channels):
+    def update_integgui(self, statusDict):
+        d = {}
+        for (idx, key) in self.statvars:
+            val = statusDict.get(key, '##')
+            if not val.startswith('##'):
+                slot = key.split('.')[-1]
+                d[slot] = str(val)
+
+        self.gui.update_obsinfo(d)
+
+
+    # this one is called if new data becomes available about tasks
+    def arr_taskinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
 
         try:
@@ -928,14 +1058,44 @@ class IntegController(object):
         except KeyError:
             return self.gui.process_task(bnch.path, bnch.value)
         
+    # this one is called if new data becomes available for integgui
+    def arr_obsinfo(self, payload, name, channels):
+        self.logger.debug("received values '%s'" % str(payload))
+
+        try:
+            bnch = Monitor.unpack_payload(payload)
+
+        except Monitor.MonitorError:
+            self.logger.error("malformed packet '%s': %s" % (
+                str(payload), str(e)))
+            return
+
+        try:
+            statusDict = bnch.value['obsinfo']
+
+            self.update_integgui(statusDict)
+
+        except KeyError:
+            pass
         
-    def get_cbs(self):
-        return self.anon_arr
+    # this one is called if new data becomes available about frames
+    def arr_fitsinfo(self, payload, name, channels):
+        self.logger.debug("received values '%s'" % str(payload))
+
+        try:
+            bnch = Monitor.unpack_payload(payload)
+
+        except Monitor.MonitorError:
+            self.logger.error("malformed packet '%s': %s" % (
+                str(payload), str(e)))
+            return
+
+                
 
 def main(options, args):
     
     # Create top level logger.
-    logger = ssdlog.make_logger('sktask_gui', options)
+    logger = ssdlog.make_logger('integgui2', options)
 
     ro.init()
 
@@ -963,31 +1123,62 @@ def main(options, args):
     gui.set_controller(controller)
     controller.set_view(gui)
 
+    controller.set_instrument('SUKA')
+
     if options.geometry:
         gui.setPos(options.geometry)
     gui.logupdate()
 
-    cb_update = controller.get_cbs()
-   
     # Subscribe our callback functions to the local monitor
-    mymon.subscribe_cb(cb_update, cb_update, channels)
+    channels = [options.taskmgr, 'g2task']
+    # Task info
+    mymon.subscribe_cb(controller.arr_taskinfo, controller.arr_taskinfo, 
+                       channels)
     
+    # Obsinfo
+    ig_ch = options.taskmgr + '-ig'
+    mymon.subscribe_cb(controller.arr_obsinfo, controller.arr_obsinfo, 
+                       [ig_ch])
+    channels.append(ig_ch)
+
+    # Fits info
+    mymon.subscribe_cb(controller.arr_fitsinfo, controller.arr_fitsinfo, 
+                       ['frames'])
+    channels.append('frames')
+
+    # TODO: sessions
+
+    # Create network callable object for notifications
+    notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
+    notify_obj.update_framelist()
+    
+    svc = ro.remoteObjectServer(svcname=options.svcname,
+                                obj=notify_obj, logger=logger,
+                                port=options.port,
+                                ev_quit=ev_quit,
+                                usethread=True)
+    
+    # Load any files specified on the command line
     for opefile in args:
         gui.load_ope(opefile)
 
     server_started = False
+    ro_server_started = False
     try:
         # Startup monitor threadpool
         mymon.start(wait=True)
         # start_server is necessary if we are subscribing, but not if only
         # publishing
-        mymon.start_server(wait=True, port=options.port)
+        mymon.start_server(wait=True, port=options.monport)
         server_started = True
 
         # subscribe our monitor to the central monitor hub
         mymon.subscribe_remote(options.monitor, channels, ())
 
         controller.start_executors()
+
+        svc.ro_start(wait=True)
+        ro_server_started = True
 
         try:
             root.mainloop()
@@ -996,11 +1187,13 @@ def main(options, args):
             logger.error("Received keyboard interrupt!")
 
     finally:
+        if ro_server_started:
+            svc.ro_stop(wait=True)
         if server_started:
             mymon.stop_server(wait=True)
         mymon.stop(wait=True)
     
-    logger.info("Exiting Gen2 skTask viewer...")
+    logger.info("Exiting Gen2/SCM IntegGUI II...")
     gui.quit()
     
 
@@ -1020,6 +1213,9 @@ if __name__ == '__main__':
                       help="Subscribe to the comma-separated LIST of channels")
     optprs.add_option("--display", dest="display", metavar="HOST:N",
                       help="Use X display on HOST:N")
+    optprs.add_option("--fitsdir", dest="fitsdir",
+                      metavar="DIR",
+                      help="Specify DIR to look for FITS files")
     optprs.add_option("-g", "--geometry", dest="geometry",
                       metavar="GEOM", default="1860x1100+57+0",
                       help="X geometry for initial size and placement")
@@ -1032,7 +1228,9 @@ if __name__ == '__main__':
     optprs.add_option("-p", "--path", dest="monpath", default='mon.sktask',
                       metavar="PATH",
                       help="Show values for PATH in monitor")
-    optprs.add_option("--port", dest="port", type="int", default=10013,
+    optprs.add_option("--monport", dest="monport", type="int", default=10013,
+                      help="Register monitor using PORT", metavar="PORT")
+    optprs.add_option("--port", dest="port", type="int", default=12030,
                       help="Register using PORT", metavar="PORT")
     optprs.add_option("--profile", dest="profile", action="store_true",
                       default=False,
