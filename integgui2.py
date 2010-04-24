@@ -7,21 +7,28 @@
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+# Standard library imports
 import sys, os
 import re, time
 import threading, Queue
 import Tkinter
 import tkMessageBox, tkFileDialog
-import Pmw
-import ssdlog, logging
+import logging
 
-import Task
+# Special library imports
+import Pmw
+
+# SSD/Gen2 imports
 import remoteObjects as ro
 import Monitor
 import Bunch
 import cfg.g2soss
-import ope, fits
 from cfg.INS import INSdata
+import ssdlog
+
+# Local integgui2 imports
+import ope, fits
+import controller as igctrl
 
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
@@ -45,8 +52,28 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               ]
 
 
-class QueueEmpty(Exception):
-    pass
+def update_line(tw, row, val):
+    """Update a line of the text widget _tw_, defined by _row_,
+    with the value _val_.
+    """
+    tw.delete('%d.0linestart' % row, '%d.0lineend' % row)
+    tw.insert('%d.0' % row, str(val))
+
+class StatusBar(Tkinter.Frame):
+
+    def __init__(self, master, **kwdargs):
+        Tkinter.Frame.__init__(self, master)
+        self.label = Tkinter.Label(self, **kwdargs)
+        self.label.pack(fill='x')
+
+    def set(self, format, *args):
+        self.label.config(text=format % args)
+        self.label.update_idletasks()
+
+    def clear(self):
+        self.label.config(text="")
+        self.label.update_idletasks()
+
 
 class IntegGUI(object):
     def __init__(self, parent, logger, ev_quit, **kwdargs):
@@ -65,6 +92,7 @@ class IntegGUI(object):
 
         self.w = Bunch.Bunch()
         self.w.root = parent
+        self.w.root.protocol("WM_DELETE_WINDOW", self.quit)
 
         parent.tk_setPalette(background=color_bg,
                              foreground='black')
@@ -85,6 +113,10 @@ class IntegGUI(object):
         self.add_dialogs()
         self.closelog(self.w.log)
         
+        self.w.status = StatusBar(self.w.root, text="", 
+                                  relief='flat', anchor='w')
+        self.w.status.pack(side='bottom', fill='x')
+
         # Used for tagging commands
         self.cmdcount = 0
 
@@ -102,11 +134,15 @@ class IntegGUI(object):
         # create a pulldown menu, and add it to the menu bar
         filemenu = Tkinter.Menu(menubar, tearoff=0)
         filemenu.add('command', label="Load ope", command=self.gui_load_ope)
-        #filemenu.add('command', label="Load sk", command=self.load_ope)
+        filemenu.add('command', label="Load sk", command=self.gui_load_sk)
+        filemenu.add('command', label="Load task", command=self.gui_load_task)
         #filemenu.add('command', label="Show Log", command=self.showlog)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.quit)
         menubar.add_cascade(label="File", menu=filemenu)
+
+        logmenu = Tkinter.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Logs", menu=logmenu)
 
         optionmenu = Tkinter.Menu(menubar, tearoff=0)
         self.save_decode_result = Tkinter.IntVar(0)
@@ -124,6 +160,12 @@ class IntegGUI(object):
         menubar.add_cascade(label="Option", menu=optionmenu)
 
         self.w.root.config(menu=menubar)
+
+    def statusMsg(self, format, *args):
+        if not format:
+            self.w.status.clear()
+        else:
+            self.w.status.set(format, *args)
 
     def add_panels(self):
         # LFrame
@@ -185,16 +227,26 @@ class IntegGUI(object):
 ##         self.w.mframe.columnconfigure(1, weight=3)
         
         # Obs Journal
-        self.build_journal(self.w.obsjnl)
+        self.w.jrnnb = Pmw.NoteBook(self.w.obsjnl, tabpos='n')
+        self.w.jrnnb.pack(padx=2, pady=2, fill='both', expand=1)
+
+        self.add_frame_journal(self.w.jrnnb)
 
         # Command Launchers
-        self.build_launchers(self.w.cmdlnch)
+        self.w.lnchnb = Pmw.NoteBook(self.w.cmdlnch, tabpos='n')
+        self.w.lnchnb.pack(padx=2, pady=2, fill='both', expand=1)
 
         # Information Display
-        self.build_info(self.w.info)
+        self.w.infonb = Pmw.NoteBook(self.w.info, tabpos='n')
+        self.w.infonb.pack(padx=2, pady=2, fill='both', expand=1)
+        
+        self.add_obsinfo(self.w.infonb)
 
         # Command Executor
-        self.build_executor(self.w.exectr)
+        self.w.execnb = Pmw.NoteBook(self.w.exectr, tabpos='n')
+        self.w.execnb.pack(padx=2, pady=2, fill='both', expand=True)
+
+        self.add_command_executor(self.w.execnb)
 
         self.w.mframe.pack(fill='both', expand=True)
         
@@ -215,51 +267,36 @@ class IntegGUI(object):
         self.logger.addHandler(guiHdlr)
 
 
-    def build_executor(self, parent):
-        self.w.execnb = Pmw.NoteBook(parent, tabpos='n')
-
-#         # Add index tab
-#         page = self.w.execnb.add('opeindex', tab_text='Index')
-#         pagefr = self.w.execnb.page('opeindex')
-
-#         txt = Pmw.ScrolledText(pagefr, text_wrap='none',
-#                                labelpos='n', label_text='Tag Jump',
-#                                vscrollmode='dynamic', hscrollmode='dynamic')
-#         self.w.opeindex = txt
-
-#         tw = txt.component('text')
-#         tw.configure(padx=5, pady=5, highlightthickness=0)
-#         txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+    def add_command_executor(self, parent):
 
         # Add commands tab
-        page = self.w.execnb.add('commands', tab_text='Commands')
-        pagefr = self.w.execnb.page('commands')
+        page = parent.add('commands', tab_text='Commands')
+        pagefr = parent.page('commands')
 
         txt = Pmw.ScrolledText(pagefr, text_wrap='none',
                                labelpos='n', label_text='Command Execution',
                                vscrollmode='dynamic', hscrollmode='dynamic')
+        # ???
         self.w.commands = txt
 
         tw = txt.component('text')
         tw.configure(padx=5, pady=5, highlightthickness=0)
         txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
 
-        self.w.execnb.pack(padx=2, pady=2, fill='both', expand=True)
 
-
-    def config_ope_executor(self, title):
+    def add_ope_executor(self, parent, title):
         try:
             opepage = self.opepages[title]
             self.popup_error("A page with that name already exists!")
             return None
         except KeyError:
-            opepage = Bunch.Bunch(title=title)
+            opepage = Bunch.Bunch(name=title, title=title)
             self.opepages[title] = opepage
 
         # Add OPE File tab
-        page = self.w.execnb.add(title, tab_text=title)
+        page = parent.add(title, tab_text=title)
         page.focus_set()
-        pagefr = self.w.execnb.page(title)
+        pagefr = parent.page(title)
 
         txt = Pmw.ScrolledText(pagefr, text_wrap='none',
                                rowheader=True,
@@ -277,6 +314,10 @@ class IntegGUI(object):
 
         opepage.txt = txt
         opepage.tw = tw
+        opepage.rw = rw
+        opepage.queue = 'executer'
+        opepage.modified = True
+        opepage.parent = parent
 
         # bottom buttons
         btns = Tkinter.Frame(pagefr) 
@@ -302,7 +343,7 @@ class IntegGUI(object):
                                      activeforeground="#FFFF00")
         opepage.cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
-        opepage.kill = Tkinter.Button(btns, text="Kill",
+        opepage.kill = Tkinter.Button(btns, text="Restart TM",
                                      width=10,
                                      command=self.kill,
                                      activebackground="#089D20",
@@ -311,17 +352,24 @@ class IntegGUI(object):
 
         opepage.save = Tkinter.Button(btns, text="Save",
                                      width=10,
-                                     command=self.quit,
+                                     command=lambda: self.save_ope(opepage),
                                      activebackground="#089D20",
                                      activeforeground="#FFFF00")
         opepage.save.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
         opepage.reload = Tkinter.Button(btns, text="Reload",
                                      width=10,
-                                     command=self.quit,
+                                     command=lambda: self.reload_ope(opepage),
                                      activebackground="#089D20",
                                      activeforeground="#FFFF00")
         opepage.reload.pack(padx=5, pady=4, side=Tkinter.LEFT)
+
+        opepage.close = Tkinter.Button(btns, text="Close",
+                                     width=10,
+                                     command=lambda: self.close(opepage),
+                                     activebackground="#089D20",
+                                     activeforeground="#FFFF00")
+        opepage.close.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
 ##         btns.grid(row=1, column=0, sticky='we')
 ##         pagefr.rowconfigure(0, weight=1)
@@ -332,20 +380,17 @@ class IntegGUI(object):
                   expand=False)
 
         #self.w.execnb.setnaturalsize()
-        self.w.execnb.selectpage(title)
+        parent.selectpage(title)
         return opepage
 
 
-    def build_launchers(self, parent):
-        self.w.lnchnb = Pmw.NoteBook(parent, tabpos='n')
-        self.w.lnchnb.pack(padx=2, pady=2, fill='both', expand=1)
+    def add_launcher(self, parent):
+        pass
 
-    def build_info(self, parent):
-        self.w.infonb = Pmw.NoteBook(parent, tabpos='n')
-
-        page = self.w.infonb.add('obsinfo', tab_text='Info')
+    def add_obsinfo(self, parent):
+        page = parent.add('obsinfo', tab_text='Info')
         page.focus_set()
-        pagefr = self.w.infonb.page('obsinfo')
+        pagefr = parent.page('obsinfo')
 
         txt = Pmw.ScrolledText(pagefr, text_wrap='none',
                                #labelpos='n', label_text='FITS Data Frames',
@@ -355,19 +400,15 @@ class IntegGUI(object):
         tw = txt.component('text')
         tw.configure(padx=5, pady=3, highlightthickness=0)
 
-        for i in xrange(1, 6):
-            tw.insert('%d.0' % i, '\n')
+        tw.insert('0.1', '\n' * 10)
 
         txt.pack(fill='both', expand=True, padx=4, pady=4)
 
-        self.w.infonb.pack(padx=2, pady=2, fill='both', expand=1)
+    def add_frame_journal(self, parent):
         
-    def build_journal(self, parent):
-        self.w.jrnnb = Pmw.NoteBook(parent, tabpos='n')
-        
-        page = self.w.jrnnb.add('frames', tab_text='Frames')
+        page = parent.add('frames', tab_text='Frames')
         page.focus_set()
-        pagefr = self.w.jrnnb.page('frames')
+        pagefr = parent.page('frames')
 
         txt = Pmw.ScrolledText(pagefr, text_wrap='none',
                                columnheader=True,
@@ -375,6 +416,7 @@ class IntegGUI(object):
                                columnheader_padx=5, columnheader_pady=3,
                                labelpos='n', label_text='FITS Data Frames',
                                vscrollmode='dynamic', hscrollmode='dynamic')
+        # ???
         self.w.jnltext = txt
 
         tw = txt.component('text')
@@ -385,7 +427,6 @@ class IntegGUI(object):
 
         txt.pack(fill='both', expand=True, padx=4, pady=4)
 
-        self.w.jrnnb.pack(padx=2, pady=2, fill='both', expand=1)
         
     def setPos(self, geom):
         self.w.root.geometry(geom)
@@ -455,7 +496,7 @@ class IntegGUI(object):
         # insert text
         tags = ['code']
         try:
-            tw.delete('code.first', 'code.last')
+            tw.delete('1.0', 'end')
         except:
             pass
         tw.insert('end', buf, tuple(tags))
@@ -463,6 +504,7 @@ class IntegGUI(object):
         lines = buf.split('\n')
         header = '\n' * len(lines)
         hw = opepage.txt.component('rowheader')
+        hw.delete('1.0', 'end')
         hw.insert('end', header)
 
         tw.tag_configure('code', foreground="black")
@@ -472,6 +514,29 @@ class IntegGUI(object):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure')
         
         filepath = tkFileDialog.askopenfilename(title="Load OPE file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        self.load_ope(filepath)
+                               
+    def gui_load_sk(self):
+        initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
+                                  'SkPara', 'sk')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load sk file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        self.load_ope(filepath)
+                               
+    def gui_load_task(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load task file",
                                                 initialdir=initialdir,
                                                 parent=self.w.root)
         if not filepath:
@@ -490,10 +555,46 @@ class IntegGUI(object):
             return self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
 
-        opepage = self.config_ope_executor(opefile)
+        opepage = self.add_ope_executor(self.w.execnb, opefile)
         if opepage != None:
+            opepage.filepath = filepath
             self._load_ope(opepage, buf)
         
+    def reload_ope(self, opepage):
+        try:
+            in_f = open(opepage.filepath, 'r')
+            buf = in_f.read()
+            in_f.close()
+        except IOError, e:
+            return self.popup_error("Cannot reload '%s': %s" % (
+                    opepage.filepath, str(e)))
+
+        self._load_ope(opepage, buf)
+
+    def save_ope(self, opepage):
+        # TODO: make backup?
+
+        opedir, opefile = os.path.split(opepage.filepath)
+
+        res = tkMessageBox.askokcancel("Save file", 
+                                       'Really save "%s"?' % opefile)
+        if not res:
+            return
+
+        # get text widget
+        tw = opepage.tw
+        buf = tw.get('1.0', 'end')
+
+        try:
+            out_f = open(opepage.filepath, 'w')
+            out_f.write(buf)
+            out_f.close()
+            self.statusMsg("%s saved." % opepage.filepath)
+        except IOError, e:
+            return self.popup_error("Cannot write '%s': %s" % (
+                    opepage.filepath, str(e)))
+
+
     def astIdtoTitle(self, ast_id):
         page = self.pages[ast_id]
         return page.title
@@ -593,28 +694,64 @@ class IntegGUI(object):
         self.logger.debug("obsinfo update: %s" % str(obsdict))
         tw = self.w.obstext.component('text')
 
+        if obsdict.has_key('PROP-ID'):
+            update_line(tw, 1, 'Prop-Id: %s' % obsdict['PROP-ID'])
+        if obsdict.has_key('TIMER_SEC'):
+            self.set_timer(obsdict['TIMER_SEC'])
+        
+        offset = 2
         for i in xrange(1, 6):
             try:
                 val = str(obsdict['OBSINFO%d' % i])
-                tw.delete('%d.0linestart' % i, '%d.0lineend' % i)
-                tw.insert('%d.0' % i, val)
+                update_line(tw, i+offset, val)
             except KeyError:
                 continue
 
+    def set_timer(self, val):
+        self.logger.debug("val = %s" % str(val))
+        val = int(val)
+        self.logger.debug("val = %d" % val)
+        if val <= 0:
+            return
+        self.timer_val = val + 1
+        self.logger.debug("timer_val = %d" % self.timer_val)
+        self.timer_interval(self.w.root)
+
+    def timer_interval(self, w):
+        self.logger.debug("timer: %d sec" % self.timer_val)
+        self.timer_val -= 1
+        tw = self.w.obstext.component('text')
+        update_line(tw, 2, 'Timer: %s' % str(self.timer_val))
+        if self.timer_val > 0:
+            self.w.root.after(1000, self.timer_interval, [])
+        else:
+            # Do something when timer expires?
+            pass
         
     def quit(self):
+        # TODO: check for unsaved buffers
         self.ev_quit.set()
         sys.exit(0)
 
 
+    def close(self, opepage):
+        if opepage.modified:
+            res = tkMessageBox.askokcancel("Close Tab",
+                                           'Really close tab "%s"?' % (
+                    opepage.title))
+            if not res:
+                return
+
+        opepage.parent.delete(opepage.name)
+
     def kill(self):
-        pass
+        self.controller.tm_restart()
 
     def cancel(self, opepage):
-        pass
+        self.controller.tm_cancel(opepage.queue)
 
     def pause(self, opepage):
-        pass
+        self.controller.tm_pause(opepage.queue)
 
 
     def execute(self, opepage):
@@ -627,6 +764,7 @@ class IntegGUI(object):
             return
 
         tw = opepage.tw
+        self.clear_marks(opepage)
 
         try:
             # Get the range of text selected
@@ -669,14 +807,14 @@ class IntegGUI(object):
             tags.append(Bunch.Bunch(tag=tag, opepage=opepage))
 
         # deselect the region
-        # TODO: I can't figure out how to do this
-        #tw.select_clear()
+        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
 
         # Add tags to queue
         with self.lock:
             self.queue.executer.extend(tags)
             self.logger.debug("Queue 'executer': %s" % (self.queue.executer))
 
+        # Enable executor thread to proceed
         self.executing.set()
             
     def get_opecmd(self, bnch):
@@ -703,28 +841,47 @@ class IntegGUI(object):
             raise Exception(errstr)
             
 
+    def clear_marks(self, opepage):
+        rw = opepage.rw
+        rw.delete('1.0', 'end')
+
+    def mark_exec(self, bnch, char):
+
+        # Get the entire OPE buffer
+        tw = bnch.opepage.tw
+        row, col = str(tw.index('end')).split('.')
+        len = int(row)
+        index = tw.index('%s.first' % bnch.tag)
+
+        rw = bnch.opepage.rw
+        rw.delete('1.0', 'end')
+        rw.insert('1.0', '\n' * len)
+
+        rw.insert(index, char)
+
+
     def get_queue(self, queueName):
 
         if not self.executing.isSet():
-            raise QueueEmpty('Queue %s is empty' % queueName)
+            raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
 
         with self.lock:
             try:
                 bnch = self.queue[queueName][0]
             except IndexError:
-                raise QueueEmpty('Queue %s is empty' % queueName)
+                raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
 
         cmdstr = self.get_opecmd(bnch)
 
         #self.clear_marks()
-        #self.mark_execution(row, 'X')
+        self.mark_exec(bnch, 'X')
         
         return bnch, cmdstr
 
 
     def feedback_noerror(self, queueName, bnch, res):
 
-        #self.mark_execution(row, 'D')
+        self.mark_exec(bnch, 'D')
         #self.make_sound(cmd_ok)
         
         # Remove tagged command
@@ -737,16 +894,20 @@ class IntegGUI(object):
             if len(self.queue[queueName]) == 0:
                 self.executing.clear()
 
-        # Bing Bong!
-        self.playSound(sound.success)
+                # Bing Bong!
+                self.playSound(sound.success)
+
            
     def feedback_error(self, queueName, bnch, e):
 
-        #self.mark_execution(row, 'E')
+        if bnch:
+            self.mark_exec(bnch, 'E')
+
         #self.make_sound(cmd_err)
         self.executing.clear()
        
-        self.w.root.after(100, self.popup_error, [str(e)])
+        #self.w.root.after(100, self.popup_error, [str(e)])
+        self.statusMsg(str(e))
 
         # Peeeeeww!
         self.playSound(sound.failure)
@@ -945,153 +1106,6 @@ class IntegGUI(object):
             self.update_page(bnch)
             
 
-class IntegController(object):
-    
-    def __init__(self, logger, ev_quit, monitor, options):
-
-        self.logger = logger
-        self.ev_quit = ev_quit
-        self.monitor = monitor
-        self.tm = ro.remoteObjectProxy(options.taskmgr)
-        self.lock = threading.RLock()
-
-        # For task inheritance:
-        self.threadPool = monitor.get_threadPool()
-        self.tag = 'IntegGUI'
-        self.shares = ['logger', 'ev_quit', 'threadPool']
-
-        # Used for looking up instrument codes, etc.
-        self.insconfig = INSdata()
-
-    def set_view(self, view):
-        self.gui = view
-
-    def start_executors(self):
-        t1 = Task.FuncTask(self.execute_loop, ['executer'], {})
-        t2 = Task.FuncTask(self.execute_loop, ['launcher'], {})
-        t1.init_and_start(self)
-        #t2.init_and_start(self)
-       
-    def execute_loop(self, queueName):
-        
-        self.logger.info("Starting executor for '%s'..." % queueName)
-        while not self.ev_quit.isSet():
-            try:
-                bnch = None
-                # Try to get a command from the GUI for queueName
-                bnch, cmdstr = self.gui.get_queue(queueName)
-
-                # Try to execute the command in the TaskManager
-                self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                        queueName, cmdstr))
-                res = self.tm.execTask(queueName, cmdstr, '')
-                if res != ro.OK:
-                    raise Exception("Command failed with res=%d" % res)
-
-                self.gui.feedback_noerror(queueName, bnch, res)
-
-            except QueueEmpty:
-                # No command ready...busy wait
-                self.ev_quit.wait(0.01)
-
-            except Exception, e:
-                # If there was a problem, let the gui know about it
-                self.gui.feedback_error(queueName, bnch, e)
-
-        self.logger.info("Executor for '%s' shutting down..." % queueName)
-
-
-    def set_instrument(self, insname):
-        """Called when we notice a change of instrument.
-        """
-        try:
-            inscode = self.insconfig.getCodeByName(insname)
-        except KeyError:
-            # If no instrument allocated, then just look up a non-existent
-            # instrument status messages
-            inscode = "NOP"
-    
-        # Set up default fetch list and dictionary.
-        # _statDict_: dictionary whose keys are status variables we need
-        # _statvars_: list of (index, key) pairs (index is used by IntegGUI)
-        statvars = []
-        for (idx_t, key_t) in statvars_t:
-            if key_t:
-                keyCmn = key_t % "CMN"
-                key = key_t % inscode
-            statvars.append((idx_t, keyCmn))
-            statvars.append((idx_t, key))
-
-        with self.lock:
-            self.statvars = statvars
-
-    def getvals(self, path):
-        return self.monitor.getitems_suffixOnly(path)
-
-    def update_integgui(self, statusDict):
-        d = {}
-        for (idx, key) in self.statvars:
-            val = statusDict.get(key, '##')
-            if not val.startswith('##'):
-                slot = key.split('.')[-1]
-                d[slot] = str(val)
-
-        self.gui.update_obsinfo(d)
-
-
-    # this one is called if new data becomes available about tasks
-    def arr_taskinfo(self, payload, name, channels):
-        self.logger.debug("received values '%s'" % str(payload))
-
-        try:
-            bnch = Monitor.unpack_payload(payload)
-
-        except Monitor.MonitorError:
-            self.logger.error("malformed packet '%s': %s" % (
-                str(payload), str(e)))
-            return
-
-        try:
-            ast_id = bnch.value['ast_id']
-            return self.gui.process_ast(ast_id, bnch.value)
-
-        except KeyError:
-            return self.gui.process_task(bnch.path, bnch.value)
-        
-    # this one is called if new data becomes available for integgui
-    def arr_obsinfo(self, payload, name, channels):
-        self.logger.debug("received values '%s'" % str(payload))
-
-        try:
-            bnch = Monitor.unpack_payload(payload)
-
-        except Monitor.MonitorError:
-            self.logger.error("malformed packet '%s': %s" % (
-                str(payload), str(e)))
-            return
-
-        try:
-            statusDict = bnch.value['obsinfo']
-
-            self.update_integgui(statusDict)
-
-        except KeyError:
-            pass
-        
-    # this one is called if new data becomes available about frames
-    def arr_fitsinfo(self, payload, name, channels):
-        self.logger.debug("received values '%s'" % str(payload))
-
-        try:
-            bnch = Monitor.unpack_payload(payload)
-
-        except Monitor.MonitorError:
-            self.logger.error("malformed packet '%s': %s" % (
-                str(payload), str(e)))
-            return
-
-                
-
 def main(options, args):
     
     # Create top level logger.
@@ -1117,13 +1131,18 @@ def main(options, args):
 
     gui = IntegGUI(root, logger, ev_quit)
 
-    controller = IntegController(logger, ev_quit, mymon,
-                                 options)
+    controller = igctrl.IntegController(logger, ev_quit, mymon,
+                                        options)
 
     gui.set_controller(controller)
     controller.set_view(gui)
 
-    controller.set_instrument('SUKA')
+    # Configure for currently allocated instrument
+    if options.instrument:
+        insname = options.instrument
+    else:
+        insname = controller.get_alloc_instrument()
+    controller.set_instrument(insname)
 
     if options.geometry:
         gui.setPos(options.geometry)
@@ -1219,6 +1238,8 @@ if __name__ == '__main__':
     optprs.add_option("-g", "--geometry", dest="geometry",
                       metavar="GEOM", default="1860x1100+57+0",
                       help="X geometry for initial size and placement")
+    optprs.add_option("-i", "--inst", dest="instrument",
+                      help="Specify instrument(s) to use for integgui")
     optprs.add_option("-m", "--monitor", dest="monitor", default='monitor',
                       metavar="NAME",
                       help="Subscribe to feeds from monitor service NAME")

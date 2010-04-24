@@ -99,10 +99,15 @@ def substitute_params(plist, cmdstr):
 
     # Now substitute into the command line wherever we see any of these
     # varrefs
-    for (key, val) in substDict.items():
+
+    # Sort vars so that longest ones are tried first
+    vars = substDict.keys()
+    vars.sort(lambda x,y: len(y) - len(x))
+
+    for key in vars:
         varref = '$%s' % key
         if varref in cmdstr:
-            cmdstr = cmdstr.replace(varref, val)
+            cmdstr = cmdstr.replace(varref, substDict[key])
 
     # Final sanity check
     # TODO: parse this with the OPE parser
