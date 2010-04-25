@@ -33,7 +33,8 @@ import controller as igctrl
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
 color_yellow = '#fafad2'     # cream
-color_white = 'whitesmoke'
+#color_white = 'whitesmoke'
+color_white = 'white'
 
 color_bg = 'light grey'
 
@@ -41,15 +42,9 @@ color_bg = 'light grey'
 sound = Bunch.Bunch(success='doorbell.au',
                     failure='splat.au')
 
-# These are the status variables pulled from the status system. "%s" is
-# replaced by the 3-letter instrument mnemonic of the currently allocated
-# primary instrument in IntegGUI.
-#
-statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
-              (3, 'STATOBS.%s.OBSINFO3'), (4, 'STATOBS.%s.OBSINFO4'),
-              (5, 'STATOBS.%s.OBSINFO5'), # 6 is error log string
-              (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
-              ]
+
+gui = None
+controller = None
 
 
 def update_line(tw, row, val):
@@ -75,230 +70,139 @@ class StatusBar(Tkinter.Frame):
         self.label.update_idletasks()
 
 
-class IntegGUI(object):
-    def __init__(self, parent, logger, ev_quit, **kwdargs):
+class Page(object):
 
-        self.logger = logger
-        self.ev_quit = ev_quit
-        self.__dict__.update(kwdargs)
+    def __init__(self, frame, name, title):
+
+        self.frame = frame
+        self.name = name
+        self.title = title
+
+        # every page has a lock
         self.lock = threading.RLock()
 
-        self.track = {}
-        self.pages = {}
-        self.pagelist = []
-        self.pagelimit = 10
-        # Holds executor pages
-        self.opepages = {}
-
-        self.w = Bunch.Bunch()
-        self.w.root = parent
-        self.w.root.protocol("WM_DELETE_WINDOW", self.quit)
-
-        parent.tk_setPalette(background=color_bg,
-                             foreground='black')
-
-        #parent.option_add('*background', color_blue)
-        #parent.option_add('*foreground', 'black')
-        parent.option_add('*Text*background', color_white)
-        #parent.option_add('*Text*highlightthickness', 0)
-        parent.option_add('*Button*activebackground', '#089D20')
-        parent.option_add('*Button*activeforeground', '#FFFF00')
-
-        self.fixedFont = Pmw.logicalfont('Fixed')
-
-        parent.option_add('*Text*font', self.fixedFont)
-
-        self.add_panels()
-        self.add_menus()
-        self.add_dialogs()
-        self.closelog(self.w.log)
-        
-        self.w.status = StatusBar(self.w.root, text="", 
-                                  relief='flat', anchor='w')
-        self.w.status.pack(side='bottom', fill='x')
-
-        # Used for tagging commands
-        self.cmdcount = 0
-
-        # command queues
-        self.queue = Bunch.Bunch(executer=[], launcher=[])
-        self.executing = threading.Event()
+    def close(self):
+        # parent attribute is added by parent workspace
+        self.parent.delpage(name)
 
 
-    def set_controller(self, controller):
-        self.controller = controller
+class CodePage(Page):
 
-    def add_menus(self):
-        menubar = Tkinter.Menu(self.w.root, relief='flat')
+    def __init__(self, frame, name, title):
 
-        # create a pulldown menu, and add it to the menu bar
-        filemenu = Tkinter.Menu(menubar, tearoff=0)
-        filemenu.add('command', label="Load ope", command=self.gui_load_ope)
-        filemenu.add('command', label="Load sk", command=self.gui_load_sk)
-        filemenu.add('command', label="Load task", command=self.gui_load_task)
-        #filemenu.add('command', label="Show Log", command=self.showlog)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.quit)
-        menubar.add_cascade(label="File", menu=filemenu)
+        super(CodePage, self).__init__(frame, name, title)
 
-        logmenu = Tkinter.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Logs", menu=logmenu)
+        # bottom buttons
+        btns = Tkinter.Frame(frame) 
+        self.btns = btns
 
-        optionmenu = Tkinter.Menu(menubar, tearoff=0)
-        self.save_decode_result = Tkinter.IntVar(0)
-        #self.save_decode_result.set(0)
-        optionmenu.add('checkbutton', label="Save Decode Result", 
-                       variable=self.save_decode_result)
-        self.show_times = Tkinter.IntVar(0)
-        #self.show_times.set(0)
-        optionmenu.add('checkbutton', label="Show Times", 
-                       variable=self.show_times)
-        self.audible_errors = Tkinter.IntVar(0)
-        self.audible_errors.set(1)
-        optionmenu.add('checkbutton', label="Audible Errors", 
-                       variable=self.audible_errors)
-        menubar.add_cascade(label="Option", menu=optionmenu)
+        self.btn_close = Tkinter.Button(btns, text="Close",
+                                    width=10,
+                                    command=self.close,
+                                    activebackground="#089D20",
+                                    activeforeground="#FFFF00")
+        self.btn_close.pack(padx=5, pady=4, side=Tkinter.RIGHT)
 
-        self.w.root.config(menu=menubar)
+        self.btn_reload = Tkinter.Button(btns, text="Reload",
+                                     width=10,
+                                     command=self.reload,
+                                     activebackground="#089D20",
+                                     activeforeground="#FFFF00")
+        self.btn_reload.pack(padx=5, pady=4, side=Tkinter.RIGHT)
 
-    def statusMsg(self, format, *args):
-        if not format:
-            self.w.status.clear()
-        else:
-            self.w.status.set(format, *args)
+        self.btn_save = Tkinter.Button(btns, text="Save",
+                                   width=10,
+                                   command=self.save,
+                                   activebackground="#089D20",
+                                   activeforeground="#FFFF00")
+        self.btn_save.pack(padx=5, pady=4, side=Tkinter.RIGHT)
 
-    def add_panels(self):
-        # LFrame
-        #   JFrame (Observation Journal)
-        #   LFrame (Command Launcher)
-        # RFrame
-        #   TFrame
-        #     IFrame (Information)
-        #   BFrame
-        #     Executor
-        #
-        self.w.mframe = Tkinter.Frame(self.w.root, padx=2, pady=2)
-        
-        paned = Pmw.PanedWidget(self.w.mframe, orient='horizontal',
-                                handlesize=16) 
-        self.w.hframe = paned
-        paned.pack(fill='both', expand=True)
+        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
+                  expand=False)
 
-        paned.add('lframe', size=0.35)
-        paned.add('rframe', size=0.65)
-        self.w.lframe = paned.pane('lframe')
-        self.w.rframe = paned.pane('rframe')
-
-        lpane = Pmw.PanedWidget(self.w.lframe, orient='vertical',
-                                handlesize=16)
-        self.w.lpane = lpane
-        lpane.add('journal')
-        lpane.add('launchers')
-        lpane.pack(fill='both', expand=True)
-        rpane = Pmw.PanedWidget(self.w.rframe, orient='vertical',
-                                handlesize=16)
-        self.w.rpane = rpane
-        rpane.add('info')
-        rpane.add('executor')
-        rpane.pack(fill='both', expand=True)
-
-        self.w.obsjnl = self.w.lpane.pane('journal')
-        self.w.cmdlnch = self.w.lpane.pane('launchers')
-        self.w.exectr = self.w.rpane.pane('executor')
-        self.w.info = self.w.rpane.pane('info')
-
-##         self.w.obsjnl = Tkinter.Frame(self.w.mframe)
-##         self.w.info = Tkinter.Frame(self.w.mframe)
-##         self.w.cmdlnch = Tkinter.Frame(self.w.mframe)
-##         self.w.exectr = Tkinter.Frame(self.w.mframe)
-
-##         self.w.obsjnl.grid(row=0, column=0, sticky='wens', padx=2, pady=2)
-##         self.w.info.grid(row=0, column=1, sticky='wens', padx=2, pady=2)
-##         self.w.cmdlnch.grid(row=1, column=0, sticky='wens', padx=2, pady=2)
-##         self.w.exectr.grid(row=1, column=1, sticky='wens', padx=2, pady=2)
-
-        self.w.root.columnconfigure(0, weight=10)
-        self.w.root.rowconfigure(0, weight=10)
-
-        self.w.mframe.grid(column=0, row=0, sticky='wens')
-##         self.w.mframe.rowconfigure(0, weight=1)
-##         self.w.mframe.rowconfigure(1, weight=3)
-##         self.w.mframe.columnconfigure(0, weight=1)
-##         self.w.mframe.columnconfigure(1, weight=3)
-        
-        # Obs Journal
-        self.w.jrnnb = Pmw.NoteBook(self.w.obsjnl, tabpos='n')
-        self.w.jrnnb.pack(padx=2, pady=2, fill='both', expand=1)
-
-        self.add_frame_journal(self.w.jrnnb)
-
-        # Command Launchers
-        self.w.lnchnb = Pmw.NoteBook(self.w.cmdlnch, tabpos='n')
-        self.w.lnchnb.pack(padx=2, pady=2, fill='both', expand=1)
-
-        # Information Display
-        self.w.infonb = Pmw.NoteBook(self.w.info, tabpos='n')
-        self.w.infonb.pack(padx=2, pady=2, fill='both', expand=1)
-        
-        self.add_obsinfo(self.w.infonb)
-
-        # Command Executor
-        self.w.execnb = Pmw.NoteBook(self.w.exectr, tabpos='n')
-        self.w.execnb.pack(padx=2, pady=2, fill='both', expand=True)
-
-        self.add_command_executor(self.w.execnb)
-
-        self.w.mframe.pack(fill='both', expand=True)
-        
-    def add_dialogs(self):
-
-        # pop-up log file
-        self.w.log = Pmw.TextDialog(self.w.root, scrolledtext_labelpos='n',
-                                    title='Log',
-                                    buttons=('Close',),
-                                    defaultbutton=None,
-                                    command=self.closelog)
-                                    #label_text = 'Log')        
-        self.logqueue = Queue.Queue()
-        guiHdlr = ssdlog.QueueHandler(self.logqueue)
-        fmt = logging.Formatter(ssdlog.STD_FORMAT)
-        guiHdlr.setFormatter(fmt)
-        guiHdlr.setLevel(logging.INFO)
-        self.logger.addHandler(guiHdlr)
+        self.modified = True
 
 
-    def add_command_executor(self, parent):
+    def loadbuf(self, buf):
 
-        # Add commands tab
-        page = parent.add('commands', tab_text='Commands')
-        pagefr = parent.page('commands')
+        # get text widget
+        tw = self.tw
 
-        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
-                               labelpos='n', label_text='Command Execution',
-                               vscrollmode='dynamic', hscrollmode='dynamic')
-        # ???
-        self.w.commands = txt
-
-        tw = txt.component('text')
-        tw.configure(padx=5, pady=5, highlightthickness=0)
-        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
-
-
-    def add_ope_executor(self, parent, title):
+        # insert text
+        tags = ['code']
         try:
-            opepage = self.opepages[title]
-            self.popup_error("A page with that name already exists!")
-            return None
-        except KeyError:
-            opepage = Bunch.Bunch(name=title, title=title)
-            self.opepages[title] = opepage
+            tw.delete('1.0', 'end')
+        except:
+            pass
+        tw.insert('end', buf, tuple(tags))
 
-        # Add OPE File tab
-        page = parent.add(title, tab_text=title)
-        page.focus_set()
-        pagefr = parent.page(title)
+        tw.tag_configure('code', foreground="black")
 
-        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
+        #tw.tag_raise('code')
+
+
+    def load(self, filepath, buf):
+        self.loadbuf(buf)
+        self.filepath = filepath
+        lw = self.txt.component('label')
+        lw.config(text=filepath)
+
+        
+    def reload(self):
+        try:
+            in_f = open(self.filepath, 'r')
+            buf = in_f.read()
+            in_f.close()
+        except IOError, e:
+            # ? raise exception instead ?
+            return gui.popup_error("Cannot write '%s': %s" % (
+                    self.filepath, str(e)))
+
+        self.loadbuf(buf)
+
+
+    def save(self):
+        # TODO: make backup?
+
+        dirname, filename = os.path.split(self.filepath)
+
+        res = tkMessageBox.askokcancel("Save file", 
+                                       'Really save "%s"?' % filename)
+        if not res:
+            return
+
+        # get text widget
+        tw = self.tw
+        buf = tw.get('1.0', 'end')
+
+        try:
+            out_f = open(self.filepath, 'w')
+            out_f.write(buf)
+            out_f.close()
+            #self.statusMsg("%s saved." % self.filepath)
+        except IOError, e:
+            return gui.popup_error("Cannot write '%s': %s" % (
+                    self.filepath, str(e)))
+
+
+    def close(self):
+        if self.modified:
+            res = tkMessageBox.askokcancel("Close Tab",
+                                           'Really close tab "%s"?' % (
+                    self.title))
+            if not res:
+                return
+
+        super(CodePage, self).close()
+
+
+class OpePage(CodePage):
+
+    def __init__(self, frame, name, title):
+
+        super(OpePage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
                                rowheader=True,
                                rowheader_width=1,
                                rowheader_padx=2, rowheader_pady=5,
@@ -306,149 +210,350 @@ class IntegGUI(object):
                                vscrollmode='dynamic', hscrollmode='dynamic',
                                Header_foreground = 'blue')
 
-        tw = txt.component('text')
-        tw.configure(padx=5, pady=5, highlightthickness=0)
-        rw = txt.component('rowheader')
-        rw.configure(highlightthickness=0)
+        self.txt = txt
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+        self.rw = txt.component('rowheader')
+        self.rw.configure(highlightthickness=0)
+
         txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
 
-        opepage.txt = txt
-        opepage.tw = tw
-        opepage.rw = rw
-        opepage.queue = 'executer'
-        opepage.modified = True
-        opepage.parent = parent
+        self.btn_execute = Tkinter.Button(self.btns, text="Exec",
+                                          width=10,
+                                          activebackground="#089D20",
+                                          activeforeground="#FFFF00",
+                                          command=lambda: gui.execute(self))
+        self.btn_execute.pack(padx=5, pady=4, side=Tkinter.LEFT)
+
+        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
+                                        width=10,
+                                        command=self.pause,
+                                        activebackground="#089D20",
+                                        activeforeground="#FFFF00")
+        self.btn_pause.pack(padx=5, pady=4, side=Tkinter.LEFT)
+
+        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
+                                         width=10,
+                                         command=self.cancel,
+                                         activebackground="#089D20",
+                                         activeforeground="#FFFF00")
+        self.btn_cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
+
+        self.btn_kill = Tkinter.Button(self.btns, text="Restart TM",
+                                       width=10,
+                                       command=self.kill,
+                                       activebackground="#089D20",
+                                       activeforeground="#FFFF00")
+        self.btn_kill.pack(padx=5, pady=4, side=Tkinter.LEFT)
+
+        self.queueName = 'executer'
+
+
+    def loadbuf(self, buf):
+
+        super(OpePage, self).loadbuf(buf)
+
+        lines = buf.split('\n')
+        header = '\n' * len(lines)
+        hw = self.txt.component('rowheader')
+        hw.delete('1.0', 'end')
+        hw.insert('end', header)
+
+
+    def load(self, filepath, buf):
+
+        super(OpePage, self).load(filepath, buf)
+
+        name, ext = os.path.splitext(self.filepath)
+        ext = ext.lower()
+
+        if ext in ('.ope', '.cd'):
+            self.color()
+
+
+    def color(self):
+        tw = self.tw
+
+        def addtags(lineno, tags):
+            for tag in tags:
+                tw.tag_add(tag, '%d.0 linestart' % lineno,
+                           '%d.0 lineend' % lineno)
+            
+        buf = tw.get('1.0', 'end')
+        lineno = 1
+        for line in buf.split('\n'):
+            line = line.strip()
+            if line.startswith('###'):
+                addtags(lineno, ['comment3'])
+        
+            elif line.startswith('##'):
+                addtags(lineno, ['comment2'])
+        
+            elif line.startswith('#'):
+                addtags(lineno, ['comment1'])
+
+            lineno += 1
+
+        tw.tag_configure('comment3', foreground="indian red")
+        tw.tag_configure('comment2', foreground="saddle brown")
+        tw.tag_configure('comment1', foreground="dark green")
+
+        #tw.tag_lower('code')
+
+
+    def kill(self):
+        #controller = self.parent.get_controller()
+        controller.tm_restart()
+
+    def cancel(self):
+        #controller = self.parent.get_controller()
+        controller.tm_cancel(self.queueName)
+
+    def pause(self):
+        #controller = self.parent.get_controller()
+        controller.tm_pause(self.queueName)
+
+
+class SkPage(CodePage):
+
+    def __init__(self, frame, name, title):
+        super(SkPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
+                               labelpos='n', label_text=title,
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+
+        self.txt = txt
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+
+        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+
+
+class TaskPage(CodePage):
+
+    def __init__(self, frame, name, title):
+        super(TaskPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
+                               labelpos='n', label_text=title,
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+
+        self.txt = txt
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+
+        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+
+                               
+class DDCommandPage(Page):
+
+    def __init__(self, frame, name, title):
+
+        super(DDCommandPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
+                               labelpos='n', label_text=title,
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+        self.txt = txt
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+
+        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
 
         # bottom buttons
-        btns = Tkinter.Frame(pagefr) 
+        btns = Tkinter.Frame(frame) 
+        self.btns = btns
 
-        opepage.execute = Tkinter.Button(btns, text="Exec",
-                                     width=10,
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00",
-                                     command=lambda: self.execute(opepage))
-        opepage.execute.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_close = Tkinter.Button(btns, text="Close",
+                                    width=10,
+                                    command=self.close,
+                                    activebackground="#089D20",
+                                    activeforeground="#FFFF00")
+        self.btn_close.pack(padx=5, pady=4, side=Tkinter.RIGHT)
 
-        opepage.pause = Tkinter.Button(btns, text="Pause",
-                                     width=10,
-                                     command=lambda: self.pause(opepage),
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.pause.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_execute = Tkinter.Button(self.btns, text="Exec",
+                                          width=10,
+                                          activebackground="#089D20",
+                                          activeforeground="#FFFF00",
+                                          command=lambda: gui.execute_dd(self))
+        self.btn_execute.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
-        opepage.cancel = Tkinter.Button(btns, text="Cancel",
-                                     width=10,
-                                     command=lambda: self.cancel(opepage),
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
+                                        width=10,
+                                        command=self.pause,
+                                        activebackground="#089D20",
+                                        activeforeground="#FFFF00")
+        self.btn_pause.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
-        opepage.kill = Tkinter.Button(btns, text="Restart TM",
-                                     width=10,
-                                     command=self.kill,
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.kill.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
+                                         width=10,
+                                         command=self.cancel,
+                                         activebackground="#089D20",
+                                         activeforeground="#FFFF00")
+        self.btn_cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
-        opepage.save = Tkinter.Button(btns, text="Save",
-                                     width=10,
-                                     command=lambda: self.save_ope(opepage),
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.save.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_kill = Tkinter.Button(self.btns, text="Restart TM",
+                                       width=10,
+                                       command=self.kill,
+                                       activebackground="#089D20",
+                                       activeforeground="#FFFF00")
+        self.btn_kill.pack(padx=5, pady=4, side=Tkinter.LEFT)
 
-        opepage.reload = Tkinter.Button(btns, text="Reload",
-                                     width=10,
-                                     command=lambda: self.reload_ope(opepage),
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.reload.pack(padx=5, pady=4, side=Tkinter.LEFT)
-
-        opepage.close = Tkinter.Button(btns, text="Close",
-                                     width=10,
-                                     command=lambda: self.close(opepage),
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        opepage.close.pack(padx=5, pady=4, side=Tkinter.LEFT)
-
-##         btns.grid(row=1, column=0, sticky='we')
-##         pagefr.rowconfigure(0, weight=1)
-##         pagefr.columnconfigure(0, weight=10)
-##         pagefr.rowconfigure(1, weight=0)
-##         pagefr.columnconfigure(1, weight=10)
         btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
                   expand=False)
 
-        #self.w.execnb.setnaturalsize()
-        parent.selectpage(title)
-        return opepage
+        self.queueName = 'executer'
+
+    def kill(self):
+        #controller = self.parent.get_controller()
+        controller.tm_restart()
+
+    def cancel(self):
+        #controller = self.parent.get_controller()
+        controller.tm_cancel(self.queueName)
+
+    def pause(self):
+        #controller = self.parent.get_controller()
+        controller.tm_pause(self.queueName)
 
 
-    def add_launcher(self, parent):
-        pass
+class ObsInfoPage(Page):
 
-    def add_obsinfo(self, parent):
-        page = parent.add('obsinfo', tab_text='Info')
-        page.focus_set()
-        pagefr = parent.page('obsinfo')
+    def __init__(self, frame, name, title):
 
-        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
+        super(ObsInfoPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
                                #labelpos='n', label_text='FITS Data Frames',
                                vscrollmode='dynamic', hscrollmode='dynamic')
-        self.w.obstext = txt
+        self.txt = txt
 
-        tw = txt.component('text')
-        tw.configure(padx=5, pady=3, highlightthickness=0)
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=3, highlightthickness=0)
 
-        tw.insert('0.1', '\n' * 10)
+        self.tw.insert('0.1', '\n' * 10)
 
         txt.pack(fill='both', expand=True, padx=4, pady=4)
 
-    def add_frame_journal(self, parent):
-        
-        page = parent.add('frames', tab_text='Frames')
-        page.focus_set()
-        pagefr = parent.page('frames')
 
-        txt = Pmw.ScrolledText(pagefr, text_wrap='none',
+    def update_obsinfo(self, obsdict):
+
+        self.logger.debug("obsinfo update: %s" % str(obsdict))
+
+        if obsdict.has_key('PROP-ID'):
+            update_line(self.tw, 1, 'Prop-Id: %s' % obsdict['PROP-ID'])
+        if obsdict.has_key('TIMER_SEC'):
+            self.set_timer(obsdict['TIMER_SEC'])
+        
+        offset = 2
+        for i in xrange(1, 6):
+            try:
+                val = str(obsdict['OBSINFO%d' % i])
+                update_line(self.tw, i+offset, val)
+            except KeyError:
+                continue
+
+
+    def set_timer(self, val):
+        self.logger.debug("val = %s" % str(val))
+        val = int(val)
+        self.logger.debug("val = %d" % val)
+        if val <= 0:
+            return
+        self.timer_val = val + 1
+        self.logger.debug("timer_val = %d" % self.timer_val)
+        # READ GLOBAL VAR
+        self.timer_interval(gui.w.root)
+
+
+    def timer_interval(self, rootw):
+        self.logger.debug("timer: %d sec" % self.timer_val)
+        self.timer_val -= 1
+        update_line(self.tw, 2, 'Timer: %s' % str(self.timer_val))
+        if self.timer_val > 0:
+            rootw.after(1000, self.timer_interval, rootw)
+        else:
+            # Do something when timer expires?
+            pass
+        
+
+class FramesPage(Page):
+
+    def __init__(self, frame, name, title):
+
+        super(FramesPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
                                columnheader=True,
                                columnheader_width=1,
                                columnheader_padx=5, columnheader_pady=3,
                                labelpos='n', label_text='FITS Data Frames',
                                vscrollmode='dynamic', hscrollmode='dynamic')
-        # ???
-        self.w.jnltext = txt
+        self.txt = txt
 
-        tw = txt.component('text')
-        tw.configure(padx=5, pady=3, highlightthickness=0)
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=3, highlightthickness=0)
 
-        cw = txt.component('columnheader')
-        cw.configure(highlightthickness=0)
+        self.cw = txt.component('columnheader')
+        self.cw.configure(highlightthickness=0)
 
         txt.pack(fill='both', expand=True, padx=4, pady=4)
 
+
+    def update_frame(self, frameinfo):
+        self.logger.debug("UPDATE FRAME: %s" % str(frameinfo))
+        tw = self.tw
+
+        frameid = frameinfo.frameid
+        with self.lock:
+            if hasattr(frameinfo, 'row'):
+                row = frameinfo.row
+                #index = tw.index(frameid)
+                index = 'none'
+                self.logger.debug("row=%d index=%s" % (row, index))
+                tw.delete('%s.first' % frameid, '%s.last' % frameid)
+                tw.insert('%d.0' % row, fits.format_str % frameinfo,
+                          (frameid,))
+
+            else:
+                row, col = str(tw.index('end')).split('.')
+                row = int(row)
+                self.logger.debug("row is %d" % row)
+                frameinfo.row = row
+                tw.insert('end', fits.format_str % frameinfo,
+                          (frameid,))
+
         
-    def setPos(self, geom):
-        self.w.root.geometry(geom)
+    def update_frames(self, framelist):
 
-    def closelog(self, w):
-        # close log window
-        self.w.log.withdraw()
+        # Create header
+        self.cw.delete('1.0', 'end')
+        self.cw.insert('1.0', fits.header)
+
+        # Delete frames text
+        self.tw.delete('1.0', 'end')
         
-    def showlog(self):
-        # open log window
-         self.w.log.show()
+        # add frames
+        for frameinfo in framelist:
+            self.update_frame(frameinfo)
 
-    def logupdate(self):
-        try:
-            while True:
-                msgstr = self.logqueue.get(block=False)
 
-                self.w.log.insert('end', msgstr + '\n')
+class skMonitorPage(Page):
 
-        except Queue.Empty:
-            self.w.root.after(200, self.logupdate)
-    
+    def __init__(self, frame, name, title):
+
+        super(skMonitorPage, self).__init__(frame, name, title)
+
+        self.nb = Pmw.NoteBook(frame, tabpos='n')
+        self.nb.pack(padx=2, pady=2, fill='both', expand=1)
+
+        self.track = {}
+        self.pages = {}
+        self.pagelist = []
+        self.pagelimit = 10
+
+
     def insert_ast(self, tw, text):
 
         def insert(text, tags):
@@ -488,121 +593,16 @@ class IntegGUI(object):
         insert(text, ['code'])
         tw.tag_raise('code')
 
-    def _load_ope(self, opepage, buf):
-
-        # get text widget
-        tw = opepage.tw
-
-        # insert text
-        tags = ['code']
-        try:
-            tw.delete('1.0', 'end')
-        except:
-            pass
-        tw.insert('end', buf, tuple(tags))
-
-        lines = buf.split('\n')
-        header = '\n' * len(lines)
-        hw = opepage.txt.component('rowheader')
-        hw.delete('1.0', 'end')
-        hw.insert('end', header)
-
-        tw.tag_configure('code', foreground="black")
-        tw.tag_raise('code')
-
-    def gui_load_ope(self):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-        
-        filepath = tkFileDialog.askopenfilename(title="Load OPE file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
-
-        self.load_ope(filepath)
-                               
-    def gui_load_sk(self):
-        initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
-                                  'SkPara', 'sk')
-        
-        filepath = tkFileDialog.askopenfilename(title="Load sk file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
-
-        self.load_ope(filepath)
-                               
-    def gui_load_task(self):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
-        
-        filepath = tkFileDialog.askopenfilename(title="Load task file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
-
-        self.load_ope(filepath)
-                               
-    def load_ope(self, filepath):
-
-        opedir, opefile = os.path.split(filepath)
-        try:
-            in_f = open(filepath, 'r')
-            buf = in_f.read()
-            in_f.close()
-        except IOError, e:
-            return self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-
-        opepage = self.add_ope_executor(self.w.execnb, opefile)
-        if opepage != None:
-            opepage.filepath = filepath
-            self._load_ope(opepage, buf)
-        
-    def reload_ope(self, opepage):
-        try:
-            in_f = open(opepage.filepath, 'r')
-            buf = in_f.read()
-            in_f.close()
-        except IOError, e:
-            return self.popup_error("Cannot reload '%s': %s" % (
-                    opepage.filepath, str(e)))
-
-        self._load_ope(opepage, buf)
-
-    def save_ope(self, opepage):
-        # TODO: make backup?
-
-        opedir, opefile = os.path.split(opepage.filepath)
-
-        res = tkMessageBox.askokcancel("Save file", 
-                                       'Really save "%s"?' % opefile)
-        if not res:
-            return
-
-        # get text widget
-        tw = opepage.tw
-        buf = tw.get('1.0', 'end')
-
-        try:
-            out_f = open(opepage.filepath, 'w')
-            out_f.write(buf)
-            out_f.close()
-            self.statusMsg("%s saved." % opepage.filepath)
-        except IOError, e:
-            return self.popup_error("Cannot write '%s': %s" % (
-                    opepage.filepath, str(e)))
-
 
     def astIdtoTitle(self, ast_id):
         page = self.pages[ast_id]
         return page.title
         
     def delpage(self, ast_id):
-        #title = self.astIdtoTitle(ast_id)
-        self.w.infonb.delete(ast_id)
-        del self.pages[ast_id]
+        with self.lock:
+            #title = self.astIdtoTitle(ast_id)
+            self.nb.delete(ast_id)
+            del self.pages[ast_id]
 
     def addpage(self, ast_id, title, text):
         with self.lock:
@@ -612,20 +612,18 @@ class IntegGUI(object):
                 oldast_id = self.pagelist.pop(0)
                 self.delpage(oldast_id)
                 
-            page = self.w.infonb.add(ast_id, tab_text=title)
+            page = self.nb.add(ast_id, tab_text=title)
             #page.focus_set()
 
             txt = Pmw.ScrolledText(page, text_wrap='none',
                                    vscrollmode='dynamic', hscrollmode='dynamic')
-
             tw = txt.component('text')
-            tw.configure(
-                         borderwidth=2, padx=10, pady=5)
+            tw.configure(borderwidth=2, padx=10, pady=5)
 
             self.insert_ast(tw, text)
             txt.pack(fill='both', expand=True, padx=4, pady=4)
 
-            self.w.infonb.setnaturalsize()
+            self.nb.setnaturalsize()
 
             try:
                 page = self.pages[ast_id]
@@ -635,282 +633,7 @@ class IntegGUI(object):
                 self.pages[ast_id] = Bunch.Bunch(tw=tw, title=title)
 
             self.pagelist.append(ast_id)
-            #self.w.infonb.selectpage(ast_id)
-
-        
-    def parsefile(self, filepath):
-        bnch = self.parser.parse_skfile(filepath)
-        if bnch.errors == 0:
-            (path, filename) = os.path.split(filepath)
-
-            text = self.issue.issue(bnch.ast, [])
-            print text
-            #print dir(txt)
-            self.addpage(filename, filename, text)
-            
-        
-    def popup_error(self, errstr):
-        tkMessageBox.showerror("IntegGUI Error", errstr)
-
-    
-
-    def update_frame(self, frameinfo):
-        self.logger.debug("UPDATE FRAME: %s" % str(frameinfo))
-        tw = self.w.jnltext.component('text')
-
-        frameid = frameinfo.frameid
-        with self.lock:
-            if hasattr(frameinfo, 'row'):
-                row = frameinfo.row
-                #index = tw.index(frameid)
-                index = 'none'
-                self.logger.debug("row=%d index=%s" % (row, index))
-                tw.delete('%s.first' % frameid, '%s.last' % frameid)
-                tw.insert('%d.0' % row, fits.format_str % frameinfo,
-                          (frameid,))
-
-            else:
-                row, col = str(tw.index('end')).split('.')
-                row = int(row)
-                self.logger.debug("row is %d" % row)
-                frameinfo.row = row
-                tw.insert('end', fits.format_str % frameinfo,
-                          (frameid,))
-        
-    def update_frames(self, framelist):
-
-        tw = self.w.jnltext.component('text')
-        tw.delete('1.0', 'end')
-        
-        # Create header
-        cw = self.w.jnltext.component('columnheader')
-        cw.insert('1.0', fits.header)
-
-        for frameinfo in framelist:
-            self.update_frame(frameinfo)
-
-    def update_obsinfo(self, obsdict):
-
-        self.logger.debug("obsinfo update: %s" % str(obsdict))
-        tw = self.w.obstext.component('text')
-
-        if obsdict.has_key('PROP-ID'):
-            update_line(tw, 1, 'Prop-Id: %s' % obsdict['PROP-ID'])
-        if obsdict.has_key('TIMER_SEC'):
-            self.set_timer(obsdict['TIMER_SEC'])
-        
-        offset = 2
-        for i in xrange(1, 6):
-            try:
-                val = str(obsdict['OBSINFO%d' % i])
-                update_line(tw, i+offset, val)
-            except KeyError:
-                continue
-
-    def set_timer(self, val):
-        self.logger.debug("val = %s" % str(val))
-        val = int(val)
-        self.logger.debug("val = %d" % val)
-        if val <= 0:
-            return
-        self.timer_val = val + 1
-        self.logger.debug("timer_val = %d" % self.timer_val)
-        self.timer_interval(self.w.root)
-
-    def timer_interval(self, w):
-        self.logger.debug("timer: %d sec" % self.timer_val)
-        self.timer_val -= 1
-        tw = self.w.obstext.component('text')
-        update_line(tw, 2, 'Timer: %s' % str(self.timer_val))
-        if self.timer_val > 0:
-            self.w.root.after(1000, self.timer_interval, [])
-        else:
-            # Do something when timer expires?
-            pass
-        
-    def quit(self):
-        # TODO: check for unsaved buffers
-        self.ev_quit.set()
-        sys.exit(0)
-
-
-    def close(self, opepage):
-        if opepage.modified:
-            res = tkMessageBox.askokcancel("Close Tab",
-                                           'Really close tab "%s"?' % (
-                    opepage.title))
-            if not res:
-                return
-
-        opepage.parent.delete(opepage.name)
-
-    def kill(self):
-        self.controller.tm_restart()
-
-    def cancel(self, opepage):
-        self.controller.tm_cancel(opepage.queue)
-
-    def pause(self, opepage):
-        self.controller.tm_pause(opepage.queue)
-
-
-    def execute(self, opepage):
-        """Callback when the EXEC button is pressed.
-        """
-        # Check whether we are busy executing a command here
-        # and popup an error message if so
-        if self.executing.isSet():
-            self.popup_error("Commands are executing!")
-            return
-
-        tw = opepage.tw
-        self.clear_marks(opepage)
-
-        try:
-            # Get the range of text selected
-            first = tw.index(Tkinter.SEL_FIRST)
-            frow, fcol = str(first).split('.')
-                        
-            last = tw.index(Tkinter.SEL_LAST)
-            lrow, lcol = str(last).split('.')
-
-            # flush queue--selection will override
-            while len(self.queue.executer) > 0:
-                bnch = self.queue.executer.pop(0)
-
-        except Exception, e:
-            if len(self.queue.executer) > 0:
-                self.executing.set()
-            else:
-                self.popup_error("No queued commands and no mouse selection!")
-            return
-
-        # Break selection into individual lines
-        tags = []
-        frow = int(frow)
-
-        for i in xrange(int(lrow)+1-frow):
-
-            row = frow+i
-
-            # skip comments and blank lines
-            cmd = tw.get('%d.0linestart' % row, '%d.0lineend' % row)
-            if cmd.startswith('#') or (len(cmd) == 0):
-                continue
-            self.logger.debug("cmd=%s" % (cmd))
-
-            # tag the text so we can manipulate it later
-            tag = 'exec%d' % self.cmdcount
-            self.cmdcount += 1
-            tw.tag_add(tag, '%d.0linestart' % row, '%d.0lineend' % row)
-
-            tags.append(Bunch.Bunch(tag=tag, opepage=opepage))
-
-        # deselect the region
-        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
-
-        # Add tags to queue
-        with self.lock:
-            self.queue.executer.extend(tags)
-            self.logger.debug("Queue 'executer': %s" % (self.queue.executer))
-
-        # Enable executor thread to proceed
-        self.executing.set()
-            
-    def get_opecmd(self, bnch):
-        """Called to get a command string from the GUI.
-        """
-
-        # Get the entire OPE buffer
-        tw = bnch.opepage.tw
-        opebuf = tw.get('1.0', 'end')
-
-        # Now get the command
-        cmdstr = tw.get('%s.first' % bnch.tag, '%s.last' % bnch.tag)
-
-        # Resolve all variables/macros
-        try:
-            self.logger.debug("Unprocessed command is: %s" % cmdstr)
-            p_cmdstr = ope.getCmd(opebuf, cmdstr)
-            self.logger.debug("Processed command is: %s" % p_cmdstr)
-
-            return p_cmdstr
-
-        except Exception, e:
-            errstr = "Error parsing command: %s" % (str(e))
-            raise Exception(errstr)
-            
-
-    def clear_marks(self, opepage):
-        rw = opepage.rw
-        rw.delete('1.0', 'end')
-
-    def mark_exec(self, bnch, char):
-
-        # Get the entire OPE buffer
-        tw = bnch.opepage.tw
-        row, col = str(tw.index('end')).split('.')
-        len = int(row)
-        index = tw.index('%s.first' % bnch.tag)
-
-        rw = bnch.opepage.rw
-        rw.delete('1.0', 'end')
-        rw.insert('1.0', '\n' * len)
-
-        rw.insert(index, char)
-
-
-    def get_queue(self, queueName):
-
-        if not self.executing.isSet():
-            raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
-
-        with self.lock:
-            try:
-                bnch = self.queue[queueName][0]
-            except IndexError:
-                raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
-
-        cmdstr = self.get_opecmd(bnch)
-
-        #self.clear_marks()
-        self.mark_exec(bnch, 'X')
-        
-        return bnch, cmdstr
-
-
-    def feedback_noerror(self, queueName, bnch, res):
-
-        self.mark_exec(bnch, 'D')
-        #self.make_sound(cmd_ok)
-        
-        # Remove tagged command
-        with self.lock:
-            try:
-                self.queue[queueName].remove(bnch)
-            except ValueError:
-                pass
-
-            if len(self.queue[queueName]) == 0:
-                self.executing.clear()
-
-                # Bing Bong!
-                self.playSound(sound.success)
-
-           
-    def feedback_error(self, queueName, bnch, e):
-
-        if bnch:
-            self.mark_exec(bnch, 'E')
-
-        #self.make_sound(cmd_err)
-        self.executing.clear()
-       
-        #self.w.root.after(100, self.popup_error, [str(e)])
-        self.statusMsg(str(e))
-
-        # Peeeeeww!
-        self.playSound(sound.failure)
+            self.nb.selectpage(ast_id)
 
         
     def change_text(self, page, ast_num, **kwdargs):
@@ -927,7 +650,8 @@ class IntegGUI(object):
 
     def update_time(self, page, ast_num, vals, time_s):
 
-        if not self.show_times.get():
+        # GLOBAL VAR READ
+        if not gui.show_times.get():
             return
 
         if vals.has_key('time_added'):
@@ -936,40 +660,6 @@ class IntegGUI(object):
             
         vals['time_added'] = len(time_s)
         page.tw.insert('%s.first' % ast_num, time_s, (ast_num,))
-        
-
-    def audible_warn(self, cmd_str, vals):
-        """Called when we get a failed command and should/could issue an audible
-        error.  cmd_str, if not None, is the device dependent command that caused
-        the error.
-        """
-        self.logger.debug("Audible warning: %s" % cmd_str)
-        if not cmd_str:
-            return
-
-        if not self.audible_errors.get():
-            return
-
-        cmd_str = cmd_str.lower().strip()
-        match = re.match(r'^exec\s+(\w+)\s+.*', cmd_str)
-        if not match:
-            subsys = 'general'
-        else:
-            subsys = match.group(1)
-
-        #soundfile = 'g2_err_%s.au' % subsys
-        soundfile = 'E_ERR%s.au' % subsys.upper()
-        self.playSound(soundfile)
-
-
-    def playSound(self, soundfile):
-        soundpath = os.path.join(cfg.g2soss.producthome, 'file/Sounds', soundfile)
-        if os.path.exists(soundpath):
-            cmd = "OSST_audioplay %s" % (soundpath)
-            self.logger.debug(cmd)
-            res = os.system(cmd)
-        else:
-            self.logger.error("No such audio file: %s" % soundpath)
         
 
     def update_page(self, bnch):
@@ -1000,7 +690,8 @@ class IntegGUI(object):
                            (ast_num,))
             
             # audible warnings
-            self.audible_warn(cmd_str, vals)
+            # GLOBAL
+            gui.audible_warn(cmd_str, vals)
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):
@@ -1062,15 +753,17 @@ class IntegGUI(object):
                 title = self.time2str(vals['ast_time'])
 
                 # TODO: what if this page has already been deleted?
-                if self.save_decode_result.get():
+                # GLOBAL VAR READ
+                if gui.save_decode_result.get():
                     self.addpage(ast_id + '.decode', title, ast_str)
 
                 self.addpage(ast_id, title, ast_str)
 
             elif vals.has_key('ast_track'):
                 path = vals['ast_track']
-
-                curvals = self.controller.getvals(path)
+                
+                # GLOBAL VAR READ
+                curvals = controller.getvals(path)
                 if isinstance(curvals, dict):
                     vals.update(curvals)
                
@@ -1106,8 +799,633 @@ class IntegGUI(object):
             self.update_page(bnch)
             
 
+    def parsefile(self, filepath):
+        bnch = self.parser.parse_skfile(filepath)
+        if bnch.errors == 0:
+            (path, filename) = os.path.split(filepath)
+
+            text = self.issue.issue(bnch.ast, [])
+            print text
+            #print dir(txt)
+            self.addpage(filename, filename, text)
+            
+        
+class Workspace(object):
+    
+    def __init__(self, frame, name, title):
+        self.frame = frame
+        self.name = name
+        self.title = title
+
+        self.widget = Pmw.NoteBook(frame, tabpos='n')
+        self.widget.pack(padx=2, pady=2, fill='both', expand=1)
+
+        # Holds my pages
+        self.pages = {}
+        self.lock = threading.RLock()
+
+
+    def addpage(self, name, title, klass):
+        with self.lock:
+            try:
+                pageobj = self.pages[title]
+                raise Exception("A page with name '%s' already exists!" % name)
+
+            except KeyError:
+                pass
+
+            page = self.widget.add(name, tab_text=title)
+            page.focus_set()
+            pagefr = self.widget.page(name)
+
+            pageobj = klass(pagefr, name, title)
+
+            # Some attributes we force on our children
+            pageobj.logger = self.logger
+            # ?? cyclical reference causes problems for gc?
+            pageobj.parent = self
+
+            self.pages[name] = pageobj
+            
+            #self.widget.setnaturalsize()
+            self.widget.selectpage(name)
+            return pageobj
+
+        
+    def delpage(self, name):
+        with self.lock:
+            del self.pages[name]
+            
+            self.widget.delete(name)
+
+    def select(self, name):
+        self.widget.selectpage(name)
+
+
+      
+class Desktop(object):
+    
+    def __init__(self, frame, name, title):
+        self.frame = frame
+        self.name = name
+        self.title = title
+
+        # TODO: should generalize to number of rows and columns
+
+        paned = Pmw.PanedWidget(frame, orient='horizontal',
+                                handlesize=16) 
+        self.hframe = paned
+        paned.pack(fill='both', expand=True)
+
+        paned.add('lframe', size=0.35)
+        paned.add('rframe', size=0.65)
+        self.lframe = paned.pane('lframe')
+        self.rframe = paned.pane('rframe')
+
+        lpane = Pmw.PanedWidget(self.lframe, orient='vertical',
+                                handlesize=16)
+        self.lpane = lpane
+        lpane.add('ul')
+        lpane.add('ll')
+        lpane.pack(fill='both', expand=True)
+
+        rpane = Pmw.PanedWidget(self.rframe, orient='vertical',
+                                handlesize=16)
+        self.rpane = rpane
+        rpane.add('ur')
+        rpane.add('lr')
+        rpane.pack(fill='both', expand=True)
+
+        self.ws_fr = {
+            'll': lpane.pane('ll'),
+            'ul': lpane.pane('ul'),
+            'lr': rpane.pane('lr'),
+            'ur': rpane.pane('ur'),
+            }
+
+        self.ws = {}
+
+
+    def get_wsframe(self, name):
+        return self.ws_fr[name]
+
+    def addws(self, loc, name, title):
+
+        frame = self.get_wsframe(loc)
+
+        ws = Workspace(frame, name, title)
+        # Some attributes we force on our children
+        ws.logger = self.logger
+        
+        self.ws[name] = ws
+        return ws
+
+    def getws(self, name):
+        return self.ws[name]
+
+
+class IntegGUI(object):
+
+    def __init__(self, parent, logger, ev_quit, **kwdargs):
+
+        self.logger = logger
+        self.ev_quit = ev_quit
+
+        self.w = Bunch.Bunch()
+        self.w.root = parent
+        self.w.root.protocol("WM_DELETE_WINDOW", self.quit)
+
+        parent.tk_setPalette(background=color_bg,
+                             foreground='black')
+
+        #parent.option_add('*background', color_blue)
+        #parent.option_add('*foreground', 'black')
+        parent.option_add('*Text*background', color_white)
+        #parent.option_add('*Text*highlightthickness', 0)
+        parent.option_add('*Button*activebackground', '#089D20')
+        parent.option_add('*Button*activeforeground', '#FFFF00')
+
+        self.fixedFont = Pmw.logicalfont('Fixed')
+
+        parent.option_add('*Text*font', self.fixedFont)
+
+        self.w.mframe = Tkinter.Frame(self.w.root, padx=2, pady=2)
+
+        self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
+        # Some attributes we force on our children
+        self.ds.logger = logger
+
+        self.ojws = self.ds.addws('ul', 'obsjrn', "Observation Journal")
+        self.framepage = self.ojws.addpage('frames', "Frames", FramesPage)
+
+        self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
+
+        self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
+        self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
+        self.monpage = self.oiws.addpage('moninfo', "Monitor", skMonitorPage)
+        self.oiws.select('obsinfo')
+
+        self.exws = self.ds.addws('lr', 'executor', "Command Executers")
+        self.exws.addpage('ddcommands', "Commands", DDCommandPage)
+
+        #self.w.mframe.columnconfigure(0, weight=10)
+        #self.w.mframe.rowconfigure(0, weight=10)
+
+        #self.w.mframe.grid(column=0, row=0, sticky='wens')
+
+        self.w.mframe.pack(fill='both', expand=True)
+
+        self.add_menus()
+        self.add_dialogs()
+        self.closelog(self.w.log)
+        self.add_statusbar()
+
+        self.logger = logger
+        self.ev_quit = ev_quit
+        self.__dict__.update(kwdargs)
+        self.lock = threading.RLock()
+
+        # Used for tagging commands
+        self.cmdcount = 0
+
+        # command queues
+        self.queue = Bunch.Bunch(executer=[], launcher=[])
+        self.executing = threading.Event()
+
+
+    def add_menus(self):
+        menubar = Tkinter.Menu(self.w.root, relief='flat')
+
+        # create a pulldown menu, and add it to the menu bar
+        filemenu = Tkinter.Menu(menubar, tearoff=0)
+        filemenu.add('command', label="Load ope", command=self.gui_load_ope)
+        filemenu.add('command', label="Load sk", command=self.gui_load_sk)
+        filemenu.add('command', label="Load task", command=self.gui_load_task)
+        #filemenu.add('command', label="Show Log", command=self.showlog)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.quit)
+        menubar.add_cascade(label="File", menu=filemenu)
+
+        logmenu = Tkinter.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Logs", menu=logmenu)
+
+        optionmenu = Tkinter.Menu(menubar, tearoff=0)
+        self.save_decode_result = Tkinter.IntVar(0)
+        #self.save_decode_result.set(0)
+        optionmenu.add('checkbutton', label="Save Decode Result", 
+                       variable=self.save_decode_result)
+        self.show_times = Tkinter.IntVar(0)
+        #self.show_times.set(0)
+        optionmenu.add('checkbutton', label="Show Times", 
+                       variable=self.show_times)
+        self.audible_errors = Tkinter.IntVar(0)
+        self.audible_errors.set(1)
+        optionmenu.add('checkbutton', label="Audible Errors", 
+                       variable=self.audible_errors)
+        menubar.add_cascade(label="Option", menu=optionmenu)
+
+        self.w.root.config(menu=menubar)
+
+
+    def add_statusbar(self):
+        self.w.status = StatusBar(self.w.root, text="", 
+                                  relief='flat', anchor='w')
+        self.w.status.pack(side='bottom', fill='x')
+
+
+    def statusMsg(self, format, *args):
+        if not format:
+            self.w.status.clear()
+        else:
+            self.w.status.set(format, *args)
+
+
+    def add_dialogs(self):
+
+        # pop-up log file
+        self.w.log = Pmw.TextDialog(self.w.root, scrolledtext_labelpos='n',
+                                    title='Log',
+                                    buttons=('Close',),
+                                    defaultbutton=None,
+                                    command=self.closelog)
+                                    #label_text = 'Log')        
+        self.logqueue = Queue.Queue()
+        guiHdlr = ssdlog.QueueHandler(self.logqueue)
+        fmt = logging.Formatter(ssdlog.STD_FORMAT)
+        guiHdlr.setFormatter(fmt)
+        guiHdlr.setLevel(logging.INFO)
+        self.logger.addHandler(guiHdlr)
+
+
+    def setPos(self, geom):
+        self.w.root.geometry(geom)
+
+    def closelog(self, w):
+        # close log window
+        self.w.log.withdraw()
+        
+    def showlog(self):
+        # open log window
+         self.w.log.show()
+
+
+#     def set_controller(self, controller):
+#         self.controller = controller
+
+    def logupdate(self):
+        try:
+            while True:
+                msgstr = self.logqueue.get(block=False)
+
+                self.w.log.insert('end', msgstr + '\n')
+
+        except Queue.Empty:
+            self.w.root.after(200, self.logupdate)
+    
+    def popup_error(self, errstr):
+        tkMessageBox.showerror("IntegGUI Error", errstr)
+
+
+    def readfile(self, filepath):
+
+        in_f = open(filepath, 'r')
+        buf = in_f.read()
+        in_f.close()
+
+        return buf
+
+
+    def gui_load_ope(self):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load OPE file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            page = self.exws.addpage(filepath, filename, OpePage)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def gui_load_sk(self):
+        initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
+                                  'SkPara', 'sk')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load sk file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            page = self.exws.addpage(filepath, filename, SkPage)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+                               
+
+    def gui_load_task(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load task file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            page = self.exws.addpage(filepath, filename, TaskPage)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def quit(self):
+        # TODO: check for unsaved buffers
+        self.ev_quit.set()
+        sys.exit(0)
+
+
+    def execute(self, opepage):
+        """Callback when the EXEC button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        # and popup an error message if so
+        if self.executing.isSet():
+            self.popup_error("Commands are executing!")
+            return
+
+        tw = opepage.tw
+        #self.clear_marks(opepage)
+
+        try:
+            # Get the range of text selected
+            first = tw.index(Tkinter.SEL_FIRST)
+            frow, fcol = str(first).split('.')
+                        
+            last = tw.index(Tkinter.SEL_LAST)
+            lrow, lcol = str(last).split('.')
+
+            # flush queue--selection will override
+            while len(self.queue.executer) > 0:
+                bnch = self.queue.executer.pop(0)
+
+        except Exception, e:
+            if len(self.queue.executer) > 0:
+                self.executing.set()
+            else:
+                self.popup_error("No queued commands and no mouse selection!")
+            return
+
+        # Break selection into individual lines
+        tags = []
+        frow = int(frow)
+
+        for i in xrange(int(lrow)+1-frow):
+
+            row = frow+i
+
+            # skip comments and blank lines
+            cmd = tw.get('%d.0linestart' % row, '%d.0lineend' % row)
+            if cmd.startswith('#') or (len(cmd) == 0):
+                continue
+            self.logger.debug("cmd=%s" % (cmd))
+
+            # tag the text so we can manipulate it later
+            tag = 'exec%d' % self.cmdcount
+            self.cmdcount += 1
+            tw.tag_add(tag, '%d.0linestart' % row, '%d.0lineend' % row)
+
+            tags.append(Bunch.Bunch(tag=tag, opepage=opepage))
+
+        # deselect the region
+        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
+
+        # Add tags to queue
+        with self.lock:
+            self.queue.executer.extend(tags)
+            #self.logger.debug("Queue 'executer': %s" % (self.queue.executer))
+
+        # Enable executor thread to proceed
+        self.executing.set()
+
+            
+    def execute_dd(self, opepage):
+        """Callback when the EXEC button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        # and popup an error message if so
+        if self.executing.isSet():
+            self.popup_error("Commands are executing!")
+            return
+
+        tw = opepage.tw
+
+        # tag the text so we can manipulate it later
+        tag = 'dd%d' % self.cmdcount
+        self.cmdcount += 1
+        tw.tag_add(tag, '1.0', 'end')
+
+        tags = [Bunch.Bunch(tag=tag, opepage=opepage)]
+
+        # deselect the region
+        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
+
+        # Add tags to queue
+        with self.lock:
+            self.queue.executer.extend(tags)
+            #self.logger.debug("Queue 'executer': %s" % (self.queue.executer))
+
+        # Enable executor thread to proceed
+        self.executing.set()
+
+            
+    def get_opecmd(self, bnch):
+        """Called to get a command string from the GUI.
+        """
+
+        # Get the entire OPE buffer
+        tw = bnch.opepage.tw
+        opebuf = tw.get('1.0', 'end')
+
+        # Now get the command
+        cmdstr = tw.get('%s.first' % bnch.tag, '%s.last' % bnch.tag)
+
+        # Is this an ope page or a dd cmd page?
+        if bnch.tag.startswith('dd'):
+            return cmdstr
+
+        # Resolve all variables/macros
+        try:
+            self.logger.debug("Unprocessed command is: %s" % cmdstr)
+            p_cmdstr = ope.getCmd(opebuf, cmdstr)
+            self.logger.debug("Processed command is: %s" % p_cmdstr)
+
+            return p_cmdstr
+
+        except Exception, e:
+            errstr = "Error parsing command: %s" % (str(e))
+            raise Exception(errstr)
+            
+
+    def clear_marks(self, opepage):
+        rw = opepage.rw
+        rw.delete('1.0', 'end')
+
+
+    def mark_exec(self, bnch, char, queueName):
+
+        if bnch.tag.startswith('dd'):
+            return
+
+        # Get the entire OPE buffer
+        tw = bnch.opepage.tw
+        row, col = str(tw.index('end')).split('.')
+        len = int(row)
+        index = tw.index('%s.first' % bnch.tag)
+
+        rw = bnch.opepage.rw
+        #rw.delete('1.0', 'end')
+        #rw.insert('1.0', '\n' * len)
+
+        rw.insert(index, char)
+
+        for nbnch in self.queue[queueName][1:]:
+            index = tw.index('%s.first' % nbnch.tag)
+            rw.insert(index, 'S')
+
+
+    def get_queue(self, queueName):
+
+        if not self.executing.isSet():
+            raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
+
+        with self.lock:
+            try:
+                bnch = self.queue[queueName][0]
+            except IndexError:
+                raise igctrl.QueueEmpty('Queue %s is empty' % queueName)
+
+        cmdstr = self.get_opecmd(bnch)
+
+        #self.clear_marks()
+        self.mark_exec(bnch, 'X', queueName)
+        
+        return bnch, cmdstr
+
+
+    def feedback_noerror(self, queueName, bnch, res):
+
+        self.mark_exec(bnch, 'D', queueName)
+        #self.make_sound(cmd_ok)
+        
+        # Remove tagged command
+        with self.lock:
+            try:
+                self.queue[queueName].remove(bnch)
+            except ValueError:
+                pass
+
+            if len(self.queue[queueName]) == 0:
+                self.executing.clear()
+
+                # Bing Bong!
+                self.playSound(sound.success)
+
+           
+    def feedback_error(self, queueName, bnch, e):
+
+        self.executing.clear()
+
+        if bnch:
+            self.mark_exec(bnch, 'E', queueName)
+
+            # reselect the region
+            #tw = bnch.opepage.tw
+            #for nbnch in self.queue[queueName]:
+            #    tw.tag_add(Tkinter.SEL, 
+            #               '%s.first' % nbnch.tag,
+            #               '%s.last' % nbnch.tag)
+
+        self.w.root.after(100, self.popup_error, [str(e)])
+        #self.statusMsg(str(e))
+
+        # Peeeeeww!
+        self.playSound(sound.failure)
+
+        
+    def audible_warn(self, cmd_str, vals):
+        """Called when we get a failed command and should/could issue an audible
+        error.  cmd_str, if not None, is the device dependent command that caused
+        the error.
+        """
+        self.logger.debug("Audible warning: %s" % cmd_str)
+        if not cmd_str:
+            return
+
+        if not self.audible_errors.get():
+            return
+
+        cmd_str = cmd_str.lower().strip()
+        match = re.match(r'^exec\s+(\w+)\s+.*', cmd_str)
+        if not match:
+            subsys = 'general'
+        else:
+            subsys = match.group(1)
+
+        #soundfile = 'g2_err_%s.au' % subsys
+        soundfile = 'E_ERR%s.au' % subsys.upper()
+        self.playSound(soundfile)
+
+
+    def playSound(self, soundfile):
+        soundpath = os.path.join(cfg.g2soss.producthome, 'file/Sounds', soundfile)
+        if os.path.exists(soundpath):
+            cmd = "OSST_audioplay %s" % (soundpath)
+            self.logger.debug(cmd)
+            res = os.system(cmd)
+        else:
+            self.logger.error("No such audio file: %s" % soundpath)
+        
+
+    def update_obsinfo(self, infodict):
+        self.logger.info("OBSINFO=%s" % str(infodict))
+        self.obsinfo.update_obsinfo(infodict)
+
+    
+    def process_ast(self, ast_id, vals):
+        self.monpage.process_ast(ast_id, vals)
+
+    def process_task(self, path, vals):
+        self.monpage.process_task(path, vals)
+
+
 def main(options, args):
     
+    global controller, gui
+
     # Create top level logger.
     logger = ssdlog.make_logger('integgui2', options)
 
@@ -1134,7 +1452,7 @@ def main(options, args):
     controller = igctrl.IntegController(logger, ev_quit, mymon,
                                         options)
 
-    gui.set_controller(controller)
+    #gui.set_controller(controller)
     controller.set_view(gui)
 
     # Configure for currently allocated instrument
@@ -1149,8 +1467,8 @@ def main(options, args):
     gui.logupdate()
 
     # Subscribe our callback functions to the local monitor
-    channels = [options.taskmgr, 'g2task']
     # Task info
+    channels = [options.taskmgr, 'g2task']
     mymon.subscribe_cb(controller.arr_taskinfo, controller.arr_taskinfo, 
                        channels)
     
@@ -1168,7 +1486,7 @@ def main(options, args):
     # TODO: sessions
 
     # Create network callable object for notifications
-    notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
+    notify_obj = fits.IntegGUINotify(gui.framepage, options.fitsdir)
     notify_obj.update_framelist()
     
     svc = ro.remoteObjectServer(svcname=options.svcname,
@@ -1178,8 +1496,8 @@ def main(options, args):
                                 usethread=True)
     
     # Load any files specified on the command line
-    for opefile in args:
-        gui.load_ope(opefile)
+    #for opefile in args:
+    #    gui.load_ope(opefile)
 
     server_started = False
     ro_server_started = False
