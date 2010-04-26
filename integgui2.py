@@ -29,6 +29,7 @@ import ssdlog
 # Local integgui2 imports
 import ope, fits
 import controller as igctrl
+import launcher
 
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
@@ -83,7 +84,7 @@ class Page(object):
 
     def close(self):
         # parent attribute is added by parent workspace
-        self.parent.delpage(name)
+        self.parent.delpage(self.name)
 
 
 class CodePage(Page):
@@ -810,6 +811,27 @@ class skMonitorPage(Page):
             self.addpage(filename, filename, text)
             
         
+class LauncherPage(Page):
+
+    def __init__(self, frame, name, title):
+        super(LauncherPage, self).__init__(frame, name, title)
+
+        self.fr = Pmw.ScrolledFrame(frame, 
+                               #labelpos='n', label_text=title,
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+
+        self.fw = self.fr.component('frame')
+        #self.fw.configure(padx=5, pady=5, highlightthickness=0)
+
+        self.llist = launcher.LauncherList(self.fw, name, title)
+
+        self.fr.pack(side=Tkinter.TOP, fill='both', expand=True,
+                     padx=4, pady=4)
+
+    def load(self, buf):
+        self.llist.loadLauncher(buf)
+
+                               
 class Workspace(object):
     
     def __init__(self, frame, name, title):
@@ -1001,6 +1023,8 @@ class IntegGUI(object):
         filemenu.add('command', label="Load ope", command=self.gui_load_ope)
         filemenu.add('command', label="Load sk", command=self.gui_load_sk)
         filemenu.add('command', label="Load task", command=self.gui_load_task)
+        filemenu.add('command', label="Load launcher",
+                     command=self.gui_load_launcher)
         #filemenu.add('command', label="Show Log", command=self.showlog)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.quit)
@@ -1156,6 +1180,34 @@ class IntegGUI(object):
 
             page = self.exws.addpage(filepath, filename, TaskPage)
             page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def gui_load_launcher(self):
+        initialdir = os.path.join(os.environ['CONFHOME'], 'product',
+                                  'file', 'Launchers')
+        
+        filepath = tkFileDialog.askopenfilename(title="Load launcher file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            match = re.match(r'^OSSO_ICmdUnit(.+)\.def$', filename)
+            if not match:
+                return
+
+            name = match.group(1).replace('_', ' ')
+            page = self.lws.addpage(name, name, LauncherPage)
+            page.load(buf)
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
