@@ -821,15 +821,23 @@ class LauncherPage(Page):
                                vscrollmode='dynamic', hscrollmode='dynamic')
 
         self.fw = self.fr.component('frame')
-        #self.fw.configure(padx=5, pady=5, highlightthickness=0)
+        self.fw.configure(padx=2, pady=2, highlightthickness=0)
 
-        self.llist = launcher.LauncherList(self.fw, name, title)
+        self.llist = launcher.LauncherList(self.fw, name, title,
+                                           self.execute)
 
         self.fr.pack(side=Tkinter.TOP, fill='both', expand=True,
                      padx=4, pady=4)
 
     def load(self, buf):
         self.llist.loadLauncher(buf)
+
+    def addFromDefs(self, ast):
+        self.llist.addFromDefs(ast)
+
+    def execute(self, cmdstr):
+        """This is called when a launcher button is pressed."""
+        gui.execute_launcher(cmdstr)
 
                                
 class Workspace(object):
@@ -963,6 +971,7 @@ class IntegGUI(object):
         #parent.option_add('*background', color_blue)
         #parent.option_add('*foreground', 'black')
         parent.option_add('*Text*background', color_white)
+        parent.option_add('*Entry*background', color_white)
         #parent.option_add('*Text*highlightthickness', 0)
         parent.option_add('*Button*activebackground', '#089D20')
         parent.option_add('*Button*activeforeground', '#FFFF00')
@@ -1013,6 +1022,8 @@ class IntegGUI(object):
         # command queues
         self.queue = Bunch.Bunch(executer=[], launcher=[])
         self.executing = threading.Event()
+
+        self.lnchmgr = launcher.LauncherManager(self.logger)
 
 
     def add_menus(self):
@@ -1207,7 +1218,10 @@ class IntegGUI(object):
 
             name = match.group(1).replace('_', ' ')
             page = self.lws.addpage(name, name, LauncherPage)
-            page.load(buf)
+            #page.load(buf)
+
+            ast = self.lnchmgr.parse_buf(buf)
+            page.addFromDefs(ast)
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
@@ -1313,7 +1327,10 @@ class IntegGUI(object):
         # Enable executor thread to proceed
         self.executing.set()
 
-            
+
+    def execute_launcher(self, cmdstr):
+        self.logger.info(cmdstr)
+
     def get_opecmd(self, bnch):
         """Called to get a command string from the GUI.
         """
