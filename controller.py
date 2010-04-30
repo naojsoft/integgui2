@@ -30,13 +30,88 @@ class QueueEmpty(Exception):
     pass
 
 
+class CommandQueue(object):
+    
+    def __init__(self, name, logger):
+        self.name = name
+        self.logger = logger
+
+        self.queue = []
+        self.flag = threading.Event()
+        self.lock = threading.RLock()
+
+    def executingP(self):
+        return self.flag.isSet()
+
+    def enable(self):
+        return self.flag.set()
+
+    def enableIfPending(self):
+        with self.lock:
+            if len(self.queue) > 0:
+                self.flag.set()
+                return True
+
+            else:
+                return False
+
+    def disable(self):
+        return self.flag.clear()
+
+    def flush(self):
+        with self.lock:
+            while len(self.queue) > 0:
+                self.queue.pop(0)
+
+    def add(self, arg):
+        with self.lock:
+            self.queue.append(arg)
+            
+    def prepend(self, arg):
+        with self.lock:
+            self.queue.insert(0, arg)
+            
+    def extend(self, args):
+        lstcopy = list(args)
+        with self.lock:
+            self.queue.extend(lstcopy)
+            
+    def __len__(self):
+        with self.lock:
+            return len(self.queue)
+
+    def peek(self):
+        with self.lock:
+            try:
+                return self.queue[0]
+            except IndexError:
+                raise QueueEmpty('Queue %s is empty' % self.name)
+
+
+    def peekAll(self):
+        with self.lock:
+            return list(self.queue)
+
+    def remove(self, obj):
+        with self.lock:
+            self.queue.remove(obj)
+
+    def get(self):
+        with self.lock:
+            try:
+                return self.queue.pop(0)
+            except IndexError:
+                raise QueueEmpty('Queue %s is empty' % self.name)
+
+
 class IntegController(object):
     
-    def __init__(self, logger, ev_quit, monitor, options):
+    def __init__(self, logger, ev_quit, monitor, view, options):
 
         self.logger = logger
         self.ev_quit = ev_quit
         self.monitor = monitor
+        self.gui = view
         self.lock = threading.RLock()
         self.options = options
 
@@ -58,14 +133,11 @@ class IntegController(object):
         self.sm = ro.remoteObjectProxy('sessions')
         self.bm = ro.remoteObjectProxy('bootmgr')
 
-    def set_view(self, view):
-        self.gui = view
-
     def start_executors(self):
         t1 = Task.FuncTask(self.execute_loop, ['executer'], {})
         t2 = Task.FuncTask(self.execute_loop, ['launcher'], {})
         t1.init_and_start(self)
-        #t2.init_and_start(self)
+        t2.init_and_start(self)
        
     def execute_loop(self, queueName):
         
