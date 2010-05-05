@@ -91,7 +91,14 @@ def main(options, args):
                        ['frames'])
     channels.append('frames')
 
-    # TODO: sessions
+    # Session info
+    mymon.subscribe_cb(controller.arr_sessinfo, controller.arr_sessinfo, 
+                       ['sessions'])
+    channels.append('sessions')
+
+    # Configure from session, if requested
+    if options.session:
+        controller.config_from_session(options.session)
 
     # Create network callable object for notifications
     notify_obj = fits.IntegGUINotify(gui.framepage, options.fitsdir)
@@ -182,6 +189,8 @@ if __name__ == '__main__':
     optprs.add_option("--profile", dest="profile", action="store_true",
                       default=False,
                       help="Run the profiler on main()")
+    optprs.add_option("--session", dest="session", metavar="NAME",
+                      help="Configure from session NAME")
     optprs.add_option("--svcname", dest="svcname", metavar="NAME",
                       default="integgui-notify",
                       help="Register using NAME as service name")

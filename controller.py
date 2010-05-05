@@ -6,6 +6,7 @@
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+import os
 import threading
 
 # SSD/Gen2 imports
@@ -204,6 +205,7 @@ class IntegController(object):
         with self.lock:
             self.statvars = statvars
             self.insname = insname
+            
 
     def get_instrument(self):
         return self.insname
@@ -216,6 +218,65 @@ class IntegController(object):
         insname = self.get_alloc_instrument()
         self.set_instrument(insname)
 
+    def config_from_session(self, sessionName):
+        self.sessionName = sessionName
+
+        try:
+            info = self.sm.getSessionInfo(self.sessionName)
+
+            self._session_config(info)
+
+        except ro.remoteObjectError, e:
+            self.logger.error("Error getting session info for session '%s': %s" % (
+                    self.sessionName, str(e)))
+
+
+    def _session_config(self, info):
+        self.logger.debug("info=%s" % str(info))
+
+        # Get propid info
+        propid = info.get('propid', 'xxxxx')
+
+        # Get allocs
+        allocs = info.get('allocs', [])
+        allocs_lst = []
+    
+        for name in self.insconfig.getNames(active=True):
+            if name in allocs:
+                allocs_lst.append(name)
+        
+        # Load up appropriate launchers
+        #self.gui.close_launchers()
+
+        launchers = []
+        for name in ['TELESCOPE', 'TELESCOPE2']:
+            launchers.append(self.gui.get_launcher_path(name))
+
+        for name in allocs_lst:
+            filepath = self.gui.get_launcher_path(name)
+            if os.path.exists(filepath):
+                launchers.append(filepath)
+
+        self.logger.debug("launchers=%s" % launchers)
+        for filepath in launchers:
+            self.gui.load_launcher(filepath)
+
+        # Load up appropriate log files
+        #self.gui.close_logs()
+
+        logs = []
+        for name in allocs:
+            filepath = self.gui.get_log_path(name)
+            if os.path.exists(filepath):
+                logs.append(filepath)
+
+        logs.sort()
+
+        for filepath in logs:
+            self.gui.load_log(filepath)
+
+                      
+        
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
 
@@ -281,6 +342,23 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
+                
+    # this one is called if new data becomes available about the session
+    def arr_sessinfo(self, payload, name, channels):
+        self.logger.debug("received values '%s'" % str(payload))
+
+        try:
+            bnch = Monitor.unpack_payload(payload)
+
+        except Monitor.MonitorError:
+            self.logger.error("malformed packet '%s': %s" % (
+                str(payload), str(e)))
+            return
+
+        if bnch.path == ('mon.session.%s' % self.sessionName):
+            
+            info = bnch.value
+            #self._session_config(info)
                 
 
 #END

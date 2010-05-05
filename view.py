@@ -25,9 +25,8 @@ import cfg.g2soss
 #from cfg.INS import INSdata
 
 # Local integgui2 imports
-import fits
+import fits, ope
 import controller as igctrl
-import launcher
 
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
@@ -86,12 +85,16 @@ class Page(object):
         self.name = name
         self.title = title
 
+        self.closed = False
+
         # every page has a lock
         self.lock = threading.RLock()
 
     def close(self):
         # parent attribute is added by parent workspace
         self.parent.delpage(self.name)
+
+        self.closed = True
 
 
 class CodePage(Page):
@@ -109,21 +112,21 @@ class CodePage(Page):
                                     command=self.close,
                                     activebackground="#089D20",
                                     activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=4, side=Tkinter.RIGHT)
+        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
 
         self.btn_reload = Tkinter.Button(btns, text="Reload",
                                      width=10,
                                      command=self.reload,
                                      activebackground="#089D20",
                                      activeforeground="#FFFF00")
-        self.btn_reload.pack(padx=5, pady=4, side=Tkinter.RIGHT)
+        self.btn_reload.pack(padx=5, pady=2, side=Tkinter.RIGHT)
 
         self.btn_save = Tkinter.Button(btns, text="Save",
                                    width=10,
                                    command=self.save,
                                    activebackground="#089D20",
                                    activeforeground="#FFFF00")
-        self.btn_save.pack(padx=5, pady=4, side=Tkinter.RIGHT)
+        self.btn_save.pack(padx=5, pady=2, side=Tkinter.RIGHT)
 
         btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
                   expand=False)
@@ -210,6 +213,8 @@ class OpePage(CodePage):
 
         super(OpePage, self).__init__(frame, name, title)
 
+        self.queueName = 'executer'
+
         txt = Pmw.ScrolledText(frame, text_wrap='none',
                                rowheader=True,
                                rowheader_width=1,
@@ -231,30 +236,28 @@ class OpePage(CodePage):
                                           activebackground="#089D20",
                                           activeforeground="#FFFF00",
                                           command=lambda: view.execute(self))
-        self.btn_execute.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_execute.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
         self.btn_pause = Tkinter.Button(self.btns, text="Pause",
                                         width=10,
                                         command=self.pause,
                                         activebackground="#089D20",
                                         activeforeground="#FFFF00")
-        self.btn_pause.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
         self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
                                          width=10,
                                          command=self.cancel,
                                          activebackground="#089D20",
                                          activeforeground="#FFFF00")
-        self.btn_cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
-        self.btn_kill = Tkinter.Button(self.btns, text="Restart TM",
+        self.btn_kill = Tkinter.Button(self.btns, text="Kill",
                                        width=10,
                                        command=self.kill,
                                        activebackground="#089D20",
                                        activeforeground="#FFFF00")
-        self.btn_kill.pack(padx=5, pady=4, side=Tkinter.LEFT)
-
-        self.queueName = 'executer'
+        self.btn_kill.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
 
     def loadbuf(self, buf):
@@ -360,6 +363,8 @@ class DDCommandPage(Page):
 
         super(DDCommandPage, self).__init__(frame, name, title)
 
+        self.queueName = 'executer'
+
         txt = Pmw.ScrolledText(frame, text_wrap='none',
                                labelpos='n', label_text=title,
                                vscrollmode='dynamic', hscrollmode='dynamic')
@@ -378,40 +383,38 @@ class DDCommandPage(Page):
                                     command=self.close,
                                     activebackground="#089D20",
                                     activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=4, side=Tkinter.RIGHT)
+        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
 
         self.btn_execute = Tkinter.Button(self.btns, text="Exec",
                                           width=10,
                                           activebackground="#089D20",
                                           activeforeground="#FFFF00",
                                           command=lambda: view.execute_dd(self))
-        self.btn_execute.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_execute.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
         self.btn_pause = Tkinter.Button(self.btns, text="Pause",
                                         width=10,
                                         command=self.pause,
                                         activebackground="#089D20",
                                         activeforeground="#FFFF00")
-        self.btn_pause.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
         self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
                                          width=10,
                                          command=self.cancel,
                                          activebackground="#089D20",
                                          activeforeground="#FFFF00")
-        self.btn_cancel.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
-        self.btn_kill = Tkinter.Button(self.btns, text="Restart TM",
+        self.btn_kill = Tkinter.Button(self.btns, text="Kill",
                                        width=10,
                                        command=self.kill,
                                        activebackground="#089D20",
                                        activeforeground="#FFFF00")
-        self.btn_kill.pack(padx=5, pady=4, side=Tkinter.LEFT)
+        self.btn_kill.pack(padx=5, pady=2, side=Tkinter.LEFT)
 
         btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
                   expand=False)
-
-        self.queueName = 'executer'
 
     def kill(self):
         #controller = self.parent.get_controller()
@@ -486,6 +489,70 @@ class ObsInfoPage(Page):
             pass
         
 
+class LogPage(Page):
+
+    def __init__(self, frame, name, title):
+
+        super(LogPage, self).__init__(frame, name, title)
+
+        txt = Pmw.ScrolledText(frame, text_wrap='none',
+                               #labelpos='n', label_text='FITS Data Frames',
+                               vscrollmode='dynamic', hscrollmode='dynamic')
+        self.txt = txt
+
+        self.tw = txt.component('text')
+        self.tw.configure(padx=5, pady=3, highlightthickness=0)
+
+        txt.pack(fill='both', expand=True, padx=4, pady=4)
+
+        # bottom buttons
+        btns = Tkinter.Frame(frame) 
+        self.btns = btns
+
+        self.btn_close = Tkinter.Button(btns, text="Close",
+                                    width=10,
+                                    command=self.close,
+                                    activebackground="#089D20",
+                                    activeforeground="#FFFF00")
+        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+
+        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
+                  expand=False)
+
+
+    def load(self, filepath):
+        self.filepath = filepath
+        self.file = open(self.filepath, 'r')
+        # Go to the end of the file
+        self.file.seek(0, 2)
+        self.size = self.file.tell()
+        self.poll()
+
+
+    def close(self):
+        try:
+            self.file.close()
+        except:
+            pass
+
+        super(LogPage, self).close()
+
+
+    def poll(self):
+        if self.closed:
+            return
+
+        if os.path.getsize(self.filepath) > self.size:
+            data = self.file.read()
+            self.size = self.size + len(data)
+            # TODO: mark error and warning lines
+            self.tw.insert('end', data)
+            self.tw.see('end')
+
+        # READ GLOBAL
+        view.w.root.after(100, self.poll)
+
+
 class FramesPage(Page):
 
     def __init__(self, frame, name, title):
@@ -551,10 +618,10 @@ class skMonitorPage(Page):
 
     def __init__(self, frame, name, title):
 
-        super(skMonitorPage, self).__init__(frame, name, title)
-
         self.nb = Pmw.NoteBook(frame, tabpos='n')
         self.nb.pack(padx=2, pady=2, fill='both', expand=1)
+
+        super(skMonitorPage, self).__init__(frame, name, title)
 
         self.track = {}
         self.pages = {}
@@ -818,10 +885,242 @@ class skMonitorPage(Page):
             self.addpage(filename, filename, text)
             
         
+class Launcher(object):
+    
+    def __init__(self, frame, name, title, execfn):
+        self.frame = frame
+        self.params = Bunch.Bunch()
+        self.paramList = []
+        self.row = 1
+        self.col = 1
+        self.btn_width = 20
+        self.execfn = execfn
+
+        self.btn_exec = Tkinter.Button(frame, text=title,
+                                       relief='raised',
+                                       activebackground="#089D20",
+                                       activeforeground="#FFFF00",
+                                       command=self.execute,
+                                       width=self.btn_width)
+        self.btn_exec.grid(row=1, column=0, padx=1, sticky='ew')
+        
+
+    def addParam(self, name):
+        self.paramList.append(name)
+        # sort parameter list so longer strings are substituted first
+        self.paramList.sort(lambda x,y: len(y) - len(x))
+
+    def add_cmd(self, cmdstr):
+        self.cmdstr = cmdstr
+
+    def add_break(self):
+        self.row += 2
+        self.col = 1
+
+    def add_input(self, name, width, defVal, label):
+        
+        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
+        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
+        tclvar = Tkinter.StringVar(self.frame)
+        tclvar.set(str(defVal))
+        field = Tkinter.Entry(self.frame, textvariable=tclvar, width=width)
+        field.grid(row=self.row, column=self.col, padx=1, sticky='ew')
+        self.col += 1
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=field,
+                                        var=tclvar,
+                                        get=self.getvar)
+        self.addParam(name)
+
+    def add_list(self, name, optionList, label):
+        
+        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
+        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
+        tclvar = Tkinter.StringVar(self.frame)
+        optionsDict = {}
+        options = []
+        for opt, val in optionList:
+            optionsDict[opt] = val
+            options.append(opt)
+        tclvar.set(options[0])
+        menu = Tkinter.OptionMenu(self.frame, tclvar, *options)
+        menu.grid(row=self.row, column=self.col, padx=1, sticky='ew')
+        self.col += 1
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=menu, 
+                                        var=tclvar,
+                                        get=self.getdict,
+                                        optionsDict=optionsDict)
+        self.addParam(name)
+
+    def add_radio(self, name, optionList, label):
+        
+        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
+        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
+        tclvar = Tkinter.StringVar(self.frame)
+        tclvar.set(optionList[0][1])
+        for opt, val in optionList:
+            b = Tkinter.Radiobutton(self.frame, text=opt, 
+                                    variable=tclvar, value=str(val),
+                                    relief='flat')
+            b.grid(row=self.row, column=self.col, padx=1, sticky='ew')
+            self.col += 1
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=b,
+                                        get=self.getvar,
+                                        var=tclvar)
+        self.addParam(name)
+
+    def getvar(self, bnch):
+        return bnch.var.get()
+
+    def getdict(self, bnch):
+        key = bnch.var.get()
+        return bnch.optionsDict[key]
+
+    def getcmd(self):
+        cmdstr = self.cmdstr
+        
+        for var in self.paramList:
+            dvar = '$%s' % var.upper()
+            if dvar in cmdstr:
+                bnch = self.params[var]
+                val = str(bnch.get(bnch))
+                cmdstr = cmdstr.replace(dvar, val)
+
+        return cmdstr
+
+    def execute(self):
+        cmdstr = self.getcmd()
+        self.execfn(cmdstr)
+
+
+class LauncherList(object):
+    
+    def __init__(self, frame, name, title, execfn):
+        self.llist = []
+        self.ldict = {}
+        self.count = 0
+        self.frame = frame
+        self.execfn = execfn
+
+    def addSeparator(self):
+        separator = Tkinter.Frame(self.frame, height=2, bd=1,
+                                  relief='sunken')
+        separator.grid(row=self.count, column=0, sticky='ew',
+                       padx=5, pady=5)
+        self.count += 1
+
+    def addLauncher(self, name, title):
+        frame = Tkinter.Frame(self.frame, padx=2, pady=2)
+        #frame.pack(side=Tkinter.TOP, fill='x', expand=False)
+        frame.grid(row=self.count, column=0, sticky='w')
+        self.count += 1
+        
+        launcher = Launcher(frame, name, title,
+                            lambda cmdstr: self.execute(name, cmdstr))
+        
+        self.llist.append(launcher)
+        self.ldict[name.lower()] = launcher
+        
+        return launcher
+
+    def getLauncher(self, name):
+        return self.ldict[name.lower()]
+
+    def addLauncherFromDef(self, ast):
+        assert ast.tag == 'launcher'
+        ast_label, ast_body = ast.items
+
+        assert ast_label.tag == 'label'
+        name = ast_label.items[0]
+
+        launcher = self.addLauncher(name, name)
+
+        for ast in ast_body.items:
+            assert ast.tag in ('cmd', 'list', 'select', 'input', 'break')
+            
+            if ast.tag == 'break':
+                launcher.add_break()
+
+            elif ast.tag == 'input':
+                var, width, val, lbl = ast.items
+                width = int(width)
+                launcher.add_input(var, width, val, lbl)
+        
+            elif ast.tag == 'select':
+                var, ast_list, lbl = ast.items
+                vallst = []
+
+                if ast_list.tag == 'pure_val_list':
+                    for item in ast_list.items:
+                        vallst.append((item, item))
+                
+                elif ast_list.tag == 'subst_val_list':
+                    for item_ast in ast_list.items:
+                        assert item_ast.tag == 'value_pair'
+                        lhs, rhs = item_ast.items
+                        vallst.append((lhs, rhs))
+                        
+                launcher.add_radio(var, vallst, lbl)
+        
+            elif ast.tag == 'list':
+                var, ast_list, lbl = ast.items
+                vallst = []
+
+                if ast_list.tag == 'pure_val_list':
+                    for item in ast_list.items:
+                        vallst.append((item, item))
+                
+                elif ast_list.tag == 'subst_val_list':
+                    for item_ast in ast_list.items:
+                        assert item_ast.tag == 'value_pair'
+                        lhs, rhs = item_ast.items
+                        vallst.append((lhs, rhs))
+                        
+                launcher.add_list(var, vallst, lbl)
+        
+            elif ast.tag == 'cmd':
+                cmd, ast_params = ast.items
+                cmd_l = [cmd.upper()]
+
+                for item_ast in ast_params.items:
+                    assert item_ast.tag == 'param_pair'
+                    lhs, rhs = item_ast.items
+                    cmd_l.append('%s=%s' % (lhs.upper(), rhs))
+
+                cmdstr = ' '.join(cmd_l)
+
+                launcher.add_cmd(cmdstr)
+
+            else:
+                pass
+        
+    def addFromDefs(self, ast):
+        assert ast.tag == 'launchers'
+        
+        for ast in ast.items:
+            if ast.tag == 'sep':
+                self.addSeparator()
+
+            else:
+                self.addLauncherFromDef(ast)
+
+
+    def execute(self, name, cmdstr):
+        self.execfn(cmdstr)
+
+
 class LauncherPage(Page):
 
     def __init__(self, frame, name, title):
+
         super(LauncherPage, self).__init__(frame, name, title)
+
+        self.queueName = 'launcher'
 
         self.fr = Pmw.ScrolledFrame(frame, 
                                #labelpos='n', label_text=title,
@@ -830,11 +1129,39 @@ class LauncherPage(Page):
         self.fw = self.fr.component('frame')
         self.fw.configure(padx=2, pady=2, highlightthickness=0)
 
-        self.llist = launcher.LauncherList(self.fw, name, title,
-                                           self.execute)
+        self.llist = LauncherList(self.fw, name, title,
+                                  self.execute)
 
         self.fr.pack(side=Tkinter.TOP, fill='both', expand=True,
                      padx=4, pady=4)
+
+        # bottom buttons
+        btns = Tkinter.Frame(frame) 
+        self.btns = btns
+
+        self.btn_close = Tkinter.Button(btns, text="Close",
+                                    width=10,
+                                    command=self.close,
+                                    activebackground="#089D20",
+                                    activeforeground="#FFFF00")
+        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+
+        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
+                                        width=10,
+                                        command=self.pause,
+                                        activebackground="#089D20",
+                                        activeforeground="#FFFF00")
+        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
+
+        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
+                                         width=10,
+                                         command=self.cancel,
+                                         activebackground="#089D20",
+                                         activeforeground="#FFFF00")
+        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
+
+        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
+                  expand=False)
 
     def load(self, buf):
         self.llist.loadLauncher(buf)
@@ -845,6 +1172,18 @@ class LauncherPage(Page):
     def execute(self, cmdstr):
         """This is called when a launcher button is pressed."""
         view.execute_launcher(cmdstr)
+
+    def close(self):
+        super(LauncherPage, self).close()
+
+    def cancel(self):
+        #controller = self.parent.get_controller()
+        controller.tm_cancel(self.queueName)
+
+    def pause(self):
+        #controller = self.parent.get_controller()
+        controller.tm_pause(self.queueName)
+
 
                                
 class Workspace(object):
@@ -895,9 +1234,25 @@ class Workspace(object):
             
             self.widget.delete(name)
 
+    def delall(self):
+        with self.lock:
+            for name in self.pages.keys():
+                self.delpage(name)
+            
     def select(self, name):
         self.widget.selectpage(name)
 
+    def getNames(self):
+        with self.lock:
+            return self.pages.keys()
+
+    def getPage(self, name):
+        with self.lock:
+            return self.pages[name]
+
+
+class WorkspacePage(Workspace, Page):
+    pass
 
       
 class Desktop(object):
@@ -1012,6 +1367,7 @@ class IntegView(object):
         self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
         self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
         self.monpage = self.oiws.addpage('moninfo', "Monitor", skMonitorPage)
+        self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
         self.oiws.select('obsinfo')
 
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
@@ -1037,6 +1393,9 @@ class IntegView(object):
         # create a pulldown menu, and add it to the menu bar
         filemenu = Tkinter.Menu(menubar, tearoff=0)
         filemenu.add('command', label="Load ope", command=self.gui_load_ope)
+        filemenu.add('command', label="Config from session",
+                     command=self.reconfig)
+        filemenu.add('command', label="Load log", command=self.gui_load_log)
         filemenu.add('command', label="Load sk", command=self.gui_load_sk)
         filemenu.add('command', label="Load task", command=self.gui_load_task)
         filemenu.add('command', label="Load launcher",
@@ -1158,6 +1517,30 @@ class IntegView(object):
                     filepath, str(e)))
 
 
+    def gui_load_log(self):
+        initialdir = os.path.abspath(os.environ['LOGHOME'])
+        
+        filepath = tkFileDialog.askopenfilename(title="Follow log file",
+                                                initialdir=initialdir,
+                                                parent=self.w.root)
+        if not filepath:
+            return
+
+        self.load_log(filepath)
+
+
+    def load_log(self, filepath):
+        try:
+            dirname, filename = os.path.split(filepath)
+
+            page = self.logpage.addpage(filepath, filename, LogPage)
+            page.load(filepath)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
     def gui_load_sk(self):
         initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
                                   'SkPara', 'sk')
@@ -1213,6 +1596,10 @@ class IntegView(object):
         if not filepath:
             return
 
+        self.load_launcher(filepath)
+
+
+    def load_launcher(self, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -1233,6 +1620,38 @@ class IntegView(object):
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
 
+
+    def get_launcher_path(self, insname):
+
+        filename = 'OSSO_ICmdUnit%s.def' % insname.upper()
+        filepath = os.path.join(os.environ['CONFHOME'], 'product',
+                                  'file', 'Launchers', filename)
+        return filepath
+
+        
+    def close_launchers(self):
+        for name in self.lws.getNames():
+            page = self.lws.getPage(name)
+            page.close()
+
+    def get_log_path(self, insname):
+
+        filename = '%s.log' % insname
+        filepath = os.path.join(os.environ['LOGHOME'], filename)
+        return filepath
+
+    def close_logs(self):
+        for name in self.logpage.getNames():
+            page = self.logpage.getPage(name)
+            page.close()
+
+    def reconfig(self):
+        self.close_logs()
+        self.close_launchers()
+
+        #update_idletasks()
+
+        controller.config_from_session('main')
 
     def get_tag(self, format):
         with self.lock:
