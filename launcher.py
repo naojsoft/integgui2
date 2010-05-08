@@ -224,7 +224,7 @@ class launcherParser(object):
 
     def p_control_def2(self, p):
         '''control_def : param INPUT width def_val NEWLINE'''
-        p[0]  = ASTNode('input', p[1], p[3], '')
+        p[0]  = ASTNode('input', p[1], p[3], p[4], '')
 
     def p_control_def3(self, p):
         '''control_def : param SELECT val_list ctrl_label NEWLINE'''

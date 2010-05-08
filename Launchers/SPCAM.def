@@ -15,22 +15,28 @@
 LABEL "FilterChange"
 	VAL01 LIST  "B (W-J-B)"="W-J-B","V (W-J-V)"="W-J-V","R (W-C-RC)"="W-C-RC","I (W-C-IC)"="W-C-IC","g (W-S-G+)"="W-S-G+","r (W-S-R+)"="W-S-R+","i (W-S-I+)"="W-S-I+","z (W-S-Z+)"="W-S-Z+","NB711 (N-B-L711)"="N-B-L711","NB816 (N-B-L816)"="N-B-L816","NB921 (N-B-L921)"="N-B-L921","V+R (W-J-VR)"="W-J-VR"
 	CMD FILTERCHANGE OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01"
+
 LABEL "FilterChange"
-	VAL01 INPUT 8 "W-J-B"
+	VAL01 INPUT 8 "W-J-B" 
 	CMD FILTERCHANGE OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01"
+
 <>
+
 #LABEL "Alloc Free Status"
 #	VAL01 SELECT "Alloc"=ALLOC,"Free"=FREE,"Status"=STATUS
 #	CMD TROUBLESHOOT OBE_ID=SPCAM OBE_MODE=LAUNCHER DDCOM=$VAL01
+
 LABEL "Status"
-#	VAL01 SELECT "Status"
 	CMD STATUS OBE_ID=SPCAM OBE_MODE=LAUNCHER
+#	VAL01 SELECT "Status"
+
 LABEL "Alloc"
-#	VAL01 SELECT "Alloc"
 	CMD ALLOC OBE_ID=SPCAM OBE_MODE=LAUNCHER
+#	VAL01 SELECT "Alloc"
+
 LABEL "Free"
-#	VAL01 SELECT "Free"
 	CMD FREE OBE_ID=SPCAM OBE_MODE=LAUNCHER
+#	VAL01 SELECT "Free"
 <>
 LABEL "Wipe"
 	CMD WIPE OBE_ID=SPCAM OBE_MODE=LAUNCHER
@@ -73,7 +79,7 @@ LABEL "FocusAG (Z,dZ,InstDeltaZ)"
 <>
 LABEL "Setup SkyFlat"
 #	VAL01 LIST  "B (W-J-B)"="W-J-B","V (W-J-V)"="W-J-V","R (W-C-RC)"="W-C-RC","I (W-C-IC)"="W-C-IC","g (W-S-G+)"="W-S-G+","r (W-S-R+)"="W-S-R+","i (W-S-I+)"="W-S-I+","z (W-S-Z+)"="W-S-Z+"
-	VAL01 INPUT 8 W-J-B
+	VAL01 INPUT 8 "W-J-B"
 	CMD SETUPSKYFLAT OBE_ID=SPCAM OBE_MODE=IMAG FILTER="$VAL01"
 LABEL "Setup SkyFlat_NOAG"
 #	VAL01 LIST  "B (W-J-B)"="W-J-B","V (W-J-V)"="W-J-V","R (W-C-RC)"="W-C-RC","I (W-C-IC)"="W-C-IC","g (W-S-G+)"="W-S-G+","r (W-S-R+)"="W-S-R+","i (W-S-I+)"="W-S-I+","z (W-S-Z+)"="W-S-Z+"
