@@ -92,9 +92,9 @@ def main(options, args):
     channels.append('frames')
 
     # Session info
-    mymon.subscribe_cb(controller.arr_sessinfo, controller.arr_sessinfo, 
-                       ['sessions'])
-    channels.append('sessions')
+    #mymon.subscribe_cb(controller.arr_sessinfo, controller.arr_sessinfo, 
+    #                   ['sessions'])
+    #channels.append('sessions')
 
     # Configure from session, if requested
     if options.session:

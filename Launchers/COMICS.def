@@ -1,0 +1,100 @@
+#LABEL "Test Command"         # Command Label
+#	VAL01 LIST ON,"Off",nop  # Selection List, Items are ON,OFF,NOP
+#	VAL02 INPUT 7 120.5      # Input Field 7 chars, Default 120.5
+#	CMD TEST OBE_ID=FOCAS OBE_MODE=LAUNCHER
+#	                         # Abstract Command Should be registered
+#	                         # as sk/FOCAS/LAUNCHER/TEST.sk
+#<>                           # Separator
+#LABEL "Test2"                # Command Label
+#	VAL01 SELECT U,B,V,R,I   # Single click exec by the Radio Button
+#	CMD TEST2 OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#LABEL "TEST3"
+#	VAL01 SELECT "U-Band"=U,"B-Band"=B,"R-Band"=R
+#	CMD TEST2 OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#<>
+LABEL "TELESCOPE MOVE"
+	VAL01 INPUT 6 0.0 "RA arcsec"     #delta-RA
+	VAL02 INPUT 6 0.0  "DEC arcsec"   #delta-DEC
+	CMD  MOVE_FIELD OBE_ID=COMICS OBE_MODE=IMAG_SPEC DELTA_RA=$VAL01 DELTA_DEC=$VAL02
+
+LABEL "ON_DETECTOR MOVE"
+	VAL01 INPUT 6 0.0 "X pixel"     #delta-X
+	VAL02 INPUT 6 0.0  "Y pixel"   #delta-Y
+	VAL03 INPUT 6 -1 "-2/-1/0/1/3"
+	CMD  MOVE_ONDETECTOR OBE_ID=COMICS OBE_MODE=IMAG_SPEC DELTA_X=$VAL01 DELTA_Y=$VAL02 MOVEMODE=$VAL03
+
+LABEL "FOCUS"
+	VAL01 INPUT 6 !TSCL.Z "Z" #  Z
+	CMD SET_FOCUS OBE_ID=COMICS OBE_MODE=IMAG_SPEC Z=$VAL01 FOCUS_MODE=SET
+
+LABEL "ADJ FIELD"
+	VAL01 INPUT 6 -1 "-2/-1/0/1/3"
+	CMD ADJ_FIELD OBE_ID=COMICS OBE_MODE=IMAG_SPEC MOVEMODE=$VAL01
+
+LABEL "TRANS DATA"
+	VAL01 INPUT 20 COMA00000000 "From"
+	VAL02 INPUT 20 !FITS.COM.FRAMEID "To"
+	CMD TRANS_DATA OBE_ID=COMICS OBE_MODE=IMAG_SPEC DATA_NO_FROM=$VAL01 DATA_NO_TO=$VAL02
+
+<>
+
+
+
+#### Command Launcher Sample Parameter File ####
+#
+#  LABEL "GetBias(Cooler)"                # label
+#    VAL01 LIST ON,OFF               # option val1,val2,...
+#    CMD GetBias OBE_ID=FOCAS OBE_MODE=LAUNCHER CMODE=$VAL01
+#
+#  LABEL GetDark(Cooler,Exptime)
+#	VAL01 LIST ON,OFF
+#	VAL02 INPUT 6 60.0
+#    CMD GetDark OBE_ID=FOCAS OBE_MODE=LAUNCHER CMODE=$VAL01 Exptime=$VAL02
+#
+#  <>    # separetor
+#
+#  LABEL Snap(Exptime,Bin,Chip)
+#	VAL01 INPUT 6 1.0
+#	VAL02 LIST 1x1,2x1,3x1,4x1,2x1,2x2,2x3,2x4,3x1,3x2,3x3,3x4,4x1,4x2,4x3,4x4
+#	VAL03 LIST Chip1,Chip2
+#	CMD Snap OBE_ID=FOCAS OBE_MODE=LAUNCHER Exptime=$VAL01 QDAQ_Chip=$VAL03 Binning=$VAL02 Object=SnapShot
+#
+#  LABEL DisplayImage(FrameID)
+#	VAL01 INPUT 12 FCSA00000000
+#	CMD ShowImage OBE_ID=FOCAS OBE_MODE=LAUNCHER FRAMEID=$VAL01
+#
+#  <>
+#
+#  LABEL BB-Filter
+#	VAL01 SELECT None=0,U=1,B=2,V=3,R=4,I=5
+#	CMD SelectFilter OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#
+#  LABEL NB-Filter
+#	VAL01 SELECT 373=6,386=7,487=8,502=9,512=10,642=11,658=12
+#	CMD SelectFilter OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#
+#  LABEL Grism
+#    VAL01 SELECT 75=1,150=5,300R=7,300B=3
+#	CMD SelectGrism OBE_ID=FOCAS OBE_MODE=LAUNCHER Grism=$VAL01
+#	
+##
+##  LABEL BootVGW                            # label
+##    CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+##
+##  LABEL FilterSwitch                 # label
+##    VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+###    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL05 FILTER=$VAL10 # command
+##    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+##
+############# Easy Command Definition
+##
+#  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+#  EASYCMD TELSHUTTER FRONT REAR MOVE_MOTER     # cmd arg1 arg2 ...
+#
+# Input ==> TelMov 122334.456 +122334.43 2000.0 60.0 "R_Band"
+# Expand==> TelMov OBE_ID=FOCAS OBE_MODE=Launcher RA=122334.456 DEC=....
+#
+# Try help
+# Try help telmov
+# Try help tel
+####

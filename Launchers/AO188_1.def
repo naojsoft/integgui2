@@ -1,0 +1,103 @@
+#################
+# Image rotator #
+#################
+LABEL	"Image Rotator"
+	CMD AO188_IMGROT OBE_ID=AO188 OBE_MODE=LAUNCHER MOVE=$VAL01 COORD=$VAL02 RA=$VAL03 DEC=$VAL04 EQUINOX=$VAL05 PA=$VAL06 ANGLE=$VAL07 TARGET=$VAL08
+	VAL01 LIST "LINK"=LINK,"FREE"=FREE,"SLEW"=SLEW,"STOP"=STOP "MOVE"
+	VAL02 LIST "ABS"=ABS,"REL"=REL,"FILE"=FILE "COORD"
+	BREAK
+	VAL03 INPUT 9 NOP "RA"
+	VAL04 INPUT 9 NOP "Dec"
+	VAL05 INPUT 8 2000.0 "EQUINOX"
+	BREAK
+	VAL06 INPUT 6 0.0 "PA"
+	VAL07 INPUT 6 90.0 "ANGLE"
+	VAL08 INPUT 8 NOP "TARGET"
+<>
+#######
+# AU1 #
+#######
+LABEL   "Set AO Point (pix)" # AO acquisition
+     VAL01 INPUT 6 0.0 "X"
+     VAL02 INPUT 6 0.0 "Y"
+     VAL03 LIST "52MAS  "=52MAS,"20MAS"=20MAS,"12MAS"=12MAS,"10MAS"=10MAS "Pixel Scale"
+     VAL04 LIST "IRCS"=IRCS,"HiCIAO"=HICIAO "Instrument"
+     CMD AO188_AOPSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 INSTRUMENT=$VAL04
+
+LABEL   "Offset pix" # AO acquisition offset
+     CMD AO188_AOOFFSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL04 INSTRUMENT=$VAL07 COORD=$VAL06 MODE=$VAL05 TTSTEP=$VAL03
+     VAL01 INPUT 6 0.0 "dX"
+     VAL02 INPUT 6 0.0 "dY"
+     VAL03 INPUT 2 1 "Step"
+     BREAK
+     VAL04 LIST "52MAS  "=52MAS,"20MAS"=20MAS,"12MAS"=12MAS,"10MAS"=10MAS "Pixel Scale"
+     VAL05 LIST "TT"=TT,"TT NULL"=TTNULL,"AO POINT"=AOP "Mode"
+     VAL06 LIST "Sdrl"=ABS,"N-Sdrl"=FILE "Type"
+     VAL07 LIST "IRCS"=IRCS,"HiCIAO"=HICIAO "Instrument"
+<>
+##################
+# LA shutter/FW  #
+##################
+# LA filter wheel (GO)
+LABEL   "LAFW (Go)"
+      VAL01 LIST "Close"=CLOSE,"Auto"=AUTO,"ND0.01"=ND0.01,"ND0.03"=ND0.03,"ND0.1"=ND0.1,"ND0.3"=ND0.3,"ND1"=ND1,"ND3"=ND3,"ND10"=ND10,"ND30"=ND30,"Open"=OPEN
+      CMD AO188_LAFW_GO OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+# LA filter wheel (step)
+LABEL   "LAFW (Step)"
+      VAL01 LIST "10 times darker"="STEP10-","3 times darker"="STEP3-","3 times brighter"="STEP3+","10 times brighter"="STEP10+"
+      CMD AO188_LAFW_STEP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL="$VAL01"
+# APDshutter
+LABEL   "LA shutter"     # APD shutter
+      VAL01 LIST "Open"=OPEN,"Close"=CLOSE
+      CMD AO188_APD_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+<>
+##################
+# Loop control   #
+##################
+LABEL   "Set VMvolt"  # Set voltage
+     VAL01 INPUT 6 0.1 "volt"
+     CMD AO188_VMVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VOLT=$VAL01
+LABEL   "Set DMgain"  # Set Gain
+     VAL01 INPUT 6 0 "gain"
+     CMD AO188_DMGAIN OBE_ID=AO188 OBE_MODE=LAUNCHER GAIN=$VAL01
+LABEL   "Set TTgain"  # Set Gain
+     VAL01 INPUT 6 0.001 "gain"
+     CMD AO188_TTGAIN OBE_ID=AO188 OBE_MODE=LAUNCHER GAIN=$VAL01
+LABEL   "Set Loop"     # AO188 loop
+      VAL01 LIST "ON"=ON,"STOP"=STOP,"OFF(DECAY)"=OFF "state"
+      VAL02 INPUT 6 10 "t_decay"
+      CMD AO188_LOOP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 TIME=$VAL02
+<>
+#######################
+# TT null (AUTO FEED) #
+#######################
+#
+# AO TT Nulling with automatic parameter feed
+#
+LABEL   "TToffload" # Correction of AO TT mirror by moving telescope
+     VAL01 LIST "Sidereal"=ABS,"Non-Sidereal"=FILE "Type"
+     CMD AO188_TTNULL_AUTO OBE_ID=AO188 OBE_MODE=LAUNCHER COORD=$VAL01 
+<>
+############
+# Aperture #
+############
+LABEL   "NGS aperture"
+      VAL01 LIST "20asec"=20ASEC,"4asec"=4ASEC,"2asec"=2ASEC,"1asec"=1ASEC
+      CMD AO188_NGSAP OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+LABEL   "VM iris"
+      VAL01 LIST "Full"=FULL,"MOVREL"=MOVREL,"MOVABS"=MOVABS
+      VAL02 INPUT 6 0.0 "arcsec"
+      CMD AO188_VMAP OBE_ID=AO188 OBE_MODE=LAUNCHER "CMD"=$VAL01 VAL=$VAL02
+<>
+############# Easy Command Definition
+##
+#  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+#  EASYCMD TELSHUTTER FRONT REAR MOVE_MOTER     # cmd arg1 arg2 ...
+#
+# Input ==> TelMov 122334.456 +122334.43 2000.0 60.0 "R_Band"
+# Expand==> TelMov OBE_ID=FOCAS OBE_MODE=Launcher RA=122334.456 DEC=....
+#
+# Try help
+# Try help telmov
+# Try help tel
+####

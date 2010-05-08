@@ -7,7 +7,7 @@
 from __future__ import with_statement
 
 # Standard library imports
-import sys, os
+import sys, os, glob
 import re, time
 import threading, Queue
 import Tkinter
@@ -1587,8 +1587,8 @@ class IntegView(object):
 
 
     def gui_load_launcher(self):
-        initialdir = os.path.join(os.environ['CONFHOME'], 'product',
-                                  'file', 'Launchers')
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Launchers')
         
         filepath = tkFileDialog.askopenfilename(title="Load launcher file",
                                                 initialdir=initialdir,
@@ -1605,7 +1605,7 @@ class IntegView(object):
 
             dirname, filename = os.path.split(filepath)
 
-            match = re.match(r'^OSSO_ICmdUnit(.+)\.def$', filename)
+            match = re.match(r'^(.+)\.def$', filename)
             if not match:
                 return
 
@@ -1621,12 +1621,14 @@ class IntegView(object):
                     filepath, str(e)))
 
 
-    def get_launcher_path(self, insname):
+    def get_launcher_paths(self, insname):
 
-        filename = 'OSSO_ICmdUnit%s.def' % insname.upper()
-        filepath = os.path.join(os.environ['CONFHOME'], 'product',
-                                  'file', 'Launchers', filename)
-        return filepath
+        filename = '%s*.def' % insname.upper()
+        pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                 'Launchers', filename)
+
+        res = glob.glob(pathmatch)
+        return res
 
         
     def close_launchers(self):
@@ -1671,9 +1673,9 @@ class IntegView(object):
 
         # Check whether we are busy executing a command here
         # and popup an error message if so
-        if queueObj.executingP():
-            self.popup_error("Commands are executing!")
-            return
+        #if queueObj.executingP():
+        #    self.popup_error("Commands are executing!")
+        #    return
 
         tw = opepage.tw
         #self.clear_marks(opepage)
@@ -1690,8 +1692,10 @@ class IntegView(object):
             queueObj.flush()
 
         except Exception, e:
-            if not queueObj.enableIfPending():
+            if len(queueObj) == 0:
                 self.popup_error("No queued commands and no mouse selection!")
+            else:
+                queueObj.enable()
             return
 
         # Break selection into individual lines
@@ -1732,9 +1736,9 @@ class IntegView(object):
 
         # Check whether we are busy executing a command here
         # and popup an error message if so
-        if queueObj.executingP():
-            self.popup_error("Commands are executing!")
-            return
+        #if queueObj.executingP():
+        #    self.popup_error("Commands are executing!")
+        #    return
 
         tw = opepage.tw
 
@@ -1820,13 +1824,18 @@ class IntegView(object):
         # Get the entire OPE buffer
         tw = bnch.opepage.tw
         row, col = str(tw.index('end')).split('.')
-        len = int(row)
+        tw_len = int(row)
         index = tw.index('%s.first' % bnch.tag)
 
+        # Make the row marks buffer the same length
+        # as the text file buffer
         rw = bnch.opepage.rw
-        #rw.delete('1.0', 'end')
-        #rw.insert('1.0', '\n' * len)
+        row, col = str(rw.index('end')).split('.')
+        rw_len = int(row)
+        if rw_len < tw_len:
+            rw.insert('end', '\n' * (tw_len - rw_len))
 
+        #rw.delete('%s linestart' % index, '%s lineend' % index)
         rw.insert(index, char)
 
         # Mark pending tasks in the queue as '(S)cheduled'

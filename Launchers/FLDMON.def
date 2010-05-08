@@ -1,0 +1,34 @@
+  LABEL AG_Tracking                # label
+    VAL01 LIST ON,OFF               # option val1,val2,...
+    VAL02 LIST BLUE=1,RED=2,NONE=0  # option val1,val2,...
+    CMD   TOPSCREEN OBE_ID=COMMON OBE_MODE=LAUNCHER FR_SWITCH=$VAL01                      # command-2
+    CMD   AG_TRACKING OBE_ID=COMMON OBE_MODE=LAUNCHER AG_TRACKING=$VAL01 FILTER=$VAL02    # command-1
+
+  <>    # separetor
+  <>    # separetor
+
+####
+  LABEL \
+  		"TopScreen(Fm, Rm, F/R)"         # label
+#
+    VAL01 INPUT 5 !STATL.TOPSCREEN_FPOS  # input columns default 
+    VAL02 INPUT 6 !STATL.TOPSCREEN_RPOS  # input columns default 
+    #VAL01 INPUT 5 11                     # input columns default 
+    #VAL02 INPUT 5 12                     # input columns default 
+
+    VAL03 LIST "Front         "=1,"Rear"=2,"None"=0     # option val1,val2,...
+    VAL04 INPUT 22 13                     # input columns default 
+#
+    CMD TOPSCREEN OBE_ID=COMMON OBE_MODE=LAUNCHER FR_SWITCH=$VAL03 F_M=$VAL01 R_M=$VAL02 SLEEP=$VAL04 SLEEP=1 # command
+####
+
+  LABEL BootVGW                            # label
+    CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+
+  LABEL FilterSwitch                 # label
+    VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+
+  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+  EASYCMD TELSHUTTER FRONT REAR MOVE_MERTER     # cmd arg1 arg2 ...
+

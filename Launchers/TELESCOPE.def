@@ -1,0 +1,122 @@
+LABEL "Telescope Setup"
+		VAL01 LIST "Cs_Opt","Cs_IR","Ns_Opt","Ns_IR","P_Opt","P_IR","Ns_IR_OptM2"
+		CMD   BootTelescope OBE_ID=Common OBE_MODE=Tool F_Select=$VAL01
+
+<>
+
+LABEL "AG,SV Tracking"                # label
+        VAL01 LIST "AG ","SV " "Guider"               # option val1,val2,...
+	VAL02 LIST "On","Off"
+        CMD   AGTRACKING OBE_ID=COMMON OBE_MODE=LAUNCHER AGTRACKING=$VAL02 GUIDER=$VAL01
+
+LABEL "AG Probe"
+        VAL01 SELECT "Retract","Insert"
+        CMD AG_PROBE OBE_ID=COMMON OBE_MODE=LAUNCHER PROBE=$VAL01
+
+LABEL "AG,SV ExposureTime"
+#        VAL01 LIST "AG ","SV " "Guider"              # option val1,val2,...
+        VAL02 INPUT 6 1000 "ms"
+        CMD AG_Change_Exptime OBE_ID=Common OBE_Mode=Launcher AGSV=$VAL01 Exptime=$VAL02
+
+LABEL "AG,SV Sky Cut LVL"
+        VAL01 LIST "AG ","SV " "Guider"              # option val1,val2,...
+        VAL02 INPUT 6 5000 "Counts"
+        CMD AG_Change_SkyLvl OBE_ID=Common OBE_Mode=Launcher AGSV=$VAL01 I_Bottom=$VAL02
+
+LABEL "Start AG (DoAG)"
+        VAL01 LIST "Semiauto","Manual","Auto" "StarSelect"
+        VAL02 INPUT 8 1.0 "ExpFactor"
+        CMD DOAG OBE_ID=COMMON OBE_MODE=LAUNCHER AG_Select=$VAL01 EXPTIME_FACTOR=$VAL02
+
+LABEL "Offset by Guider"
+        VAL01 LIST "AG ","SV " "Guider"
+        VAL02 INPUT 8 0.0 "RA asec"
+        VAL03 INPUT 8 0.0 "DEC asec"
+        CMD MOVEGUIDE OBE_ID=COMMON OBE_MODE=LAUNCHER GUIDER=$VAL01 DELTA_RA=$VAL02 DELTA_DEC=$VAL03
+
+LABEL "Save VGW Images"
+        VAL01 LIST "Current","NFrame" "SaveMode"
+        VAL02 LIST "AG","SV","SH"
+        VAL03 INPUT 6 1 "NFrame"
+        CMD SAVE_VLAN OBE_ID=COMMON OBE_MODE=LAUNCHER SAVE_MODE=$VAL01 VLAN=$VAL02 NFRAME=$VAL03
+
+<>
+
+LABEL "Setup Field"
+        VAL01 INPUT 10 000000.000 "RA"
+        VAL02 INPUT 10 "+00000.00" "DEC"
+        VAL03 INPUT 6 2000.0 "Equinox"
+        VAL04 INPUT 6 0.00 "Insrot_PA"
+		VAL05 INPUT 16 "Object" "Object"
+        CMD SetupField OBE_ID=COMMON OBE_Mode=TOOL RA=$VAL01 DEC=$VAL02 EQUINOX=$VAL03 INSROT_PA=$VAL04 Object=$VAL05
+	#CATALOG VAL01=RA VAL02=DEC VAL03=EQUINOX VAL04=INSROT_PA VAL05=OBJECT
+
+LABEL "NonSiderealTracking"
+        VAL01 INPUT 16 "08###.dat" "TargetFile"
+        VAL02 INPUT 8 0.00 "Insrot_PA"
+		VAL03 INPUT 16 "Object" "Object"
+        CMD SetupField OBE_ID=COMMON OBE_Mode=TOOL Target=$VAL01 INSROT_PA=$VAL02 Object=$VAL03 Coord=file
+
+LABEL "Set AzEl"
+        VAL01 INPUT 6 nop "Az"
+        VAL02 INPUT 6 nop "El"
+        CMD SETAzEl OBE_ID=COMMON OBE_MODE=LAUNCHER Az=$VAL01 El=$VAL02
+
+LABEL "Start Tracking"
+        CMD TelTrack OBE_ID=COMMON OBE_MODE=LAUNCHER
+
+LABEL "OffsetTelescope"
+        VAL01 LIST "Relative","Offset" "Mode"
+        VAL02 INPUT 6 0.0 "RAasec"
+        VAL03 INPUT 6 0.0 "DECasec"
+        CMD MOVETELESCOPE OBE_ID=COMMON OBE_MODE=LAUNCHER OFFSET_Mode=$VAL01 DELTA_RA=$VAL02 DELTA_DEC=$VAL03
+
+#LABEL "Offset Telescope (IRCS)"
+#        VAL01 LIST "NONE","FILE" "Coord"
+#        VAL02 INPUT 6 0.0 "RAasec"
+#        VAL03 INPUT 6 0.0 "DECasec"
+#        CMD TELMOVE OBE_ID=IRCS OBE_MODE=IRCS_SETUP COORD=$VAL01 RASEC=$VAL02 DECSEC=$VAL03
+
+<>
+
+LABEL "Set Atm.Dsp.Offset"
+		VAL01 INPUT 10 10 "ObsWavelen(micron)"
+		VAL02 INPUT 10 0.73 "GuidWavelen(micron)"
+		VAL03 LIST "SET","CLEAR" "Mode"
+		CMD SETAD OBE_ID=COMMON OBE_MODE=PROTO OBS_WAVELEN=$VAL01 REF_WAVELEN=$VAL02 Mode=$VAL03 OFFSET_TIME=0
+
+LABEL "Atm.Dsp.Correction"
+		VAL01 INPUT 10 10 "ObsWavelen(micron)"
+		VAL02 INPUT 10 0.73 "GuidWavelen(micron)"
+		VAL03 INPUT 10 0 "OffsetTime(sec)"
+		VAL04 LIST "AG","SV" "Guider"
+		VAL05 LIST "wo_IMR"=0,"w_IMR"=1 "ImgRotFlag"
+		CMD CORRECTAD OBE_ID=COMMON OBE_MODE=PROTO OBS_WAVELEN=$VAL01 REF_WAVELEN=$VAL02 OFFSET_TIME=$VAL03 Guider=$VAL04 IMGROT_FLAG=$VAL05
+
+####
+#  LABEL \
+#                "TopScreen(Fm, Rm, F/R)" # label
+#
+# VAL01 INPUT 5 !STATL.TOPSCREEN_FPOS  # input columns default
+# VAL02 INPUT 6 !STATL.TOPSCREEN_RPOS  # input columns default
+# #VAL01 INPUT 5 11 # input columns default
+# #VAL02 INPUT 5 12 # input columns default
+#
+# VAL03 LIST "Front         "=1,"Rear"=2,"None"=0     # option val1,val2,...
+# VAL04 INPUT 22 13 # input columns default
+##
+# CMD TOPSCREEN OBE_ID=COMMON OBE_MODE=LAUNCHER FR_SWITCH=$VAL03 F_M=$VAL01 R_M=$VAL02 SLEEP=$VAL04 SLEEP=1 # command
+#####
+#
+# LABEL BootVGW                            # label
+# CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+#
+# LABEL FilterSwitch                 # label
+# VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+## CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL05 FILTER=$VAL10
+# command
+# CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+#
+# EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER # cmd arg1 arg2 ...
+# EASYCMD TELSHUTTER FRONT REAR MOVE_MERTER    # cmd arg1 arg2 ...
+###

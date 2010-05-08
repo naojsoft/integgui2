@@ -1,0 +1,88 @@
+LABEL BootVGW
+	CMD BootVGW OBE_ID=COMMON OBE_MODE=TOOL
+
+LABEL BootQDAS
+	CMD BootQDAS OBE_ID=COMMON OBE_MODE=TOOL
+
+LABEL ShutdownVGW
+	CMD ShutdownVGW OBE_ID=COMMON OBE_MODE=TOOL
+
+LABEL ShutdownQDAS
+	CMD ShutdownQDAS OBE_ID=COMMON OBE_MODE=TOOL
+
+<>
+
+LABEL "Telescope Focus"
+        VAL01 INPUT 7 0.000 "Z"
+        CMD SETFOCUS OBE_ID=COMMON OBE_MODE=LAUNCHER Z=$VAL01
+
+LABEL "FocusAGSequence"
+        VAL01 INPUT 8 0.0 "InstDeltaZ"
+        VAL02 INPUT 8 "!TSCL.Z" "CenterZ"
+        CMD FocusAGSequence OBE_ID=COMMON OBE_MODE=TOOL Instrument_DeltaZ=$VAL01 Z=$VAL02
+
+LABEL "FocusAG"
+        VAL01 INPUT 8 0.0 "InstDeltaZ"
+        VAL02 INPUT 8 "!TSCL.Z" "CenterZ"
+        CMD FocusAG OBE_ID=COMMON OBE_MODE=TOOL Instrument_DeltaZ=$VAL01 Z=$VAL02
+
+LABEL "Rotator Angle"
+        VAL01 LIST "Link","Free" "Telscp"
+        VAL02 INPUT 7 0.0 "Degree"
+        CMD SETROTATOR OBE_ID=COMMON OBE_MODE=LAUNCHER TELESCOPE=$VAL01 INSROT_PA=$VAL02
+
+<>
+LABEL "Setup Domeflat"
+        VAL01 LIST "Change","Setup" "Mode"
+        VAL02 LIST "4x10W","2x600W","4x600W" "Lamp"
+        VAL03 INPUT 5 5.1 "Amp"
+        VAL04 INPUT 5 80.0 "Volt"
+        CMD SetupDomeflat OBE_ID=COMMON OBE_MODE=LAUNCHER Setup=$VAL01 Lamp=$VAL02 Amp=$VAL03 Volt=$VAL04
+
+LABEL "Setup Comparison"
+        VAL01 LIST "Hal1","Hal2","FeNe","ThAr","Ne","Ar" "Lamp"
+        VAL02 LIST "On","Off"
+        VAL03 LIST nop,None,ND1,ND2,ND3 "Filter1"
+        VAL04 LIST nop,None,ND1IR,ND2IR "Filter2"
+        VAL05 LIST nop,None,"Cnv1","Cnv2" "Filter3"
+        CMD SetupComparison OBE_ID=COMMON OBE_MODE=TOOL  LAMP=$VAL01 LIGHT=$VAL02 FILTER01=$VAL03 FILTER02=$VAL04 FILTER03=$VAL05 FILTER04=nop
+
+LABEL "Turn off Lamps"
+        VAL01 Select "Domeflat","Comparison"
+        CMD ShutdownLamp OBE_ID=COMMON OBE_MODE=LAUNCHER LAMP=$VAL01
+
+<>
+LABEL "WindScreen"                # label
+        VAL01 SELECT "On","Off"               # option val1,val2,...
+        CMD   WindScreen OBE_ID=COMMON OBE_MODE=LAUNCHER Motor=$VAL01
+
+LABEL "Gen2 Precheck"
+    CMD AG_PRECHECK OBE_ID=COMMON OBE_MODE=PRECHECK
+
+####
+#  LABEL \
+#                "TopScreen(Fm, Rm, F/R)" # label
+#
+# VAL01 INPUT 5 !STATL.TOPSCREEN_FPOS  # input columns default
+# VAL02 INPUT 6 !STATL.TOPSCREEN_RPOS  # input columns default
+# #VAL01 INPUT 5 11 # input columns default
+# #VAL02 INPUT 5 12 # input columns default
+#
+# VAL03 LIST "Front         "=1,"Rear"=2,"None"=0     # option val1,val2,...
+# VAL04 INPUT 22 13 # input columns default
+##
+# CMD TOPSCREEN OBE_ID=COMMON OBE_MODE=LAUNCHER FR_SWITCH=$VAL03 F_M=$VAL01 R_M=$VAL02 SLEEP=$VAL04 SLEEP=1 # command
+#####
+#
+# LABEL BootVGW                            # label
+# CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+#
+# LABEL FilterSwitch                 # label
+# VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+## CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL05 FILTER=$VAL10
+# command
+# CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+#
+# EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER # cmd arg1 arg2 ...
+# EASYCMD TELSHUTTER FRONT REAR MOVE_MERTER    # cmd arg1 arg2 ...
+###

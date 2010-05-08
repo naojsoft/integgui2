@@ -1,0 +1,138 @@
+LABEL "CheckField"         # Command Label
+	VAL01 LIST "1x1","2x2","3x3","6x6","Center300" "Binning"
+	VAL02 INPUT 6 60 "Exptime"
+	CMD CheckField OBE_ID=K3D OBE_MODE=TOOL Binning=$VAL01 EXptime=$VAL02
+
+LABEL "GetMP"         # Command Label
+	VAL01 INPUT 6 60 "Exptime"
+	VAL02 LIST "NONE","No1","No2","No3","No4","No5"
+	CMD CheckField OBE_ID=K3D OBE_MODE=SPEC_MLA OBJECT=!FITS.K3D.OBJECT Exptime=$VAL01 Filter=$VAL02
+
+LABEL "GetBias"         # Command Label
+	VAL01 LIST "1x1","2x2","3x3","6x6" "Binning"
+	CMD GetBias OBE_ID=K3D OBE_MODE=IMAG Binning=$VAL01 OBJECT=BIAS
+
+LABEL "GetDark"         # Command Label
+	VAL01 LIST "1x1","2x2","3x3","6x6" "Binning"
+	VAL02 INPUT 6 60 "Exptime"
+	CMD GetDark OBE_ID=K3D OBE_MODE=IMAG Exptime=$VAL02 Binning=$VAL01 OBJECT=DARK
+
+LABEL "GetComparison"         # Command Label
+	CMD GetComparison OBE_ID=K3D OBE_MODE=SPEC Exptime=$VAL02 Grism=$VAL03 Filter=$VAL04 CompFilter=$VAL05 Lamp=$VAL06 Binning=$VAL01 OBJECT=COMPARISON
+	VAL01 LIST "1x1","2x2","3x3","6x6" "Binning"
+	VAL02 INPUT 6 60 "Exptime"
+	VAL03 LIST "None","No1","No2","No3","No4","No5" Grism
+	VAL04 LIST "None","No1","No2","No3","No4","No5" Filter
+	BREAK
+	VAL05 LIST "None","ND0.1","ND0.25","ND1","ND5","ND10","ND30" "ND_Filter"
+	VAL06 LIST "Ne","He" Lamp
+
+LABEL "GetInstFlat"         # Command Label
+	CMD GetInstFlat OBE_ID=K3D OBE_MODE=SPEC Exptime=$VAL02 Grism=$VAL03 Filter=$VAL04 CompFIlter=$VAL05 Binning=$VAL01 OBJECT=INSTFLAT
+	VAL01 LIST "1x1","2x2","3x3","6x6" "Binning"
+	VAL02 INPUT 6 60 "Exptime"
+	VAL03 LIST "None","No1","No2","No3","No4","No5" Grism
+	VAL04 LIST "None","No1","No2","No3","No4","No5" Filter
+	BREAK
+	VAL05 LIST "None","ND0.1","ND0.25","ND1","ND5","ND10","ND30" "ND_Filter"
+
+	                         # Abstract Command Should be registered
+	                         # as sk/FOCAS/LAUNCHER/TEST.sk
+<>
+LABEL "Reset CS100/MFront"
+	VAL01 SELECT "CS100","MFront" "Device"
+	CMD Reset OBE_ID=K3D OBE_Mode=TOOL Device=$VAL01
+ 
+LABEL "Mask"                # Command Label
+	VAL01 SELECT "None","Hart1","Hart2","X+","X-","Y+","Y-" "Mask"
+	CMD SetMask OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+
+LABEL "Grism"                # Command Label
+	VAL01 SELECT "None","No1","No2","No3","No4","No5"
+	CMD SetGrism OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Filter"                # Command Label
+	VAL01 SELECT "NONE","No1","No2","No3","No4","No5"
+	CMD SetFilter OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Focal Slider"                # Command Label
+	CMD SetFocalSlider OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+	VAL01 SELECT "None","Slit","Enlarger","NoFilter","5015A","6295A","6595A","6629A","6685A","I"
+LABEL "Camera Focus"                # Command Label
+	VAL01 SELECT "MLA_No1","MLA_No2","MLA_No3","MLA_No4","MLA_No5","Slit_No1","Slit_No2","Slit_No3","Slit_No4","Slit_No5"
+	CMD SetFocus OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Mirror 1,4"                # Command Label
+	VAL01 SELECT "IN","Out"
+	CMD SetMirror OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Etalon Bench"                # Command Label
+	VAL01 SELECT "None","Grism","Etalon"
+	CMD SetEtalonSelect OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Filter Angle"                # Command Label
+	VAL01 Input 5 0 "degree"
+	CMD SetFilterAngle OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+<>
+LABEL "Comp Filter"                # Command Label
+	VAL01 SELECT "None","ND0.1","ND0.25","ND1","ND5","ND10","ND30"
+	CMD SetCmpFilter OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+LABEL "Comp Mirror"                # Command Label
+	VAL01 SELECT "Out","In"
+	CMD SetCmpMirror OBE_ID=K3D OBE_MODE=TOOL Select=$VAL01
+
+
+<>
+#### Command Launcher Sample Parameter File ####
+#
+#  LABEL "GetBias(Cooler)"                # label
+#    VAL01 LIST ON,OFF               # option val1,val2,...
+#    CMD GetBias OBE_ID=FOCAS OBE_MODE=LAUNCHER CMODE=$VAL01
+#
+#  LABEL GetDark(Cooler,Exptime)
+#	VAL01 LIST ON,OFF
+#	VAL02 INPUT 6 60.0
+#    CMD GetDark OBE_ID=FOCAS OBE_MODE=LAUNCHER CMODE=$VAL01 Exptime=$VAL02
+#
+#  <>    # separetor
+#
+#  LABEL Snap(Exptime,Bin,Chip)
+#	VAL01 INPUT 6 1.0
+#	VAL02 LIST 1x1,2x1,3x1,4x1,2x1,2x2,2x3,2x4,3x1,3x2,3x3,3x4,4x1,4x2,4x3,4x4
+#	VAL03 LIST Chip1,Chip2
+#	CMD Snap OBE_ID=FOCAS OBE_MODE=LAUNCHER Exptime=$VAL01 QDAQ_Chip=$VAL03 Binning=$VAL02 Object=SnapShot
+#
+#  LABEL DisplayImage(FrameID)
+#	VAL01 INPUT 12 FCSA00000000
+#	CMD ShowImage OBE_ID=FOCAS OBE_MODE=LAUNCHER FRAMEID=$VAL01
+#
+#  <>
+#
+#  LABEL BB-Filter
+#	VAL01 SELECT None=0,U=1,B=2,V=3,R=4,I=5
+#	CMD SelectFilter OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#
+#  LABEL NB-Filter
+#	VAL01 SELECT 373=6,386=7,487=8,502=9,512=10,642=11,658=12
+#	CMD SelectFilter OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
+#
+#  LABEL Grism
+#    VAL01 SELECT 75=1,150=5,300R=7,300B=3
+#	CMD SelectGrism OBE_ID=FOCAS OBE_MODE=LAUNCHER Grism=$VAL01
+#	
+##
+##  LABEL BootVGW                            # label
+##    CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+##
+##  LABEL FilterSwitch                 # label
+##    VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+###    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL05 FILTER=$VAL10 # command
+##    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+##
+############# Easy Command Definition
+##
+#  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+#  EASYCMD TELSHUTTER FRONT REAR MOVE_MOTER     # cmd arg1 arg2 ...
+#
+# Input ==> TelMov 122334.456 +122334.43 2000.0 60.0 "R_Band"
+# Expand==> TelMov OBE_ID=FOCAS OBE_MODE=Launcher RA=122334.456 DEC=....
+#
+# Try help
+# Try help telmov
+# Try help tel
+####

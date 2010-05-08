@@ -1,0 +1,44 @@
+#
+# SessionManager Command Launcher definitions
+# Eric Jeschke  2009.03.12
+#
+
+LABEL "Alloc"
+	VAL01 LIST  "IRCS"="IRCS","FOCAS"="FOCAS","HDS"="HDS","COMICS"="COMICS","SPCAM"="SPCAM","SUKA"="SUKA","K3D"="K3D","MOIRCS"="MOIRCS","FMOS"="FMOS","FLDMON"="FLDMON","HICIAO"="HICIAO","WAVEPLAT"="WAVEPLAT","SIMCAM"="SIMCAM" "Primary"
+	VAL02 INPUT  20 VGW "Secondary"
+	CMD EXEC SESSIONMANAGER alloc $VAL01 $VAL02
+
+LABEL "Custom Alloc"
+	VAL01 INPUT  40 SIMCAM "Service Names"
+	CMD EXEC SESSIONMANAGER alloc $VAL01
+
+LABEL "Dealloc"
+	VAL01 INPUT  40 all "Service Names"
+	CMD EXEC SESSIONMANAGER free $VAL01
+
+LABEL "Restart IntegGUI"
+	CMD EXEC BOOTMANAGER restart "integgui"
+
+<>
+
+LABEL "Change Proposal"
+	CMD EXEC SESSIONMANAGER changeProp main PROPID=$VAL01 OBSERVERS=$VAL02 SS=$VAL03 OPERATOR=$VAL04
+	VAL01 INPUT 8 xxxxxx "Prop-Id"
+        BREAK
+	VAL02 INPUT 50 xxxxxx "Observers"
+        BREAK
+	VAL03 INPUT 20 xxxxxx "Support Scientist"
+        BREAK
+	VAL04 INPUT 20 xxxxxx "Operator"
+
+<>
+
+LABEL "Change Session"
+	VAL01 INPUT 10 main "Session"
+	VAL02 INPUT 20 xxxx-xxxx-xxxx-xxxx "Key"
+	CMD EXEC SESSIONMANAGER changeSession $VAL01 $VAL02
+
+#
+#<>
+
+#END

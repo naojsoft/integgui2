@@ -1,0 +1,156 @@
+#  LABEL GetBias(DispFrame)
+#	VAL01 LIST "Frame1"=1,"Frame2"=2
+#              CMD GetBias OBE_ID=HDS OBE_MODE=LAUNCHER Object=BIAS Display_Frame=$VAL01
+#
+#  LABEL GetDark(Exptime,DispFrame)
+#	VAL01 INPUT 6 60.0
+#	VAL02 LIST "Frame1"=1,"Frame2"=2
+#              CMD GetDark OBE_ID=HDS OBE_MODE=LAUNCHER Exptime=$VAL01 Object=Dark Display_Frame=$VAL02
+ 
+  LABEL "Get SV Image"
+              VAL01 INPUT 5 1 "num"
+              CMD GetSVImage OBE_ID=HDS OBE_MODE=LAUNCHER NFRAME_SV=$VAL01
+
+  LABEL "Change SV Filter"
+	      VAL01 LIST "None"=0,"V"=1,"BP530"=2,"ND2"=3 "Filter"
+              CMD SetSVFilter OBE_ID=HDS OBE_MODE=LAUNCHER SV_FILTER01=$VAL01
+
+  LABEL MarkPositionSV
+	VAL01 INPUT 3 0 "X"
+	VAL02 INPUT 3 0 "Y"
+	VAL03 LIST "Crs"=Cross,"Sqr"=Square,"Circ"=Circle "Mark"
+	VAL04 LIST "G"=Green,"R"=Red "Color"
+	VAL05 LIST "Clr"=1,"not"=0 "Clear"
+	CMD MarkPositionSV OBE_ID=HDS OBE_MODE=LAUNCHER SV_X=$VAL01 SV_Y=$VAL02 Mark=$VAL03 Color=$VAL04 Clear=$VAL05
+
+  LABEL "Re-Target Acq."
+	VAL01 LIST "QDAS_ON"=ON,"QDAS_OFF"=OFF
+	VAL02 LIST "On_Slit"=OFF,"Correction"=ON
+              VAL03 INPUT 7 0.35  "HDS(um)"
+              VAL04 INPUT 7 0.70 "Guider"
+	CMD TargetAcquisition OBE_ID=HDS OBE_MODE=LAUNCHER QDAS=$VAL01 AD_Correction=$VAL02 OBS_WAVELEN=$VAL03 REF_WAVELEN=$VAL04
+  
+  LABEL "Set Seeing"
+              VAL01 INPUT 5 0.8 "Seeing"
+	CMD SetStarSize OBE_ID=HDS OBE_MODE=LAUNCHER SEEING=$VAL01
+
+  LABEL "New SV Guide"
+              VAL01 INPUT 5 0.8 "Seeing"
+              VAL02 INPUT 6 307 "X"
+              VAL03 INPUT 6 304 "Y"
+              VAL04 INPUT 5 -1 "ReadR"
+              VAL05 INPUT 5 60 "CalcR"
+              VAL06 INPUT 5 -1 "I_btm"
+	      VAL07 LIST "SLIT","CTR" "Mode"
+	CMD SetSVGuide OBE_ID=HDS OBE_MODE=LAUNCHER SV_SLIT_X=$VAL02 SV_SLIT_Y=$VAL03 READREGION=$VAL04 CALCREGION=$VAL05 I_BOTTOM=$VAL06 SEEING=$VAL01 CALC_MODE=$VAL07
+
+  LABEL "Trailing"
+              VAL01 INPUT 6 0 "PA(deg)"
+              VAL02 INPUT 6 0.5 "dY(sec)"
+              VAL03 INPUT 4 5 "Step"
+              VAL04 INPUT 5 10 "1Time"
+              VAL05 LIST "AG"=AG,"SV"=SV "Guider"
+	CMD Trailing OBE_ID=HDS OBE_MODE=LAUNCHER SLIT_PA=$VAL01 DELTA_YSEC=$VAL02 NSTEP=$VAL03 STAY_TIME=$VAL04 GUIDER=$VAL05
+
+  <>    # separetor
+
+#  LABEL Snap(Exptime,DispFrame)
+#	VAL01 INPUT 6 60.0
+#	VAL02 LIST "Frame1"=1,"Frame2"=2
+#	CMD Snap OBE_ID=HDS OBE_MODE=Launcher Exptime=$VAL01 Display_Frame=$VAL02 Object=SnapShot
+
+#  LABEL "Display Image"
+#	VAL01 INPUT 16 !STATOBS.HDS.C1 "FrameID"
+#	CMD ShowImage OBE_ID=HDS OBE_MODE=LAUNCHER Display_Frame=$VAL01
+
+  LABEL "Display Image"
+              VAL01 LIST "Last-BLUE"=BLUE,"Last-RED"=RED,"FrameID"=ID
+	      VAL02 INPUT 16 HDSA000 "FrameID"
+              CMD ShowImage2 OBE_ID=HDS OBE_MODE=LAUNCHER Display_Frame=$VAL01 FrameID=$VAL02
+ <>
+
+  LABEL "Close Shutter"
+              CMD CloseShutter OBE_ID=HDS OBE_MODE=LAUNCHER
+
+  LABEL "Slit(arcsec/um)"
+	VAL01 INPUT 12 -1 "Width(sec/um)"
+	VAL02 INPUT 12 -1 "Length(sec/um)"
+	CMD SetSlit_Arcsec OBE_ID=HDS OBE_MODE=LAUNCHER SLIT_WIDTH=$VAL01 SLIT_LENGTH=$VAL02
+
+  LABEL Filter
+        VAL01 LIST NOP=NO,"Free",OG530,U340,"SII_6724"=S6724,"Halpha","OI_6300"=O6300,"OIII_5007"=O5007,"HeII_4686"=HE4686,ND1,SQ "Filter1"
+        VAL02 LIST NOP=NO,"Free",KV370,KV389,SC42,SC46,GG495 "Filter2"
+	CMD SelectFilter OBE_ID=HDS OBE_MODE=LAUNCHER Filter_1=$VAL01 Filter_2=$VAL02
+
+  LABEL "I2Cell"
+        VAL01 LIST IN=IN,OUT=OUT
+        VAL02 INPUT 6 0.0 "M2_Zout"
+        VAL03 INPUT 6 0.2 "M2_Zin"
+        CMD SetI2 OBE_ID=HDS OBE_MODE=LAUNCHER I2_POSITION="$VAL01" Z_IN=$VAL03 Z_OUT=$VAL02
+<>
+   LABEL "Prepare FocusAG"
+        VAL01 INPUT 6 50.0 "AG_R"
+        CMD Prep_FocusAG OBE_ID=HDS OBE_MODE=LAUNCHER AG_R=$VAL01
+<>
+   LABEL "Setup CAL"
+	VAL01 LIST "HAL"=HAL,"HCT"=HCT
+        VAL02 INPUT 4 4.0 "Amp"
+	VAL03 LIST "1","2","3","4" "A"
+	VAL04 LIST "1","2","3","4" "B"
+	VAL05 LIST "1","2","3","4" "C"
+	VAL06 LIST "1","2","3","4" "D"
+        CMD SetCal OBE_ID=HDS OBE_MODE=LAUNCHER OBJECT=$VAL01 AMP=$VAL02 FILTER01=$VAL03 FILTER02=$VAL04 FILTER03=$VAL05 FILTER04=$VAL06 F_SELECT=Ns_Opt
+
+   LABEL "Shutdown CAL"
+	VAL01 LIST "HAL"=HAL,"HCT"=HCT
+	VAL02 LIST "Retract"=YES,"Lamp_Off"=NO
+        CMD ShutdownComparison OBE_ID=HDS OBE_MODE=LAUNCHER OBJECT=$VAL01 RETRACT=$VAL02
+
+#   LABEL ShutterClose
+#              VAL01 LIST "CLOSE"=3,"PENDING"=4
+#              CMD Shutter OBE_ID=HDS OBE_MODE=LAUNCHER Shutter=$VAL01
+#
+#  LABEL ShutterOpen
+#              VAL01 LIST "OPEN"=1,"REOPEN"=2
+#              VAL02 INPUT 6 0.0
+#              CMD Shutter OBE_ID=HDS OBE_MODE=LAUNCHER Shutter=$VAL01 Exptime=$VAL02
+#  LABEL "SetUp"
+#	VAL01 Select "Ua","Ub","Ba","Bc","Ya","Yb","Yc"
+#	CMD SetupMode OBE_ID=HDS OBE_MODE=LAUNCHER Setup=$VAL01
+#
+#  LABEL "SetUp"
+#	VAL01 Select "Ra","Rb","NIRa","NIRb","NIRc"
+#	CMD SetupMode OBE_ID=HDS OBE_MODE=LAUNCHER Setup=$VAL01
+#
+#  LABEL "SetUp"
+#	VAL01 Select "I2a","I2b","Ha"
+#	CMD SetupMode OBE_ID=HDS OBE_MODE=LAUNCHER Setup=$VAL01
+
+
+
+####
+#  LABEL \
+#  		"TopScreen(Fm, Rm, F/R)"         # label
+#
+#    VAL01 INPUT 5 !STATL.TOPSCREEN_FPOS  # input columns default 
+#    VAL02 INPUT 6 !STATL.TOPSCREEN_RPOS  # input columns default 
+#    #VAL01 INPUT 5 11                     # input columns default 
+#    #VAL02 INPUT 5 12                     # input columns default 
+#
+#    VAL03 LIST "Front         "=1,"Rear"=2,"None"=0     # option val1,val2,...
+#    VAL04 INPUT 22 13                     # input columns default 
+##
+#    CMD TOPSCREEN OBE_ID=COMMON OBE_MODE=LAUNCHER FR_SWITCH=$VAL03 F_M=$VAL01 R_M=$VAL02 SLEEP=$VAL04 SLEEP=1 # command
+#####
+#
+#  LABEL BootVGW                            # label
+#    CMD BOOTVGW OBE_ID=COMMON OBE_MODE=LAUNCHER  # command
+#
+#  LABEL FilterSwitch                 # label
+#    VAL01 SELECT BLUE=1,RED=2,NONE=0  # select label,label,label
+##    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL05 FILTER=$VAL10 # command
+#    CMD FILTERSWITCH OBE_ID=COMMON OBE_MODE=LAUNCHER FILTER=$VAL01 # command
+#
+#  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+#  EASYCMD TELSHUTTER FRONT REAR MOVE_MERTER     # cmd arg1 arg2 ...
+###

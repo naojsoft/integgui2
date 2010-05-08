@@ -1,0 +1,85 @@
+####################
+# Entrance shutter #
+####################
+LABEL   "Entrance shutter"     # AO188 entrance shutter
+      VAL01 LIST "OPEN"=OPEN,"CLOSE"=CLOSE
+      CMD AO188_ENT_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+<>
+#######
+# CAL #
+#######
+LABEL   "Move CALXZ stage"     # AO188 entrance shutter
+      VAL01 LIST "OUT"=OUT,"CENTER"=CENTER,"GASCELL"=GASCELL,"MOVREL"=MOVREL,"MOVABS"=MOVABS
+      VAL02 INPUT 6 0.0 "X"
+      VAL03 INPUT 6 0.0 "Z"
+      CMD AO188_CALXZ OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 CAL_X=$VAL02 CAL_Z=$VAL03
+LABEL   "Set CALLD power"
+      VAL01 LIST "655nm"=1,"1550nm"=2,"589nm"=3
+      VAL02 LIST "ON"=ON,"OFF"=OFF "power"
+      CMD AO188_CALLD_POWER OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+LABEL   "Set CALLD current"
+      VAL01 LIST "655nm"=1,"1550nm"=2,"589nm"=3
+      VAL02 INPUT 6 0.0 "mA"
+      CMD AO188_CALLD_ILD OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+<>
+#######
+# AU1 #
+#######
+LABEL   "Move AU1"     
+      VAL01 LIST "ABS OFFSET(mm)"=AOFF,"REL OFFSET(mm)"=ROFF,"ABS OFFSET(asec)"=ASOFF,"REL OFFSET(asec)"=RSOFF,"ABS TILT(deg)"=ATILT,"REL TILT(deg)"=RTILT,"TTZERO(V)"=TTZERO,"WACQ(PIX)"=WACQ
+      VAL02 INPUT 6 0.0 "X"
+      VAL03 INPUT 6 0.0 "Y"
+      CMD AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 VAL1=$VAL02 VAL2=$VAL03
+LABEL   "AU1 Focus"
+      VAL01 LIST "MOVABS"=AFOCUS,"MOVREL"=RFOCUS
+      VAL02 INPUT 6 0.0 "mm"
+      CMD AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 VAL1=$VAL02 VAL2=0
+LABEL   "AU1 Base"
+      CMD AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=BASE VAL1=0 VAL2=0
+<>
+#########################
+# TT null (MANUAL FEED) #
+#########################
+#
+# AO TT Nulling (Use while AO loop is CLOSED)
+#
+LABEL   "TToffload" # Correction of AO TT mirror by moving telescope
+     VAL01 INPUT 6 0.0 "TT X"
+     VAL02 INPUT 6 0.0 "TT Y"
+     VAL03 LIST "Sidereal"=ABS,"Non-Sidereal"=FILE "TYPE"
+     CMD AO188_TTNULL_FEED OBE_ID=AO188 OBE_MODE=LAUNCHER TT_X=$VAL01 TT_Y=$VAL02 COORD=$VAL03
+<>
+##############################
+# Power/Voltage for DM/TT/VM #
+##############################
+LABEL   "Set VMpower"  # Set power
+     VAL01 LIST "On"=ON,"Off"=OFF
+     CMD AO188_VMPOWER OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+LABEL   "Set DMvolt"  # Set voltage
+     VAL01 LIST "Flat"=FLAT,"Zero"=ZERO
+     CMD AO188_DMVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+LABEL   "Set TTvolt"  # Set voltage
+     VAL01 LIST "Flat"=FLAT,"Zero"=ZERO,"MOVREL"=MOVREL,"MOVABS"=MOVABS
+     VAL02 INPUT 6 0.0 "TT X"
+     VAL03 INPUT 6 0.0 "TT Y"
+     CMD AO188_TTVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 TTX=$VAL02 TTY=$VAL03
+<>
+#######################
+# F-conversion optics #
+#######################
+LABEL   "Move F-conv"  
+     VAL01 LIST "IN"=IN,"OUT"=OUT
+     CMD AO188_FCONV OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+<>
+############# Easy Command Definition
+##
+#  EASYCMD TELMOV RA DEC EQUINOX EXPTIME FILTER  # cmd arg1 arg2 ...
+#  EASYCMD TELSHUTTER FRONT REAR MOVE_MOTER     # cmd arg1 arg2 ...
+#
+# Input ==> TelMov 122334.456 +122334.43 2000.0 60.0 "R_Band"
+# Expand==> TelMov OBE_ID=FOCAS OBE_MODE=Launcher RA=122334.456 DEC=....
+#
+# Try help
+# Try help telmov
+# Try help tel
+####

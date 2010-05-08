@@ -41,23 +41,23 @@ class CommandQueue(object):
         self.flag = threading.Event()
         self.lock = threading.RLock()
 
-    def executingP(self):
+    def enabledP(self):
         return self.flag.isSet()
 
     def enable(self):
         return self.flag.set()
 
+    def disable(self):
+        return self.flag.clear()
+
     def enableIfPending(self):
         with self.lock:
             if len(self.queue) > 0:
-                self.flag.set()
+                self.enable()
                 return True
 
             else:
                 return False
-
-    def disable(self):
-        return self.flag.clear()
 
     def flush(self):
         with self.lock:
@@ -99,6 +99,9 @@ class CommandQueue(object):
 
     def get(self):
         with self.lock:
+            if not self.enabledP():
+                raise QueueEmpty('Queue %s is empty' % self.name)
+
             try:
                 return self.queue.pop(0)
             except IndexError:
@@ -249,13 +252,11 @@ class IntegController(object):
         #self.gui.close_launchers()
 
         launchers = []
-        for name in ['TELESCOPE', 'TELESCOPE2']:
-            launchers.append(self.gui.get_launcher_path(name))
+        for name in ['TELESCOPE']:
+            launchers.extend(self.gui.get_launcher_paths(name))
 
         for name in allocs_lst:
-            filepath = self.gui.get_launcher_path(name)
-            if os.path.exists(filepath):
-                launchers.append(filepath)
+            launchers.extend(self.gui.get_launcher_paths(name))
 
         self.logger.debug("launchers=%s" % launchers)
         for filepath in launchers:
