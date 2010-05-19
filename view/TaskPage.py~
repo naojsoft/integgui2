@@ -1,7 +1,0 @@
-import CodePage
-
-class TaskPage(CodePage):
-    pass
-
-#END
-
