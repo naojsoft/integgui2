@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 15:31:03 HST 2010
+#  Last edit: Tue May 18 15:38:28 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -76,7 +76,7 @@ class IntegView(object):
         self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
         self.monpage = self.oiws.addpage('moninfo', "Monitor", SkMonitorPage)
         self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
-        self.fitsview = self.oiws.addpage('fitsview', "View", FitsViewerPage)
+        self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
         self.oiws.select('obsinfo')
 
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
@@ -104,40 +104,52 @@ class IntegView(object):
         file_item.show()
         file_item.set_submenu(filemenu)
 
-        item = gtk.MenuItem(label="Load ope")
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load")
         filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
+
+        item = gtk.MenuItem(label="ope")
+        loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_ope(),
                              "file.Load ope")
+        item.show()
+
+        item = gtk.MenuItem(label="fits")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_fits(),
+                             "file.Load fits")
+        item.show()
+
+        item = gtk.MenuItem(label="log")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_log(),
+                             "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="sk")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_sk(),
+                             "file.Load sk")
+        item.show()
+
+        item = gtk.MenuItem(label="task")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_task(),
+                             "file.Load task")
+        item.show()
+
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher(),
+                             "file.Load launcher")
         item.show()
 
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
         item.connect_object ("activate", lambda w: self.reconfig(),
                              "file.Config from session")
-        item.show()
-
-        item = gtk.MenuItem(label="Load log")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_log(),
-                             "file.Load log")
-        item.show()
-        
-        item = gtk.MenuItem(label="Load sk")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_sk(),
-                             "file.Load sk")
-        item.show()
-
-        item = gtk.MenuItem(label="Load task")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_task(),
-                             "file.Load task")
-        item.show()
-
-        item = gtk.MenuItem(label="Load launcher")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher(),
-                             "file.Load launcher")
         item.show()
 
         sep = gtk.SeparatorMenuItem()
@@ -155,24 +167,32 @@ class IntegView(object):
         option_item.show()
         option_item.set_submenu(optionmenu)
 
+        monitormenu = gtk.Menu()
         # Option variables
         self.save_decode_result = False
         self.show_times = False
         self.track_elapsed = False
         self.audible_errors = True
 
+        item = gtk.MenuItem(label="Monitor")
+        optionmenu.append(item)
+        item.show()
+        item.set_submenu(monitormenu)
+
+        # Monitor menu
         w = gtk.CheckMenuItem("Save Decode Result")
         w.set_active(False)
-        optionmenu.append(w)
+        monitormenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
         w = gtk.CheckMenuItem("Show Times")
         w.set_active(False)
-        optionmenu.append(w)
+        monitormenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
         w = gtk.CheckMenuItem("Track Elapsed")
         w.set_active(False)
-        optionmenu.append(w)
+        monitormenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
+
         w = gtk.CheckMenuItem("Audible Errors")
         w.set_active(True)
         optionmenu.append(w)
@@ -302,6 +322,8 @@ class IntegView(object):
             page = self.logpage.addpage(filepath, filename, LogPage)
             page.load(filepath)
 
+            # Bring FITS tab to front
+            self.oiws.select('loginfo')
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
@@ -373,6 +395,8 @@ class IntegView(object):
             ast = self.lnchmgr.parse_buf(buf)
             page.addFromDefs(ast)
 
+            # Bring FITS tab to front
+            self.oiws.select('loginfo')
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
@@ -403,6 +427,27 @@ class IntegView(object):
         for name in self.logpage.getNames():
             page = self.logpage.getPage(name)
             page.close()
+
+    def gui_load_fits(self):
+        initialdir = os.environ['DATAHOME']
+        
+        self.filesel.popup("Load FITS file", self.load_fits,
+                           initialdir=initialdir)
+        
+    def load_fits(self, filepath):
+            
+        (filedir, filename) = os.path.split(filepath)
+        (filepfx, fileext) = os.path.splitext(filename)
+        try:
+            page = self.fitspage.addpage(filepath, filepfx, FitsViewerPage)
+            page.load(filepath)
+
+            # Bring FITS tab to front
+            self.oiws.select('fitsview')
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
 
     def reconfig(self):
         self.close_logs()
@@ -487,9 +532,6 @@ class IntegView(object):
 
             tags.append(Bunch.Bunch(tag=tag, opepage=opepage,
                                     type='opepage'))
-
-        # deselect the region
-        #tw.tag_remove(Tkinter.SEL, '1.0', 'end')
 
         # Add tags to queue
         queueObj.extend(tags)
@@ -784,12 +826,17 @@ style "main_button" = "button"
   bg[PRELIGHT] = { 0.75, 0, 0 }
 }
 
-style "toggle_button" = "button"
+style "launcher_button" = "button"
 {
-  fg[NORMAL] = { 1.0, 0, 0 }
-  fg[ACTIVE] = { 1.0, 0, 0 }
- 
+  font_name = "Monospace 10"
 }
+
+## style "toggle_button" = "button"
+## {
+##   fg[NORMAL] = { 1.0, 0, 0 }
+##   fg[ACTIVE] = { 1.0, 0, 0 }
+ 
+## }
 
 style "text"
 {
@@ -804,8 +851,9 @@ style "text"
 widget_class "GtkWindow" style "window"
 widget_class "GtkDialog" style "window"
 widget_class "GtkFileSelection" style "window"
-widget_class "*GtkCheckButton*" style "toggle_button"
-widget_class "*GtkRadioButton*" style "toggle_button"
+## widget_class "*GtkCheckButton*" style "toggle_button"
+## widget_class "*GtkRadioButton*" style "toggle_button"
+widget_class "launcher.GtkButton*" style "launcher_button"
 widget_class "*GtkButton*" style "button"
 widget_class "*GtkTextView" style "text"
 

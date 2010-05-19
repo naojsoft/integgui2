@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 13:57:24 HST 2010
+#  Last edit: Mon May 17 15:03:05 HST 2010
 #]
 
 import Bunch
@@ -109,6 +109,28 @@ def replace_text(page, tagname, textstr):
 
     # Scroll the view to this area
     page.tw.scroll_to_iter(start, 0.1)
+
+
+def get_tv(widget):
+    txtbuf = widget.get_buffer()
+    startiter, enditer = txtbuf.get_bounds()
+    text = txtbuf.get_text(startiter, enditer)
+    return text
+
+def append_tv(widget, text):
+    txtbuf = widget.get_buffer()
+    enditer = txtbuf.get_end_iter()
+    txtbuf.place_cursor(enditer)
+    txtbuf.insert_at_cursor(text)
+    startiter = txtbuf.get_start_iter()
+    txtbuf.place_cursor(startiter)
+    widget.scroll_to_iter(enditer, False, 0, 0)
+
+def clear_tv(widget):
+    txtbuf = widget.get_buffer()
+    startiter = txtbuf.get_start_iter()
+    enditer = txtbuf.get_end_iter()
+    txtbuf.delete(startiter, enditer)
 
 
 class TagError(Exception):

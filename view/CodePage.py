@@ -1,19 +1,27 @@
-import common
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 16:59:16 HST 2010
+#]
+import os.path
 
+import common
 import Page
 
 import gtk
 
-class CodePage(Page.Page):
+class CodePage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
         super(CodePage, self).__init__(frame, name, title)
 
+        self.hbox = gtk.HPaned()
+        
         self.border = gtk.Frame("")
         self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         self.border.set_label_align(0.1, 0.5)
-        
+
+        # Create the widgets for the OPE file text
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
@@ -21,7 +29,7 @@ class CodePage(Page.Page):
                                    gtk.POLICY_AUTOMATIC)
 
         tw = gtk.TextView()
-        scrolled_window.add_with_viewport(tw)
+        scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
@@ -30,37 +38,30 @@ class CodePage(Page.Page):
         tw.set_left_margin(4)
         tw.set_right_margin(4)
 
-        self.border.add(scrolled_window)
-        frame.pack_start(self.border, expand=True, fill=True)
-        self.border.show()
-
         self.tw = tw
         self.buf = tw.get_buffer()
 
-        # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(5)
-        self.btns = btns
+        self.border.add(scrolled_window)
+        self.border.show()
 
-        self.btn_close = gtk.Button("Close")
-        self.btn_close.connect("clicked", lambda w: self.close())
-        self.btn_close.show()
-        btns.pack_end(self.btn_close, padding=4)
+        self.hbox.pack2(self.border, resize=False, shrink=True)
+        self.hbox.show()
+        frame.pack_start(self.hbox, fill=True, expand=True)
 
-        self.btn_reload = gtk.Button("Reload")
-        self.btn_reload.connect("clicked", lambda w: self.reload())
-        self.btn_reload.show()
-        btns.pack_end(self.btn_reload, padding=4)
+        self.add_menu()
+        self.add_close()
 
-        self.btn_save = gtk.Button("Save")
-        self.btn_save.connect("clicked", lambda w: self.save())
-        self.btn_save.show()
-        btns.pack_end(self.btn_save, padding=4)
+        item = gtk.MenuItem(label="Reload")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.reload(),
+                             "menu.Reload")
+        item.show()
 
-        btns.show()
-
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        item = gtk.MenuItem(label="Save")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.save(),
+                             "menu.Save")
+        item.show()
 
 
     def loadbuf(self, buf):

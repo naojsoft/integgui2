@@ -1,3 +1,8 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 10:19:44 HST 2010
+#]
+
 # meta import for all GUI object classes
 
 from Desktop import *

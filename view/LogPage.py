@@ -1,3 +1,8 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 16:36:46 HST 2010
+#]
+
 import gtk
 import gobject
 import os.path
@@ -5,7 +10,7 @@ import os.path
 import Page
 
 
-class LogPage(Page.Page):
+class LogPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
@@ -20,7 +25,7 @@ class LogPage(Page.Page):
                                    gtk.POLICY_AUTOMATIC)
 
         tw = gtk.TextView()
-        scrolled_window.add_with_viewport(tw)
+        scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
@@ -33,26 +38,21 @@ class LogPage(Page.Page):
 
         self.tw = tw
         self.buf = tw.get_buffer()
+        # hack to get auto-scrolling to work
+        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
+                                         False)
 
-        # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(5)
-        self.btns = btns
-
-        self.btn_close = gtk.Button("Close")
-        self.btn_close.connect("clicked", lambda w: self.close())
-        self.btn_close.show()
-        btns.pack_end(self.btn_close, padding=4)
-
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        self.add_close()
 
 
     def load(self, filepath):
         self.filepath = filepath
         self.file = open(self.filepath, 'r')
         # Go to the end of the file
-        self.file.seek(0, 2)
+        try:
+            self.file.seek(- self.logsize, 2)
+        except:
+            pass
         self.size = self.file.tell()
         self.poll()
 
@@ -70,6 +70,8 @@ class LogPage(Page.Page):
         if self.closed:
             return
 
+        #self.tw.scroll_mark_onscreen(self.mark)
+
         if os.path.getsize(self.filepath) > self.size:
             data = self.file.read()
             self.size = self.size + len(data)
@@ -85,9 +87,12 @@ class LogPage(Page.Page):
                 bitr2 = bitr1.copy()
                 bitr2.set_line(excess_lines)
                 self.buf.delete(bitr1, bitr2)
-                loc = self.buf.get_end_iter()
                     
-            self.tw.scroll_to_iter(loc, 0.1)
+            loc = self.buf.get_end_iter()
+            self.buf.move_mark(self.mark, loc)
+            #self.tw.scroll_to_iter(loc, 0.0)
+            #self.tw.scroll_mark_onscreen(self.mark)
+            self.tw.scroll_to_mark(self.mark, 0.0)
 
         gobject.timeout_add(100, self.poll)
 

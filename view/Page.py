@@ -1,9 +1,16 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 13:39:50 HST 2010
+#  Last edit: Tue May 18 17:15:12 HST 2010
 #]
 #
 import threading
+
+import gtk
+
+# constants
+LEFT  = 'left'
+RIGHT = 'right'
+
 
 class Page(object):
 
@@ -24,5 +31,61 @@ class Page(object):
 
         self.closed = True
 
+
+class ButtonPage(Page):
+
+    def __init__(self, frame, name, title):
+        super(ButtonPage, self).__init__(frame, name, title)
+
+        # bottom buttons
+        self.btnframe = gtk.HBox()
+        
+        btns = gtk.HButtonBox()
+        btns.set_layout(gtk.BUTTONBOX_START)
+        btns.set_spacing(5)
+        self.leftbtns = btns
+
+        self.btnframe.pack_start(self.leftbtns, fill=False, expand=False)
+        btns.show()
+
+        btns = gtk.HButtonBox()
+        btns.set_layout(gtk.BUTTONBOX_START)
+        btns.set_spacing(5)
+        self.rightbtns = btns
+        
+        self.btnframe.pack_end(self.rightbtns, fill=False, expand=False)
+        btns.show()
+
+        frame.pack_end(self.btnframe, fill=True, expand=False, padding=2)
+        self.btnframe.show()
+
+    def _get_side(self, side):
+        if side == LEFT:
+            return self.leftbtns
+        elif side == RIGHT:
+            return self.rightbtns
+        return None
+    
+    def add_close(self, side=RIGHT):
+        self.btn_close = gtk.Button("Close")
+        self.btn_close.connect("clicked", lambda w: self.close())
+        self.btn_close.show()
+        w = self._get_side(side)
+        w.pack_end(self.btn_close, padding=4)
+
+    def add_menu(self, side=RIGHT):
+        self.btn_menu = gtk.Button("Menu")
+        self.menu = gtk.Menu()
+        self.btn_menu.connect_object("event", self.popup_menu, self.menu)
+        self.btn_menu.show()
+        w = self._get_side(side)
+        w.pack_end(self.btn_menu, padding=4)
+
+    def popup_menu(self, w, event):
+        if event.type == gtk.gdk.BUTTON_PRESS:
+            self.menu.popup(None, None, None, event.button, event.time)
+            return True
+        return False
+        
 
 #END

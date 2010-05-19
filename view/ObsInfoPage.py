@@ -1,8 +1,14 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 10:19:46 HST 2010
+#]
+
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
 import gtk
 
+import common
 import Page
 
 

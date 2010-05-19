@@ -1,7 +1,14 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 16:36:45 HST 2010
+#]
+
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
 # stdlib imports
+import os.path
+import time
 import numpy
 import pyfits
 import threading
@@ -15,9 +22,10 @@ from matplotlib.figure import Figure
 #from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 #from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
-import pango
 
+#from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
+
+import common
 import Page
 
 import Bunch
@@ -25,7 +33,7 @@ import astro.fitsdata as fitsdata
 import Datasrc
 
 
-class FitsViewerPage(Page.Page):
+class FitsViewerPage(Page.ButtonPage):
 
     def __init__(self, datasrc, logger, ev_quit=None):
         """Implements a fancier display with buttons and accouterments.
@@ -52,21 +60,21 @@ class FitsViewerPage(Page.Page):
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
 
-        #self.history.connect("button-press-event", self.select_frame)
         self.fitsinfo = gtk.TextView()
         self.fitsinfo.set_editable(False)
         self.fitsinfo.set_wrap_mode(gtk.WRAP_NONE)
         self.fitsinfo.set_left_margin(4)
         self.fitsinfo.set_right_margin(4)
-        scrolled_window.add_with_viewport(self.fitsinfo)
+        scrolled_window.add(self.fitsinfo)
         self.fitsinfo.show()
         scrolled_window.show()
 
+        scrolled_window.set_size_request(250, -1)
         hbox1.add1(scrolled_window)
 
-        self.border = gtk.Frame("")
-        self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        self.border.set_label_align(0.1, 0.5)
+##         self.border = gtk.Frame("")
+##         self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+##         self.border.set_label_align(0.1, 0.5)
 
         self.fig = Figure(figsize=(5,4), dpi=100)
         self.axes = self.fig.add_subplot(111, autoscale_on=True)
@@ -74,19 +82,15 @@ class FitsViewerPage(Page.Page):
         self.axes.hold(True)
         self.canvas = FigureCanvas(self.fig)  # a gtk.DrawingArea
 
-        self.border.add(self.canvas)
+##         self.border.add(self.canvas)
+        #self.canvas.set_size_request(600, -1)
         self.canvas.show()
-        self.border.show()
+##         self.border.show()
 
-        # Navigation toolbar
-        #toolbar = NavigationToolbar(self.canvas, self.win)
-        #vbox.pack_start(toolbar, expand=False, fill=False)
-
-        hbox1.add2(self.border)
+##         hbox1.add2(self.border)
+        hbox1.add2(self.canvas)
         hbox1.show()
 
-        # Font for text panes
-        self.font = pango.FontDescription('Monospace 12')
         # Colormap we will use for image display
         self.cmap = cm.gray
         
@@ -97,35 +101,27 @@ class FitsViewerPage(Page.Page):
         self.datasrc['__'] = self.image
         self.data = self.axes.imshow(self.image.data, origin='lower',
                                      cmap=self.cmap)
-##         self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
-##                                       shrink=0.8)
+        #self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
+        #                              shrink=0.8)
 
         vbox.pack_start(hbox1, expand=True, fill=True)
 
-        # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(5)
-        self.btns = btns
+        # Navigation toolbar
+        #toolbar = NavigationToolbar(self.canvas, None)
+        #vbox.pack_start(toolbar, expand=False, fill=False)
 
-        self.btn_close = gtk.Button("Close")
-        self.btn_close.connect("clicked", lambda w: self.close())
-        self.btn_close.show()
-        btns.pack_end(self.btn_close, padding=4)
-
-        self.btn_load = gtk.Button("Load")
-        self.btn_load.connect("clicked", lambda w: self.load_fits())
-        self.btn_load.show()
-        btns.pack_end(self.btn_load, padding=4)
+        self.add_close()
+        
+##         self.btn_load = gtk.Button("Load")
+##         self.btn_load.connect("clicked", lambda w: self.load_fits())
+##         self.btn_load.show()
+##         self.leftbtns.pack_end(self.btn_load, padding=4)
 
 ##         self.btn_save = gtk.Button("Save")
 ##         self.btn_save.connect("clicked", lambda w: self.save())
 ##         self.btn_save.show()
-##         btns.pack_end(self.btn_save, padding=4)
+##         self.leftbtns.pack_end(self.btn_save, padding=4)
 
-        btns.show()
-
-        vbox.pack_end(btns, fill=False, expand=False, padding=2)
         vbox.show()
         
         frame.pack_start(vbox, expand=True, fill=True)
@@ -178,57 +174,58 @@ class FitsViewerPage(Page.Page):
 
             imagelist = self.datasrc.keys()
 
-            w = self.history
-            clear_tv(w)
-            append_tv(w, '\n'.join(imagelist))
-            w.modify_font(self.font)
+##             w = self.history
+##             clear_tv(w)
+##             append_tv(w, '\n'.join(imagelist))
 
             self.update_img()
 
                 
-    def load_file(self, fitspath):
+    def load(self, fitspath):
         """Loads a command file from _path_ into the commands window.
         """
         with self.lock:
-            try:
-                imgb = open_fits(fitspath)
+            imgb = self.open_fits(fitspath)
 
-            except IOError, e:
-                return ro.ERROR
-
+            self.fitspath = fitspath
+            
             # Enqueue image to display datasrc
             self.datasrc[imgb.name] = imgb
 
             self.load_image_datasrc(imgb.name)
 
 
-    def load_image_file(self, widget):
-        """Runs dialog to read in a command file into the command window.
-        """
-            
-        # Throw up a file selection dialog and let the user pick a file
-        sw = self.widgets['dialog_filechooser1']
-        sw.window.show()
-        resp = sw.run()
-        sw.window.hide()
+    def open_fits(self, fitspath):
 
-        # If they clicked "OK" then try to send the file.
-        if resp == gtk.RESPONSE_OK:
-            filepath = sw.get_filename()
-            (filedir, filename) = os.path.split(filepath)
-            
-            try:
-                self.load_file(filepath)
+        fits_f = pyfits.open(fitspath, "readonly")
 
-            except IOError, e:
-                self.showStatus("Failed to load '%s': %s" % (filename, str(e)))
+        # this seems to be necessary now for some fits files...
+        fits_f.verify('fix')
 
+        data = fits_f[0].data
+
+        header = fits_f[0].header
+        fits_f.close()
+
+        if len(data.shape) == 2:
+            (width, height) = data.shape
+        elif len(data.shape) > 2:
+            while len(data.shape) > 2:
+                data = data[0]
+            (width, height) = data.shape
         else:
-            self.showStatus("Load cancelled.")
-               
-        return gtk.TRUE
+            raise Exception("Data shape of FITS file is undetermined!")
 
+        (path, filename) = os.path.split(fitspath)
 
+        # Create a bunch with the image params
+        imgb = Bunch.Bunch(name=filename, path=fitspath,
+                           width=width, height=height,
+                           data=data, header=header)
+
+        return imgb
+
+    
     def update_img(self):
         """Update the image in the window, based on changes to the
         image data contained in self.image.data.
@@ -261,8 +258,9 @@ class FitsViewerPage(Page.Page):
                 #self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
                 #                              shrink=0.8)
 
-                # Update title bar
-                self.win.set_title(self.image.name)
+                # Update label
+                #filename, extname = os.path.splitext(self.image.name)
+                #self.border.set_label(filename)
 
                 # Update the header info
                 hdr_list = []
@@ -270,14 +268,13 @@ class FitsViewerPage(Page.Page):
                     hdr_list.append("%-8.8s : %s" % (key, str(val)))
 
                 w = self.fitsinfo
-                clear_tv(w)
-                append_tv(w, '\n'.join(hdr_list))
-                w.modify_font(self.font)
+                common.clear_tv(w)
+                common.append_tv(w, '\n'.join(hdr_list))
                 self.logger.debug("Update fits kwds: %.4f sec" % (time.time() - curtime))
                 
                 # THIS IS SLLOOOOWW--what else can we use?
                 self.canvas.draw()
-                #self.win.show_all()
+                #self.border.show_all()
 
                 tottime = time.time() - curtime
                 self.logger.debug("Update image end: time=%.4f sec" % tottime)
@@ -287,83 +284,6 @@ class FitsViewerPage(Page.Page):
                 pass
 
         return True
-
-
-    def select_frame(self, w, evt):
-        with self.lock:
-            widget = self.history
-            win = gtk.TEXT_WINDOW_TEXT
-            buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
-            (startiter, coord) = widget.get_line_at_y(buf_y1)
-            (enditer, coord) = widget.get_line_at_y(buf_y1)
-            enditer.forward_to_line_end()
-            txtbuf = widget.get_buffer()
-            text = txtbuf.get_text(startiter, enditer)
-            filename = text.strip()
-            line = startiter.get_line()
-            print "%d: %s" % (line, filename)
-
-            try:
-                self.image = self.datasrc[line]
-                self.cursor = line
-                self.update_img()
-            except IndexError:
-                pass
-            
-        return True
-        
-
-def open_fits(fitspath):
-
-    fits_f = pyfits.open(fitspath, "readonly")
-
-    # this seems to be necessary now for some fits files...
-    fits_f.verify('fix')
-    
-    data = fits_f[0].data
-
-    header = fits_f[0].header
-    fits_f.close()
-
-    if len(data.shape) == 2:
-        (width, height) = data.shape
-    elif len(data.shape) > 2:
-        while len(data.shape) > 2:
-            data = data[0]
-        (width, height) = data.shape
-    else:
-        raise Exception("Data shape of FITS file is undetermined!")
-
-    (path, filename) = os.path.split(fitspath)
-
-    # Create a bunch with the image params
-    imgb = Bunch.Bunch(name=filename, path=fitspath,
-                       width=width, height=height,
-                       data=data, header=header)
-        
-    return imgb
-
-    
-def get_tv(widget):
-    txtbuf = widget.get_buffer()
-    startiter, enditer = txtbuf.get_bounds()
-    text = txtbuf.get_text(startiter, enditer)
-    return text
-
-def append_tv(widget, text):
-    txtbuf = widget.get_buffer()
-    enditer = txtbuf.get_end_iter()
-    txtbuf.place_cursor(enditer)
-    txtbuf.insert_at_cursor(text)
-    startiter = txtbuf.get_start_iter()
-    txtbuf.place_cursor(startiter)
-    widget.scroll_to_iter(enditer, False, 0, 0)
-
-def clear_tv(widget):
-    txtbuf = widget.get_buffer()
-    startiter = txtbuf.get_start_iter()
-    enditer = txtbuf.get_end_iter()
-    txtbuf.delete(startiter, enditer)
 
 
 #END

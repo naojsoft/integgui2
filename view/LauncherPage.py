@@ -1,8 +1,16 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 17:16:48 HST 2010
+#]
+
 import gtk
 
 import Bunch
 import common
 import Page
+
+# Default width of the main launcher buttons
+default_width = 150
 
 
 class Launcher(object):
@@ -13,15 +21,24 @@ class Launcher(object):
         self.paramList = []
         self.row = 1
         self.col = 1
+        self.max_col = self.col
         self.btn_width = 20
         self.execfn = execfn
 
-        self.btn_exec = gtk.Button(title)
-        self.btn_exec.connect("clicked", self.execute)
-        self.btn_exec.show()
-        btns.pack_end(self.btn_exec)
+        self.table = gtk.Table(rows=2, columns=2)
+        self.table.set_name('launcher')
+        self.table.show()
 
-        #self.btn_exec.grid(row=1, column=0, padx=1, sticky='ew')
+        self.btn_exec = gtk.Button(title)
+        self.btn_exec.set_size_request(default_width, -1)
+        self.btn_exec.connect("clicked", lambda w: self.execute())
+        self.btn_exec.show()
+
+        self.table.attach(self.btn_exec, 0, 1, 1, 2,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+
+        frame.pack_start(self.table, expand=False, fill=True)
         
 
     def addParam(self, name):
@@ -35,70 +52,101 @@ class Launcher(object):
     def add_break(self):
         self.row += 2
         self.col = 1
+        self.table.resize(self.row+1, self.max_col+1)
+
+    def bump_col(self):
+        self.col += 1
+        self.max_col = max(self.col, self.max_col)
+        self.table.resize(self.row+1, self.max_col+1)
 
     def add_input(self, name, width, defVal, label):
         
-        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
-        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
-        tclvar = Tkinter.StringVar(self.frame)
-        tclvar.set(str(defVal))
-        field = Tkinter.Entry(self.frame, textvariable=tclvar, width=width)
-        field.grid(row=self.row, column=self.col, padx=1, sticky='ew')
-        self.col += 1
+        lbl = gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+        field = gtk.Entry(max=width)
+        field.set_text(str(defVal))
+        field.show()
+        self.table.attach(field, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
 
         name = name.lower()
         self.params[name] = Bunch.Bunch(widget=field,
-                                        var=tclvar,
-                                        get=self.getvar)
+                                        get=self.get_entry)
         self.addParam(name)
+
 
     def add_list(self, name, optionList, label):
         
-        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
-        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
-        tclvar = Tkinter.StringVar(self.frame)
-        optionsDict = {}
+        lbl = gtk.Label(label)
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+        lbl.show()
+        combobox = gtk.combo_box_new_text()
         options = []
+        index = 0
         for opt, val in optionList:
-            optionsDict[opt] = val
-            options.append(opt)
-        tclvar.set(options[0])
-        menu = Tkinter.OptionMenu(self.frame, tclvar, *options)
-        menu.grid(row=self.row, column=self.col, padx=1, sticky='ew')
-        self.col += 1
+            options.append(val)
+            combobox.insert_text(index, opt)
+            index += 1
+        combobox.set_active(0)
+        combobox.show()
+        self.table.attach(combobox, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
 
         name = name.lower()
-        self.params[name] = Bunch.Bunch(widget=menu, 
-                                        var=tclvar,
-                                        get=self.getdict,
-                                        optionsDict=optionsDict)
+        self.params[name] = Bunch.Bunch(widget=combobox, 
+                                        get=self.get_list,
+                                        options=options)
         self.addParam(name)
+
 
     def add_radio(self, name, optionList, label):
         
-        lbl = Tkinter.Label(self.frame, text=label, relief='flat')
-        lbl.grid(row=self.row-1, column=self.col, padx=1, sticky='ew')
-        tclvar = Tkinter.StringVar(self.frame)
-        tclvar.set(optionList[0][1])
+        lbl = gtk.Label(label)
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xpadding=1, ypadding=1)
+        lbl.show()
+        
+        btn = None
+        options = []
         for opt, val in optionList:
-            b = Tkinter.Radiobutton(self.frame, text=opt, 
-                                    variable=tclvar, value=str(val),
-                                    relief='flat')
-            b.grid(row=self.row, column=self.col, padx=1, sticky='ew')
-            self.col += 1
+            btn = gtk.RadioButton(group=btn, label=opt)
+            self.table.attach(btn, self.col, self.col+1, self.row, self.row+1,
+                              xoptions=gtk.FILL, yoptions=gtk.FILL,
+                              xpadding=1, ypadding=1)
+            options.append((btn, val))
+            self.bump_col()
+            btn.show()
 
         name = name.lower()
-        self.params[name] = Bunch.Bunch(widget=b,
-                                        get=self.getvar,
-                                        var=tclvar)
+        self.params[name] = Bunch.Bunch(get=self.get_radio,
+                                        options=options)
         self.addParam(name)
 
-    def getvar(self, bnch):
-        return bnch.var.get()
+    def get_entry(self, bnch):
+        return bnch.widget.get_text()
 
-    def getdict(self, bnch):
-        key = bnch.var.get()
-        return bnch.optionsDict[key]
+    def get_list(self, bnch):
+        index = bnch.widget.get_active()
+        try:
+            return bnch.options[index]
+        except IndexError:
+            return None
+
+    def get_radio(self, bnch):
+        for widget, val in bnch.options:
+            if widget.get_active():
+                return val
+        return None
 
     def getcmd(self):
         cmdstr = self.cmdstr
@@ -125,17 +173,19 @@ class LauncherList(object):
         self.count = 0
         self.frame = frame
         self.execfn = execfn
+        self.vbox = gtk.VBox(spacing=2)
+        frame.pack_start(self.vbox, expand=True, fill=True)
 
     def addSeparator(self):
         separator = gtk.HSeparator()
-        separator.grid(row=self.count, column=0, sticky='ew',
-                       padx=5, pady=5)
+        separator.show()
+        self.vbox.pack_start(separator, expand=False, fill=True)
         self.count += 1
 
     def addLauncher(self, name, title):
-        frame = Tkinter.Frame(self.frame, padx=2, pady=2)
-        #frame.pack(side=Tkinter.TOP, fill='x', expand=False)
-        frame.grid(row=self.count, column=0, sticky='w')
+        frame = gtk.VBox()
+        frame.show()
+        self.vbox.pack_start(frame, expand=False, fill=True)
         self.count += 1
         
         launcher = Launcher(frame, name, title,
@@ -232,20 +282,21 @@ class LauncherList(object):
         self.execfn(cmdstr)
 
 
-class LauncherPage(Page.Page):
+class LauncherPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
         super(LauncherPage, self).__init__(frame, name, title)
 
         self.queueName = 'launcher'
+        self.block = False
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
         
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
-        frame.pack_start(expand=True, fill=True)
+        frame.pack_start(scrolled_window, expand=True, fill=True)
         
         scrolled_window.show()
 
@@ -255,28 +306,17 @@ class LauncherPage(Page.Page):
         self.llist = LauncherList(self.fw, name, title,
                                   self.execute)
 
-        # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(5)
-        self.btns = btns
-
-        self.btn_close = gtk.Button("Close")
-        self.btn_close.connect("clicked", lambda w: self.close())
-        self.btn_close.show()
-        btns.pack_end(self.btn_close, padding=4)
-
-        self.btn_pause = gtk.Button("Pause")
-        self.btn_pause.connect("clicked", lambda w: self.pause())
-        self.btn_pause.show()
-        btns.pack_end(self.btn_pause, padding=4)
-
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
         self.btn_cancel.show()
-        btns.pack_end(self.btn_cancel, padding=4)
+        self.leftbtns.pack_start(self.btn_cancel, padding=4)
 
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        self.btn_pause = gtk.ToggleButton("Pause")
+        self.btn_pause.connect("toggled", self.toggle_pause)
+        self.btn_pause.show()
+        self.leftbtns.pack_start(self.btn_pause)
+
+        self.add_close(side=Page.LEFT)
 
         scrolled_window.show_all()
 
@@ -296,10 +336,35 @@ class LauncherPage(Page.Page):
 
     def cancel(self):
         #controller = self.parent.get_controller()
-        common.controller.tm_cancel(self.queueName)
+        controller = common.controller
+        controller.tm_cancel(self.queueName)
+        self.block = True
+        self.btn_pause.set_active(False)
+        self.block = False
 
     def pause(self):
+        if self.block:
+            return
         #controller = self.parent.get_controller()
-        common.controller.tm_pause(self.queueName)
+        controller = common.controller
+        controller.tm_pause(self.queueName)
+
+    def resume(self):
+        if self.block:
+            return
+        #controller = self.parent.get_controller()
+        controller = common.controller
+        controller.tm_resume(self.queueName)
+
+    def toggle_pause(self, w):
+        if w.get_active():
+            self.pause()
+            self.btn_pause.set_label("Resume")
+        else:
+            self.resume()
+            self.btn_pause.set_label("Pause")
+
+        return True
+
 
 #END

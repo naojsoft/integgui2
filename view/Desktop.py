@@ -1,3 +1,8 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 10:19:48 HST 2010
+#]
+
 import gtk
 
 import Workspace

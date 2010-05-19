@@ -1,10 +1,15 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue May 18 16:36:44 HST 2010
+#]
+
 import gtk
 
 import common
 import Page
 
 
-class DDCommandPage(Page.Page):
+class DDCommandPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
@@ -23,7 +28,7 @@ class DDCommandPage(Page.Page):
         tw.set_wrap_mode(gtk.WRAP_NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
-        scrolled_window.add_with_viewport(tw)
+        scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
@@ -32,38 +37,27 @@ class DDCommandPage(Page.Page):
         self.tw = tw
         self.buf = tw.get_buffer()
 
-        # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
-        btns.set_spacing(5)
-        self.btns = btns
-
-##         self.btn_close = gtk.Button("Close")
-##         self.btn_close.connect("clicked", lambda w: self.close())
-##         self.btn_close.show()
-##         btns.pack_end(self.btn_close)
-
+        self.add_close()
+        
         self.btn_exec = gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: common.view.execute_dd(self))
         self.btn_exec.show()
-        btns.pack_end(self.btn_exec)
+        self.leftbtns.pack_end(self.btn_exec)
 
         self.btn_pause = gtk.Button("Pause")
         self.btn_pause.connect("clicked", lambda w: self.pause())
         self.btn_pause.show()
-        btns.pack_end(self.btn_pause)
+        self.leftbtns.pack_end(self.btn_pause)
 
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
         self.btn_cancel.show()
-        btns.pack_end(self.btn_cancel)
+        self.leftbtns.pack_end(self.btn_cancel)
 
         self.btn_kill = gtk.Button("Kill")
         self.btn_kill.connect("clicked", lambda w: self.kill())
         self.btn_kill.show()
-        btns.pack_end(self.btn_kill)
-
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        self.leftbtns.pack_end(self.btn_kill)
 
 
     def kill(self):

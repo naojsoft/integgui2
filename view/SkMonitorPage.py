@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 14:34:49 HST 2010
+#  Last edit: Tue May 18 13:02:33 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -121,7 +121,7 @@ class SkMonitorPage(Page.Page):
                                        gtk.POLICY_AUTOMATIC)
 
             tw = gtk.TextView(buffer=None)
-            scrolled_window.add_with_viewport(tw)
+            scrolled_window.add(tw)
             tw.show()
             scrolled_window.show()
 
