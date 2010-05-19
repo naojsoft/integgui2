@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Apr 21 14:21:56 HST 2010
+#  Last edit: Thu May 13 22:41:48 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -10,12 +10,12 @@ from __future__ import with_statement
 import sys, os, glob
 import re, time
 import threading, Queue
-import Tkinter
-import tkMessageBox, tkFileDialog
 import logging
 
 # Special library imports
-import Pmw
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject
 
 # SSD/Gen2 imports
 import remoteObjects as ro
@@ -54,27 +54,107 @@ def set_controller(pcontroller):
     controller = pcontroller
 
 
-def update_line(tw, row, val):
+def update_line(buf, row, text, tags=None):
     """Update a line of the text widget _tw_, defined by _row_,
     with the value _val_.
     """
-    tw.delete('%d.0linestart' % row, '%d.0lineend' % row)
-    tw.insert('%d.0' % row, str(val))
+    start = buf.get_start_iter()
+    start.set_line(row)
+    end = start.copy()
+    end.forward_to_line_end()
+    
+    buf.delete(start, end)
+    if not tags:
+        buf.insert(start, text)
+    else:
+        buf.insert_with_tags_by_name(start, text, *tags)
 
-class StatusBar(Tkinter.Frame):
+def change_text(page, tagname, **kwdargs):
+    tag = page.tagtbl.lookup(tagname)
+    if not tag:
+        raise TagError("Tag not found: '%s'" % tagname)
 
-    def __init__(self, master, **kwdargs):
-        Tkinter.Frame.__init__(self, master)
-        self.label = Tkinter.Label(self, **kwdargs)
-        self.label.pack(fill='x')
+    for key, val in kwdargs.items():
+        tag.set_property(key,val)
 
-    def set(self, format, *args):
-        self.label.config(text=format % args)
-        self.label.update_idletasks()
+    # Scroll the view to this area
+    start, end = get_region(page.buf, tagname)
+    page.tw.scroll_to_iter(start, 0.1)
 
-    def clear(self):
-        self.label.config(text="")
-        self.label.update_idletasks()
+
+def get_region(txtbuf, tagname):
+    """Returns a (start, end) pair of Gtk text buffer iterators
+    associated with this tag.
+    """
+    # Painfully inefficient and error-prone way to locate a tagged
+    # region.  Seems gtk text buffers have tags, but no good way to
+    # manipulate text associated with them efficiently.
+
+    # Get the tag table associated with this text buffer
+    tagtbl = txtbuf.get_tag_table()
+    # Look up the tag
+    tag = tagtbl.lookup(tagname)
+
+    # Get text iters at beginning and end of buffer
+    start, end = txtbuf.get_bounds()
+
+    # Now search forward from beginning for first location of this
+    # tag, and backwards from the end
+    result = start.forward_to_tag_toggle(tag)
+    if not result:
+        raise TagError("Tag not found: '%s'" % tagname)
+    result = end.backward_to_tag_toggle(tag)
+    if not result:
+        raise TagError("Tag not found: '%s'" % tagname)
+
+    return (start, end)
+
+
+def replace_text(page, tagname, textstr):
+    txtbuf = page.buf
+    start, end = get_region(txtbuf, tagname)
+    txtbuf.delete(start, end)
+    txtbuf.insert_with_tags_by_name(start, textstr, tagname)
+
+    # Scroll the view to this area
+    page.tw.scroll_to_iter(start, 0.1)
+
+
+class FileSelection(object):
+    
+    # Get the selected filename and print it to the console
+    def file_ok_sel(self, w):
+        filepath = self.filew.get_filename()
+        self.close(w)
+        self.callfn(filepath)
+
+    def __init__(self):
+        # Create a new file selection widget
+        self.filew = gtk.FileSelection("Select a file")
+        self.filew.connect("destroy", self.close)
+        
+        # Connect the ok_button to file_ok_sel method
+        self.filew.ok_button.connect("clicked", self.file_ok_sel)
+    
+        # Connect the cancel_button to destroy the widget
+        self.filew.cancel_button.connect("clicked", self.close)
+    
+    def popup(self, title, callfn, initialdir=None,
+              filename=None):
+        self.callfn = callfn
+        self.filew.set_title(title)
+
+        if filename:
+            self.filew.set_filename(filename)
+
+        self.filew.show()
+
+    def close(self, widget):
+        self.filew.hide()
+
+
+class TagError(Exception):
+    pass
 
 
 class Page(object):
@@ -104,59 +184,56 @@ class CodePage(Page):
         super(CodePage, self).__init__(frame, name, title)
 
         # bottom buttons
-        btns = Tkinter.Frame(frame) 
+        btns = gtk.HBox()
         self.btns = btns
 
-        self.btn_close = Tkinter.Button(btns, text="Close",
-                                    width=10,
-                                    command=self.close,
-                                    activebackground="#089D20",
-                                    activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+        self.btn_close = gtk.Button("Close")
+        self.btn_close.connect("clicked", lambda w: self.close())
+        self.btn_close.show()
+        btns.pack_end(self.btn_close, padding=4)
 
-        self.btn_reload = Tkinter.Button(btns, text="Reload",
-                                     width=10,
-                                     command=self.reload,
-                                     activebackground="#089D20",
-                                     activeforeground="#FFFF00")
-        self.btn_reload.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+        self.btn_reload = gtk.Button("Reload")
+        self.btn_reload.connect("clicked", lambda w: self.reload())
+        self.btn_reload.show()
+        btns.pack_end(self.btn_reload, padding=4)
 
-        self.btn_save = Tkinter.Button(btns, text="Save",
-                                   width=10,
-                                   command=self.save,
-                                   activebackground="#089D20",
-                                   activeforeground="#FFFF00")
-        self.btn_save.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+        self.btn_save = gtk.Button("Save")
+        self.btn_save.connect("clicked", lambda w: self.save())
+        self.btn_save.show()
+        btns.pack_end(self.btn_save, padding=4)
 
-        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
-                  expand=False)
+        btns.show()
+
+        frame.pack_end(btns, fill=False, expand=False, padding=2)
 
         self.modified = True
 
 
     def loadbuf(self, buf):
 
-        # get text widget
-        tw = self.tw
-
         # insert text
         tags = ['code']
         try:
-            tw.delete('1.0', 'end')
+            start, end = self.buf.get_bounds()
+            tw.delete(start, end)
         except:
             pass
-        tw.insert('end', buf, tuple(tags))
 
-        tw.tag_configure('code', foreground="black")
+        # Create default 'code' tag
+        try:
+            self.buf.create_tag('code', foreground="black")
+        except:
+            # tag may be already created
+            pass
 
-        #tw.tag_raise('code')
+        self.buf.insert_with_tags_by_name(start, buf, *tags)
 
 
     def load(self, filepath, buf):
         self.loadbuf(buf)
         self.filepath = filepath
-        lw = self.txt.component('label')
-        lw.config(text=filepath)
+        #lw = self.txt.component('label')
+        #lw.config(text=filepath)
 
         
     def reload(self):
@@ -177,14 +254,14 @@ class CodePage(Page):
 
         dirname, filename = os.path.split(self.filepath)
 
-        res = tkMessageBox.askokcancel("Save file", 
-                                       'Really save "%s"?' % filename)
+        res = view.popup_yesno("Save file", 
+                               'Really save "%s"?' % filename)
         if not res:
             return
 
-        # get text widget
-        tw = self.tw
-        buf = tw.get('1.0', 'end')
+        # get text to save
+        start, end = self.buf.get_bounds()
+        buf = self.buf.get_text(start, end)
 
         try:
             out_f = open(self.filepath, 'w')
@@ -195,12 +272,13 @@ class CodePage(Page):
             return view.popup_error("Cannot write '%s': %s" % (
                     self.filepath, str(e)))
 
+        self.buf.set_modified(False)
 
+        
     def close(self):
-        if self.modified:
-            res = tkMessageBox.askokcancel("Close Tab",
-                                           'Really close tab "%s"?' % (
-                    self.title))
+        if self.buf.get_modified():
+            res = view.popup_yesno("Close file", 
+                                   "File is modified. Really close?")
             if not res:
                 return
 
@@ -215,49 +293,47 @@ class OpePage(CodePage):
 
         self.queueName = 'executer'
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               rowheader=True,
-                               rowheader_width=1,
-                               rowheader_padx=2, rowheader_pady=5,
-                               labelpos='n', label_text=title,
-                               vscrollmode='dynamic', hscrollmode='dynamic',
-                               Header_foreground = 'blue')
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        self.txt = txt
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=5, highlightthickness=0)
-        self.rw = txt.component('rowheader')
-        self.rw.configure(highlightthickness=0)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
 
-        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
 
-        self.btn_execute = Tkinter.Button(self.btns, text="Exec",
-                                          width=10,
-                                          activebackground="#089D20",
-                                          activeforeground="#FFFF00",
-                                          command=lambda: view.execute(self))
-        self.btn_execute.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        tw.set_editable(True)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
 
-        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
-                                        width=10,
-                                        command=self.pause,
-                                        activebackground="#089D20",
-                                        activeforeground="#FFFF00")
-        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        frame.pack_start(scrolled_window, expand=True, fill=True)
 
-        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
-                                         width=10,
-                                         command=self.cancel,
-                                         activebackground="#089D20",
-                                         activeforeground="#FFFF00")
-        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.tw = tw
+        self.buf = tw.get_buffer()
 
-        self.btn_kill = Tkinter.Button(self.btns, text="Kill",
-                                       width=10,
-                                       command=self.kill,
-                                       activebackground="#089D20",
-                                       activeforeground="#FFFF00")
-        self.btn_kill.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        # add some bottom buttons
+        self.btn_exec = gtk.Button("Exec")
+        self.btn_exec.connect("clicked", lambda w: view.execute(self))
+        self.btn_exec.show()
+        self.btns.pack_end(self.btn_exec)
+
+        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause.connect("clicked", lambda w: self.pause())
+        self.btn_pause.show()
+        self.btns.pack_end(self.btn_pause)
+
+        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel.show()
+        self.btns.pack_end(self.btn_cancel)
+
+        self.btn_kill = gtk.Button("Kill")
+        self.btn_kill.connect("clicked", lambda w: self.kill())
+        self.btn_kill.show()
+        self.btns.pack_end(self.btn_kill)
 
 
     def loadbuf(self, buf):
@@ -266,9 +342,9 @@ class OpePage(CodePage):
 
         lines = buf.split('\n')
         header = '\n' * len(lines)
-        hw = self.txt.component('rowheader')
-        hw.delete('1.0', 'end')
-        hw.insert('end', header)
+##         hw = self.txt.component('rowheader')
+##         hw.delete('1.0', 'end')
+##         hw.insert('end', header)
 
 
     def load(self, filepath, buf):
@@ -283,15 +359,27 @@ class OpePage(CodePage):
 
 
     def color(self):
-        tw = self.tw
+
+        start, end = self.buf.get_bounds()
+        buf = self.buf.get_text(start, end)
 
         def addtags(lineno, tags):
+            start.set_line(lineno)
+            end.set_line(lineno)
+            end.forward_to_line_end()
+
             for tag in tags:
-                tw.tag_add(tag, '%d.0 linestart' % lineno,
-                           '%d.0 lineend' % lineno)
-            
-        buf = tw.get('1.0', 'end')
-        lineno = 1
+                self.buf.apply_tag_by_name(tag, start, end)
+
+        try:
+            self.buf.create_tag('comment3', foreground="indian red")
+            self.buf.create_tag('comment2', foreground="saddle brown")
+            self.buf.create_tag('comment1', foreground="dark green")
+        except:
+            # in case they've been created already
+            pass
+
+        lineno = 0
         for line in buf.split('\n'):
             line = line.strip()
             if line.startswith('###'):
@@ -305,11 +393,6 @@ class OpePage(CodePage):
 
             lineno += 1
 
-        tw.tag_configure('comment3', foreground="indian red")
-        tw.tag_configure('comment2', foreground="saddle brown")
-        tw.tag_configure('comment1', foreground="dark green")
-
-        #tw.tag_lower('code')
 
 
     def kill(self):
@@ -330,15 +413,26 @@ class SkPage(CodePage):
     def __init__(self, frame, name, title):
         super(SkPage, self).__init__(frame, name, title)
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               labelpos='n', label_text=title,
-                               vscrollmode='dynamic', hscrollmode='dynamic')
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        self.txt = txt
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
 
-        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
+
+        tw.set_editable(True)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
 
 
 class TaskPage(CodePage):
@@ -346,15 +440,26 @@ class TaskPage(CodePage):
     def __init__(self, frame, name, title):
         super(TaskPage, self).__init__(frame, name, title)
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               labelpos='n', label_text=title,
-                               vscrollmode='dynamic', hscrollmode='dynamic')
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        self.txt = txt
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
 
-        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
+
+        tw.set_editable(True)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
 
                                
 class DDCommandPage(Page):
@@ -365,56 +470,53 @@ class DDCommandPage(Page):
 
         self.queueName = 'executer'
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               labelpos='n', label_text=title,
-                               vscrollmode='dynamic', hscrollmode='dynamic')
-        self.txt = txt
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=5, highlightthickness=0)
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        txt.pack(side=Tkinter.TOP, fill='both', expand=True, padx=4, pady=4)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
+
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
 
         # bottom buttons
-        btns = Tkinter.Frame(frame) 
+        btns = gtk.HBox(spacing=4)
         self.btns = btns
 
-        self.btn_close = Tkinter.Button(btns, text="Close",
-                                    width=10,
-                                    command=self.close,
-                                    activebackground="#089D20",
-                                    activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+##         self.btn_close = gtk.Button("Close")
+##         self.btn_close.connect("clicked", lambda w: self.close())
+##         self.btn_close.show()
+##         btns.pack_end(self.btn_close)
 
-        self.btn_execute = Tkinter.Button(self.btns, text="Exec",
-                                          width=10,
-                                          activebackground="#089D20",
-                                          activeforeground="#FFFF00",
-                                          command=lambda: view.execute_dd(self))
-        self.btn_execute.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_exec = gtk.Button("Exec")
+        self.btn_exec.connect("clicked", lambda w: view.execute_dd(self))
+        self.btn_exec.show()
+        btns.pack_end(self.btn_exec)
 
-        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
-                                        width=10,
-                                        command=self.pause,
-                                        activebackground="#089D20",
-                                        activeforeground="#FFFF00")
-        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause.connect("clicked", lambda w: self.pause())
+        self.btn_pause.show()
+        btns.pack_end(self.btn_pause)
 
-        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
-                                         width=10,
-                                         command=self.cancel,
-                                         activebackground="#089D20",
-                                         activeforeground="#FFFF00")
-        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel.show()
+        btns.pack_end(self.btn_cancel)
 
-        self.btn_kill = Tkinter.Button(self.btns, text="Kill",
-                                       width=10,
-                                       command=self.kill,
-                                       activebackground="#089D20",
-                                       activeforeground="#FFFF00")
-        self.btn_kill.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_kill = gtk.Button("Kill")
+        self.btn_kill.connect("clicked", lambda w: self.kill())
+        self.btn_kill.show()
+        btns.pack_end(self.btn_kill)
 
-        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
-                  expand=False)
+        frame.pack_end(btns, fill=False, expand=False, padding=2)
+
 
     def kill(self):
         #controller = self.parent.get_controller()
@@ -435,17 +537,31 @@ class ObsInfoPage(Page):
 
         super(ObsInfoPage, self).__init__(frame, name, title)
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               #labelpos='n', label_text='FITS Data Frames',
-                               vscrollmode='dynamic', hscrollmode='dynamic')
-        self.txt = txt
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=3, highlightthickness=0)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
 
-        self.tw.insert('0.1', '\n' * 10)
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
 
-        txt.pack(fill='both', expand=True, padx=4, pady=4)
+        tw.set_editable(False)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
+
+        start = self.buf.get_start_iter()
+        self.buf.insert(start, '\n' * 10)
+
+        frame.pack_start(scrolled_window, fill=True, expand=True)
 
 
     def update_obsinfo(self, obsdict):
@@ -453,7 +569,7 @@ class ObsInfoPage(Page):
         self.logger.debug("obsinfo update: %s" % str(obsdict))
 
         if obsdict.has_key('PROP-ID'):
-            update_line(self.tw, 1, 'Prop-Id: %s' % obsdict['PROP-ID'])
+            update_line(self.buf, 1, 'Prop-Id: %s' % obsdict['PROP-ID'])
         if obsdict.has_key('TIMER_SEC'):
             self.set_timer(obsdict['TIMER_SEC'])
         
@@ -461,7 +577,7 @@ class ObsInfoPage(Page):
         for i in xrange(1, 6):
             try:
                 val = str(obsdict['OBSINFO%d' % i])
-                update_line(self.tw, i+offset, val)
+                update_line(self.buf, i+offset, val)
             except KeyError:
                 continue
 
@@ -478,12 +594,12 @@ class ObsInfoPage(Page):
         self.timer_interval(view.w.root)
 
 
-    def timer_interval(self, rootw):
+    def timer_interval(self):
         self.logger.debug("timer: %d sec" % self.timer_val)
         self.timer_val -= 1
-        update_line(self.tw, 2, 'Timer: %s' % str(self.timer_val))
+        update_line(self.buf, 2, 'Timer: %s' % str(self.timer_val))
         if self.timer_val > 0:
-            rootw.after(1000, self.timer_interval, rootw)
+            gobject.timeout_add(1000, self.timer_interval)
         else:
             # Do something when timer expires?
             pass
@@ -495,29 +611,39 @@ class LogPage(Page):
 
         super(LogPage, self).__init__(frame, name, title)
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               #labelpos='n', label_text='FITS Data Frames',
-                               vscrollmode='dynamic', hscrollmode='dynamic')
-        self.txt = txt
+        self.logsize = 5000
 
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=3, highlightthickness=0)
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        txt.pack(fill='both', expand=True, padx=4, pady=4)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
+
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        tw.set_editable(False)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
 
         # bottom buttons
-        btns = Tkinter.Frame(frame) 
+        btns = gtk.HBox(spacing=4)
         self.btns = btns
 
-        self.btn_close = Tkinter.Button(btns, text="Close",
-                                    width=10,
-                                    command=self.close,
-                                    activebackground="#089D20",
-                                    activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+        self.btn_close = gtk.Button("Close")
+        self.btn_close.connect("clicked", lambda w: self.close())
+        self.btn_close.show()
+        btns.pack_end(self.btn_close, padding=4)
 
-        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
-                  expand=False)
+        frame.pack_end(btns, fill=False, expand=False, padding=2)
 
 
     def load(self, filepath):
@@ -546,11 +672,22 @@ class LogPage(Page):
             data = self.file.read()
             self.size = self.size + len(data)
             # TODO: mark error and warning lines
-            self.tw.insert('end', data)
-            self.tw.see('end')
 
-        # READ GLOBAL
-        view.w.root.after(100, self.poll)
+            loc = self.buf.get_end_iter()
+            self.buf.insert(loc, data)
+
+            # Remove some old log lines if necessary
+            excess_lines = loc.get_line() - self.logsize
+            if excess_lines > 0:
+                bitr1 = self.buf.get_start_iter()
+                bitr2 = bitr1.copy()
+                bitr2.set_line(excess_lines)
+                self.buf.delete(bitr1, bitr2)
+                loc = self.buf.get_end_iter()
+                    
+            self.tw.scroll_to_iter(loc, 0.1)
+
+        gobject.timeout_add(100, self.poll)
 
 
 class FramesPage(Page):
@@ -559,56 +696,69 @@ class FramesPage(Page):
 
         super(FramesPage, self).__init__(frame, name, title)
 
-        txt = Pmw.ScrolledText(frame, text_wrap='none',
-                               columnheader=True,
-                               columnheader_width=1,
-                               columnheader_padx=5, columnheader_pady=3,
-                               labelpos='n', label_text='FITS Data Frames',
-                               vscrollmode='dynamic', hscrollmode='dynamic')
-        self.txt = txt
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
 
-        self.tw = txt.component('text')
-        self.tw.configure(padx=5, pady=3, highlightthickness=0)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
 
-        self.cw = txt.component('columnheader')
-        self.cw.configure(highlightthickness=0)
+        tw = gtk.TextView()
+        scrolled_window.add_with_viewport(tw)
+        tw.show()
+        scrolled_window.show()
 
-        txt.pack(fill='both', expand=True, padx=4, pady=4)
+        frame.pack_start(scrolled_window, expand=True, fill=True)
+
+        tw.set_editable(False)
+        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+
+        self.tw = tw
+        self.buf = tw.get_buffer()
+
+##         # bottom buttons
+##         btns = gtk.HBox(spacing=4)
+##         self.btns = btns
+
+##         self.btn_close = gtk.Button("Close")
+##         self.btn_close.connect("clicked", lambda w: self.close())
+##         self.btn_close.show()
+##         btns.pack_end(self.btn_close, padding=4)
+
+##         frame.pack_end(btns, fill=False, expand=False, padding=2)
 
 
     def update_frame(self, frameinfo):
         self.logger.debug("UPDATE FRAME: %s" % str(frameinfo))
-        tw = self.tw
 
         frameid = frameinfo.frameid
         with self.lock:
+            text = fits.format_str % frameinfo
+
             if hasattr(frameinfo, 'row'):
                 row = frameinfo.row
-                #index = tw.index(frameid)
-                index = 'none'
-                self.logger.debug("row=%d index=%s" % (row, index))
-                tw.delete('%s.first' % frameid, '%s.last' % frameid)
-                tw.insert('%d.0' % row, fits.format_str % frameinfo,
-                          (frameid,))
+                update_line(self.buf, row, text)
+                #update_line(self.buf, row, text, tags=[frameid])
 
             else:
-                row, col = str(tw.index('end')).split('.')
-                row = int(row)
-                self.logger.debug("row is %d" % row)
+                end = self.buf.get_end_iter()
+                row = end.get_line()
+                #self.buf.create_tag(frameid, foreground="black")
                 frameinfo.row = row
-                tw.insert('end', fits.format_str % frameinfo,
-                          (frameid,))
+                self.buf.insert(end, text)
+                #self.buf.insert_with_tags_by_name(end, text, [frameid])
 
         
     def update_frames(self, framelist):
 
-        # Create header
-        self.cw.delete('1.0', 'end')
-        self.cw.insert('1.0', fits.header)
-
         # Delete frames text
-        self.tw.delete('1.0', 'end')
+        start, end = self.buf.get_bounds()
+        self.buf.delete(start, end)
         
+        # Create header
+        self.buf.insert(start, fits.header)
+
         # add frames
         for frameinfo in framelist:
             self.update_frame(frameinfo)
@@ -618,31 +768,48 @@ class skMonitorPage(Page):
 
     def __init__(self, frame, name, title):
 
-        self.nb = Pmw.NoteBook(frame, tabpos='n')
-        self.nb.pack(padx=2, pady=2, fill='both', expand=1)
-
         super(skMonitorPage, self).__init__(frame, name, title)
 
-        self.track = {}
+        self.nb = gtk.Notebook()
+        self.nb.set_tab_pos(gtk.POS_TOP)
+        self.nb.set_scrollable(True)
+        self.nb.set_show_tabs(True)
+        self.nb.set_show_border(True)
+        #self.nb.set_size_request(1000, 700)
+        self.nb.show()
+
+        frame.pack_start(self.nb, expand=True, fill=True,
+                         padding=2)
+
+        # Holds my pages
         self.pages = {}
         self.pagelist = []
         self.pagelimit = 10
 
+        self.track = {}
+        self.lock = threading.RLock()
+
 
     def insert_ast(self, tw, text):
 
+        buf = tw.get_buffer()
+        all_tags = set([])
+
         def insert(text, tags):
+
+            loc = buf.get_end_iter()
+            #linenum = loc.get_line()
             try:
                 foo = text.index("<div ")
 
             except ValueError:
-                tw.insert('end', text, tuple(tags))
+                buf.insert_with_tags_by_name(loc, text, *tags)
                 return
 
             match = re.match(r'^\<div\sclass=([^\>]+)\>', text[foo:],
                              re.MULTILINE | re.DOTALL)
             if not match:
-                tw.insert('end', 'ERROR 1: %s' % text, tuple(tags))
+                buf.insert_with_tags_by_name(loc, 'ERROR 1: %s' % text, *tags)
                 return
 
             num = int(match.group(1))
@@ -651,23 +818,26 @@ class skMonitorPage(Page):
             #print regex
             match = re.match(regex, text, re.MULTILINE | re.DOTALL)
             if not match:
-                tw.insert('end', 'ERROR 2: %s' % text, tuple(tags))
+                buf.insert_with_tags_by_name(loc, 'ERROR 2: %s' % text, *tags)
                 return
 
-            tw.insert('end', match.group(1), tuple(tags))
+            buf.insert_with_tags_by_name(loc, match.group(1), *tags)
 
             serial_num = '%d' % num
-            tw.tag_config(serial_num, foreground="black")
+            buf.create_tag(serial_num, foreground="black")
             newtags = [serial_num]
+            all_tags.add(serial_num)
             newtags.extend(tags)
             insert(match.group(2), newtags)
 
             insert(match.group(3), tags)
 
-        tw.tag_configure('code', foreground="black")
+        # Create tags that will be used
+        buf.create_tag('code', foreground="black")
+        
         insert(text, ['code'])
-        tw.tag_raise('code')
-
+        #tw.tag_raise('code')
+        #print "all tags=%s" % str(all_tags)
 
     def astIdtoTitle(self, ast_id):
         page = self.pages[ast_id]
@@ -675,66 +845,149 @@ class skMonitorPage(Page):
         
     def delpage(self, ast_id):
         with self.lock:
-            #title = self.astIdtoTitle(ast_id)
-            self.nb.delete(ast_id)
+            i = self.pagelist.index(ast_id)
+            self.nb.remove_page(i)
+
             del self.pages[ast_id]
+            self.pagelist.remove(ast_id)
 
     def addpage(self, ast_id, title, text):
-        with self.lock:
 
+        with self.lock:
             # Make room for new pages
             while len(self.pagelist) >= self.pagelimit:
-                oldast_id = self.pagelist.pop(0)
+                oldast_id = self.pagelist[0]
                 self.delpage(oldast_id)
                 
-            page = self.nb.add(ast_id, tab_text=title)
-            #page.focus_set()
+            scrolled_window = gtk.ScrolledWindow()
+            scrolled_window.set_border_width(2)
 
-            txt = Pmw.ScrolledText(page, text_wrap='none',
-                                   vscrollmode='dynamic', hscrollmode='dynamic')
-            tw = txt.component('text')
-            tw.configure(borderwidth=2, padx=10, pady=5)
+            scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                       gtk.POLICY_AUTOMATIC)
+
+            tw = gtk.TextView(buffer=None)
+            scrolled_window.add_with_viewport(tw)
+            tw.show()
+            scrolled_window.show()
+
+            tw.set_editable(True)
+            tw.set_wrap_mode(gtk.WRAP_NONE)
+            tw.set_left_margin(4)
+            tw.set_right_margin(4)
+
+            label = gtk.Label(title)
+            label.show()
+
+            self.nb.append_page(scrolled_window, label)
 
             self.insert_ast(tw, text)
-            txt.pack(fill='both', expand=True, padx=4, pady=4)
 
-            self.nb.setnaturalsize()
-
+            txtbuf = tw.get_buffer()
+            tagtbl = txtbuf.get_tag_table()
             try:
                 page = self.pages[ast_id]
                 page.tw = tw
+                page.buf = txtbuf
+                page.tagtbl = tagtbl
                 page.title = title
             except KeyError:
-                self.pages[ast_id] = Bunch.Bunch(tw=tw, title=title)
+                self.pages[ast_id] = Bunch.Bunch(tw=tw, title=title,
+                                                 buf=txtbuf, tagtbl=tagtbl)
 
             self.pagelist.append(ast_id)
-            self.nb.selectpage(ast_id)
+
+            self.setpage(ast_id)
+
+    def setpage(self, name):
+        # Because %$%(*)&^! gtk notebook widget doesn't associate names
+        # with pages
+        i = self.pagelist.index(name)
+        self.nb.set_current_page(i)
 
         
-    def change_text(self, page, ast_num, **kwdargs):
-        page.tw.tag_config(ast_num, **kwdargs)
-        page.tw.tag_raise(ast_num)
-        try:
-            page.tw.see('%s.first' % ast_num)
-        except KeyError, e:
-            # this throws a KeyError due to a bug in Python megawidgets
-            # but it is benign
-            self.logger.error(str(e))
-            pass
+    def change_text(self, page, tagname, **kwdargs):
+        tagname = str(tagname)
+        tag = page.tagtbl.lookup(tagname)
+        if not tag:
+            raise TagError("Tag not found: '%s'" % tagname)
+
+        for key, val in kwdargs.items():
+            tag.set_property(key,val)
+            
+        #page.tw.tag_raise(ast_num)
+        # Scroll the view to this area
+        start, end = self.get_region(page.buf, tagname)
+        page.tw.scroll_to_iter(start, 0.1)
 
 
-    def update_time(self, page, ast_num, vals, time_s):
+    def get_region(self, txtbuf, tagname):
+        """Returns a (start, end) pair of Gtk text buffer iterators
+        associated with this tag.
+        """
+        # Painfully inefficient and error-prone way to locate a tagged
+        # region.  Seems gtk text buffers have tags, but no good way to
+        # manipulate text associated with them efficiently.
 
-        # GLOBAL VAR READ
-        if not view.show_times.get():
+        tagname = str(tagname)
+
+        # Get the tag table associated with this text buffer
+        tagtbl = txtbuf.get_tag_table()
+        # Look up the tag
+        tag = tagtbl.lookup(tagname)
+        
+        # Get text iters at beginning and end of buffer
+        start, end = txtbuf.get_bounds()
+
+        # Now search forward from beginning for first location of this
+        # tag, and backwards from the end
+        result = start.forward_to_tag_toggle(tag)
+        if not result:
+            raise TagError("Tag not found: '%s'" % tagname)
+        result = end.backward_to_tag_toggle(tag)
+        if not result:
+            raise TagError("Tag not found: '%s'" % tagname)
+
+        return (start, end)
+
+
+    def replace_text(self, page, tagname, textstr):
+        tagname = str(tagname)
+        txtbuf = page.buf
+        start, end = self.get_region(txtbuf, tagname)
+        txtbuf.delete(start, end)
+        txtbuf.insert_with_tags_by_name(start, textstr, tagname)
+
+        # Scroll the view to this area
+        page.tw.scroll_to_iter(start, 0.1)
+
+
+    def append_error(self, page, tagname, textstr):
+        tagname = str(tagname)
+        txtbuf = page.buf
+        start, end = self.get_region(txtbuf, tagname)
+        txtbuf.insert_with_tags_by_name(end, textstr, tagname)
+
+        self.change_text(page, tagname,
+                         foreground="red", background="lightyellow")
+
+
+    def update_time(self, page, tagname, vals, time_s):
+
+        if not view.show_times:
             return
+
+        tagname = str(tagname)
+        txtbuf = page.buf
+        start, end = self.get_region(txtbuf, tagname)
 
         if vals.has_key('time_added'):
             length = vals['time_added']
-            page.tw.delete('%s.first' % ast_num, '%s.first+%dc' % (ast_num, length))
+            end = start.copy()
+            end.forward_chars(length)
+            txtbuf.delete(start, end)
             
         vals['time_added'] = len(time_s)
-        page.tw.insert('%s.first' % ast_num, time_s, (ast_num,))
+        txtbuf.insert_with_tags_by_name(start, time_s, tagname)
         
 
     def update_page(self, bnch):
@@ -750,9 +1003,7 @@ class skMonitorPage(Page):
 
             if not vals.has_key('inserted'):
                 # Replace the decode string with the actual parameters
-                pos = page.tw.index('%s.first' % ast_num)
-                page.tw.delete('%s.first' % ast_num, '%s.last' % ast_num)
-                page.tw.insert(pos, cmd_str, (ast_num,))
+                self.replace_text(page, ast_num, cmd_str)
                 vals['inserted'] = True
                 try:
                     del vals['time_added']
@@ -760,17 +1011,17 @@ class skMonitorPage(Page):
                     pass
 
         if vals.has_key('task_error'):
-            self.change_text(page, ast_num, foreground="red", background="lightyellow")
-            page.tw.insert('%s.last' % ast_num, '\n ==> ' + vals['task_error'],
-                           (ast_num,))
+            self.append_error(page, ast_num, '\n ==> ' + vals['task_error'])
             
             # audible warnings
-            # GLOBAL
             view.audible_warn(cmd_str, vals)
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):
-                elapsed = vals['task_end'] - vals['task_start']
+                if view.track_elapsed and bnch.page.has_key('asttime'):
+                    elapsed = vals['task_start'] - bnch.page.asttime
+                else:
+                    elapsed = vals['task_end'] - vals['task_start']
                 self.update_time(page, ast_num, vals, '[ F %9.3f s ]: ' % (
                         elapsed))
             else:
@@ -826,10 +1077,11 @@ class skMonitorPage(Page):
                 ast_str = ro.binary_decode(vals['ast_buf'])
                 # Get the time of the command to construct the tab title
                 title = self.time2str(vals['ast_time'])
+                page.asttime = vals['ast_time']
 
                 # TODO: what if this page has already been deleted?
                 # GLOBAL VAR READ
-                if view.save_decode_result.get():
+                if view.save_decode_result:
                     self.addpage(ast_id + '.decode', title, ast_str)
 
                 self.addpage(ast_id, title, ast_str)
@@ -850,10 +1102,8 @@ class skMonitorPage(Page):
                 self.track.setdefault(vals['ast_track'], bnch)
                 
                 # Replace the decode string with the actual parameters
-                pos = page.tw.index('%s.first' % ast_num)
-                page.tw.delete('%s.first' % ast_num, '%s.last' % ast_num)
-                page.tw.insert(pos, vals['ast_str'],
-                               (ast_num,))
+                # ?? Has string really changed at this point??
+                self.replace_text(page, ast_num, vals['ast_str'])
 
                 self.update_page(bnch)
                 
@@ -874,17 +1124,20 @@ class skMonitorPage(Page):
             self.update_page(bnch)
             
 
-    def parsefile(self, filepath):
-        bnch = self.parser.parse_skfile(filepath)
-        if bnch.errors == 0:
-            (path, filename) = os.path.split(filepath)
-
-            text = self.issue.issue(bnch.ast, [])
-            print text
-            #print dir(txt)
-            self.addpage(filename, filename, text)
+    def process_ast_err(self, ast_id, vals):
+        try:
+            self.process_ast(ast_id, vals)
+        except Exception, e:
+            self.logger.error("MONITOR ERROR: %s" % str(e))
+            
+    def process_task_err(self, path, vals):
+        try:
+            self.process_task(path, vals)
+        except Exception, e:
+            self.logger.error("MONITOR ERROR: %s" % str(e))
             
         
+
 class Launcher(object):
     
     def __init__(self, frame, name, title, execfn):
@@ -896,13 +1149,12 @@ class Launcher(object):
         self.btn_width = 20
         self.execfn = execfn
 
-        self.btn_exec = Tkinter.Button(frame, text=title,
-                                       relief='raised',
-                                       activebackground="#089D20",
-                                       activeforeground="#FFFF00",
-                                       command=self.execute,
-                                       width=self.btn_width)
-        self.btn_exec.grid(row=1, column=0, padx=1, sticky='ew')
+        self.btn_exec = gtk.Button(title)
+        self.btn_exec.connect("clicked", self.execute)
+        self.btn_exec.show()
+        btns.pack_end(self.btn_exec)
+
+        #self.btn_exec.grid(row=1, column=0, padx=1, sticky='ew')
         
 
     def addParam(self, name):
@@ -1122,46 +1374,44 @@ class LauncherPage(Page):
 
         self.queueName = 'launcher'
 
-        self.fr = Pmw.ScrolledFrame(frame, 
-                               #labelpos='n', label_text=title,
-                               vscrollmode='dynamic', hscrollmode='dynamic')
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
+        
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+        frame.pack_start(expand=True, fill=True)
+        
+        scrolled_window.show()
 
-        self.fw = self.fr.component('frame')
-        self.fw.configure(padx=2, pady=2, highlightthickness=0)
-
+        self.fw = gtk.VBox()
+        scrolled_window.add_with_viewport(self.fw)
+        
         self.llist = LauncherList(self.fw, name, title,
                                   self.execute)
 
-        self.fr.pack(side=Tkinter.TOP, fill='both', expand=True,
-                     padx=4, pady=4)
-
         # bottom buttons
-        btns = Tkinter.Frame(frame) 
+        btns = gtk.HBox()
         self.btns = btns
 
-        self.btn_close = Tkinter.Button(btns, text="Close",
-                                    width=10,
-                                    command=self.close,
-                                    activebackground="#089D20",
-                                    activeforeground="#FFFF00")
-        self.btn_close.pack(padx=5, pady=2, side=Tkinter.RIGHT)
+        self.btn_close = gtk.Button("Close")
+        self.btn_close.connect("clicked", lambda w: self.close())
+        self.btn_close.show()
+        btns.pack_end(self.btn_close, padding=4)
 
-        self.btn_pause = Tkinter.Button(self.btns, text="Pause",
-                                        width=10,
-                                        command=self.pause,
-                                        activebackground="#089D20",
-                                        activeforeground="#FFFF00")
-        self.btn_pause.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause.connect("clicked", lambda w: self.pause())
+        self.btn_pause.show()
+        btns.pack_end(self.btn_pause, padding=4)
 
-        self.btn_cancel = Tkinter.Button(self.btns, text="Cancel",
-                                         width=10,
-                                         command=self.cancel,
-                                         activebackground="#089D20",
-                                         activeforeground="#FFFF00")
-        self.btn_cancel.pack(padx=5, pady=2, side=Tkinter.LEFT)
+        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel.show()
+        btns.pack_end(self.btn_cancel, padding=4)
 
-        btns.pack(padx=2, pady=2, side=Tkinter.BOTTOM, fill='x',
-                  expand=False)
+        frame.pack_end(btns, fill=False, expand=False, padding=2)
+
+        scrolled_window.show_all()
+
 
     def load(self, buf):
         self.llist.loadLauncher(buf)
@@ -1193,46 +1443,70 @@ class Workspace(object):
         self.name = name
         self.title = title
 
-        self.widget = Pmw.NoteBook(frame, tabpos='n')
-        self.widget.pack(padx=2, pady=2, fill='both', expand=1)
+        self.widget = gtk.Notebook()
+        self.widget.set_tab_pos(gtk.POS_TOP)
+        self.widget.set_scrollable(True)
+        self.widget.set_show_tabs(True)
+        self.widget.set_show_border(True)
+        self.widget.set_size_request(1000, 700)
+        self.widget.show()
+
+        frame.pack_start(self.widget, expand=True, fill=True,
+                         padding=2)
 
         # Holds my pages
         self.pages = {}
+        self.pagelist = []
         self.lock = threading.RLock()
 
 
     def addpage(self, name, title, klass):
         with self.lock:
             try:
-                pageobj = self.pages[title]
+                pageobj = self.pages[name]
                 raise Exception("A page with name '%s' already exists!" % name)
 
             except KeyError:
                 pass
 
-            page = self.widget.add(name, tab_text=title)
-            page.focus_set()
-            pagefr = self.widget.page(name)
+            # Make a frame for the notebook tab content
+            pagefr = gtk.VBox()
 
+            # Create the new object in the frame
             pageobj = klass(pagefr, name, title)
 
+            pagefr.show()
+
+            # Create a label for the notebook tab
+            label = gtk.Label(title)
+            label.show()
+
+            # Add the page to the notebook
+            self.widget.append_page(pagefr, label)
+            
             # Some attributes we force on our children
             pageobj.logger = self.logger
             # ?? cyclical reference causes problems for gc?
             pageobj.parent = self
 
+            # store away our handles to the page
             self.pages[name] = pageobj
-            
-            #self.widget.setnaturalsize()
-            self.widget.selectpage(name)
+            self.pagelist.append(name)
+
+            # select the new page
+            self.select(name)
+
             return pageobj
 
         
     def delpage(self, name):
         with self.lock:
+            i = self.pagelist.index(name)
+            self.widget.remove_page(i)
+
             del self.pages[name]
+            self.pagelist.remove(name)
             
-            self.widget.delete(name)
 
     def delall(self):
         with self.lock:
@@ -1240,7 +1514,8 @@ class Workspace(object):
                 self.delpage(name)
             
     def select(self, name):
-        self.widget.selectpage(name)
+        i = self.pagelist.index(name)
+        self.widget.set_current_page(i)
 
     def getNames(self):
         with self.lock:
@@ -1264,38 +1539,38 @@ class Desktop(object):
 
         # TODO: should generalize to number of rows and columns
 
-        paned = Pmw.PanedWidget(frame, orient='horizontal',
-                                handlesize=16) 
+        paned = gtk.HPaned()
         self.hframe = paned
-        paned.pack(fill='both', expand=True)
+        paned.show()
 
-        paned.add('lframe', size=0.35)
-        paned.add('rframe', size=0.65)
-        self.lframe = paned.pane('lframe')
-        self.rframe = paned.pane('rframe')
+        frame.pack_start(paned, fill=True, expand=True)
 
-        lpane = Pmw.PanedWidget(self.lframe, orient='vertical',
-                                handlesize=16)
-        self.lpane = lpane
-        lpane.add('ul')
-        lpane.add('ll')
-        lpane.pack(fill='both', expand=True)
+        lframe = gtk.VPaned()
+        rframe = gtk.VPaned()
 
-        rpane = Pmw.PanedWidget(self.rframe, orient='vertical',
-                                handlesize=16)
-        self.rpane = rpane
-        rpane.add('ur')
-        rpane.add('lr')
-        rpane.pack(fill='both', expand=True)
+        paned.add1(lframe)
+        paned.add2(rframe)
+
+        ul = gtk.VBox()
+        lframe.add1(ul)
+        ll = gtk.VBox()
+        lframe.add2(ll)
+
+        ur = gtk.VBox()
+        rframe.add1(ur)
+        lr = gtk.VBox()
+        rframe.add2(lr)
 
         self.ws_fr = {
-            'll': lpane.pane('ll'),
-            'ul': lpane.pane('ul'),
-            'lr': rpane.pane('lr'),
-            'ur': rpane.pane('ur'),
+            'll': ll,
+            'ul': ul,
+            'lr': lr,
+            'ur': ur,
             }
 
         self.ws = {}
+
+        paned.show_all()
 
 
     def get_wsframe(self, name):
@@ -1308,6 +1583,8 @@ class Desktop(object):
         ws = Workspace(frame, name, title)
         # Some attributes we force on our children
         ws.logger = self.logger
+
+        frame.show_all()
         
         self.ws[name] = ws
         return ws
@@ -1331,29 +1608,25 @@ class IntegView(object):
         # Create the GUI
         self.w = Bunch.Bunch()
 
-        root = Tkinter.Tk()
-        Pmw.initialise(root)
-        root.title('Gen2 Integrated GUI II')
+        # evil hack required to use threads with GTK
+        gtk.gdk.threads_init()
+
+        # Create top-level window
+        root = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        root.set_size_request(1900, 1100)
+        root.set_title('Gen2 Integrated GUI II')
+        root.connect("delete_event", self.delete_event)
+        root.set_border_width(2)
+
+        # create main frame
+        self.w.mframe = gtk.VBox(spacing=2)
+        root.add(self.w.mframe)
+        #self.w.mframe.show()
 
         self.w.root = root
-        self.w.root.protocol("WM_DELETE_WINDOW", self.quit)
 
-        root.tk_setPalette(background=color_bg,
-                           foreground='black')
-
-        #root.option_add('*background', color_blue)
-        #root.option_add('*foreground', 'black')
-        root.option_add('*Text*background', color_white)
-        root.option_add('*Entry*background', color_white)
-        #root.option_add('*Text*highlightthickness', 0)
-        root.option_add('*Button*activebackground', '#089D20')
-        root.option_add('*Button*activeforeground', '#FFFF00')
-
-        self.fixedFont = Pmw.logicalfont('Fixed')
-
-        root.option_add('*Text*font', self.fixedFont)
-
-        self.w.mframe = Tkinter.Frame(self.w.root, padx=2, pady=2)
+        self.add_menus()
+        self.add_dialogs()
 
         self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
         # Some attributes we force on our children
@@ -1373,117 +1646,181 @@ class IntegView(object):
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
         self.exws.addpage('ddcommands', "Commands", DDCommandPage)
 
-        #self.w.mframe.columnconfigure(0, weight=10)
-        #self.w.mframe.rowconfigure(0, weight=10)
-
-        #self.w.mframe.grid(column=0, row=0, sticky='wens')
-
-        self.w.mframe.pack(fill='both', expand=True)
-
-        self.add_menus()
-        self.add_dialogs()
-        self.closelog(self.w.log)
         self.add_statusbar()
 
+        self.w.root.show_all()
 
+    def toggle_var(self, widget, key):
+        if widget.active: 
+            self.__dict__[key] = True
+        else:
+            self.__dict__[key] = False
 
     def add_menus(self):
-        menubar = Tkinter.Menu(self.w.root, relief='flat')
 
-        # create a pulldown menu, and add it to the menu bar
-        filemenu = Tkinter.Menu(menubar, tearoff=0)
-        filemenu.add('command', label="Load ope", command=self.gui_load_ope)
-        filemenu.add('command', label="Config from session",
-                     command=self.reconfig)
-        filemenu.add('command', label="Load log", command=self.gui_load_log)
-        filemenu.add('command', label="Load sk", command=self.gui_load_sk)
-        filemenu.add('command', label="Load task", command=self.gui_load_task)
-        filemenu.add('command', label="Load launcher",
-                     command=self.gui_load_launcher)
-        #filemenu.add('command', label="Show Log", command=self.showlog)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.quit)
-        menubar.add_cascade(label="File", menu=filemenu)
+        menubar = gtk.MenuBar()
+        self.w.mframe.pack_start(menubar, expand=False)
 
-        logmenu = Tkinter.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Logs", menu=logmenu)
+        # create a File pulldown menu, and add it to the menu bar
+        filemenu = gtk.Menu()
+        file_item = gtk.MenuItem(label="File")
+        menubar.append(file_item)
+        file_item.show()
+        file_item.set_submenu(filemenu)
 
-        optionmenu = Tkinter.Menu(menubar, tearoff=0)
-        self.save_decode_result = Tkinter.IntVar(0)
-        #self.save_decode_result.set(0)
-        optionmenu.add('checkbutton', label="Save Decode Result", 
-                       variable=self.save_decode_result)
-        self.show_times = Tkinter.IntVar(0)
-        #self.show_times.set(0)
-        optionmenu.add('checkbutton', label="Show Times", 
-                       variable=self.show_times)
-        self.audible_errors = Tkinter.IntVar(0)
-        self.audible_errors.set(1)
-        optionmenu.add('checkbutton', label="Audible Errors", 
-                       variable=self.audible_errors)
-        menubar.add_cascade(label="Option", menu=optionmenu)
+        item = gtk.MenuItem(label="Load ope")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_ope(),
+                             "file.Load ope")
+        item.show()
 
-        self.w.root.config(menu=menubar)
+        item = gtk.MenuItem(label="Config from session")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.reconfig(),
+                             "file.Config from session")
+        item.show()
+
+        item = gtk.MenuItem(label="Load log")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_log(),
+                             "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="Load sk")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_sk(),
+                             "file.Load sk")
+        item.show()
+
+        item = gtk.MenuItem(label="Load task")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_task(),
+                             "file.Load task")
+        item.show()
+
+        item = gtk.MenuItem(label="Load launcher")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher(),
+                             "file.Load launcher")
+        item.show()
+
+        sep = gtk.SeparatorMenuItem()
+        filemenu.append(sep)
+        sep.show()
+        quit_item = gtk.MenuItem(label="Exit")
+        filemenu.append(quit_item)
+        quit_item.connect_object ("activate", self.quit, "file.exit")
+        quit_item.show()
+
+        # create an Option pulldown menu, and add it to the menu bar
+        optionmenu = gtk.Menu()
+        option_item = gtk.MenuItem(label="Option")
+        menubar.append(option_item)
+        option_item.show()
+        option_item.set_submenu(optionmenu)
+
+        # Option variables
+        self.save_decode_result = False
+        self.show_times = False
+        self.track_elapsed = False
+        self.audible_errors = True
+
+        w = gtk.CheckMenuItem("Save Decode Result")
+        w.set_active(False)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
+        w = gtk.CheckMenuItem("Show Times")
+        w.set_active(False)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
+        w = gtk.CheckMenuItem("Track Elapsed")
+        w.set_active(False)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
+        w = gtk.CheckMenuItem("Audible Errors")
+        w.set_active(True)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
 
 
+    def add_dialogs(self):
+        self.filesel = FileSelection()
+    
+    def logupdate(self):
+        pass
+    
     def add_statusbar(self):
-        self.w.status = StatusBar(self.w.root, text="", 
-                                  relief='flat', anchor='w')
-        self.w.status.pack(side='bottom', fill='x')
+        self.w.status = gtk.Statusbar()
+        self.status_cid = self.w.status.get_context_id("msg")
+        self.status_mid = self.w.status.push(self.status_cid, "")
+
+        self.w.mframe.pack_end(self.w.status, expand=False, fill=True,
+                               padding=2)
 
 
     def statusMsg(self, format, *args):
         if not format:
-            self.w.status.clear()
+            s = ''
         else:
-            self.w.status.set(format, *args)
+            s = format % args
 
-
-    def add_dialogs(self):
-
-        # pop-up log file
-        self.w.log = Pmw.TextDialog(self.w.root, scrolledtext_labelpos='n',
-                                    title='Log',
-                                    buttons=('Close',),
-                                    defaultbutton=None,
-                                    command=self.closelog)
-                                    #label_text = 'Log')        
-        self.logqueue = Queue.Queue()
-        guiHdlr = ssdlog.QueueHandler(self.logqueue)
-        fmt = logging.Formatter(ssdlog.STD_FORMAT)
-        guiHdlr.setFormatter(fmt)
-        guiHdlr.setLevel(logging.INFO)
-        self.logger.addHandler(guiHdlr)
+        self.w.status.remove(self.status_cid, self.status_mid)
+        self.status_mid = self.w.status.push(self.status_cid, s)
 
 
     def setPos(self, geom):
-        self.w.root.geometry(geom)
-
-
-    def closelog(self, w):
-        # close log window
-        self.w.log.withdraw()
+        # TODO: currently does not seem to be honoring size request
+        match = re.match(r'^(?P<size>\d+x\d+)?(?P<pos>[\-+]\d+[\-+]\d+)?$',
+                         geom)
+        if not match:
+            return
         
-    def showlog(self):
-        # open log window
-         self.w.log.show()
+        size = match.group('size')
+        pos = match.group('pos')
+
+        if size:
+            match = re.match(r'^(\d+)x(\d+)$', size)
+            if match:
+                width, height = map(int, match.groups())
+                self.w.root.set_default_size(width, height)
+
+        # TODO: placement
+        if pos:
+            pass
+
+        #self.root.set_gravity(gtk.gdk.GRAVITY_NORTH_WEST)
+        ##width, height = window.get_size()
+        ##window.move(gtk.gdk.screen_width() - width, gtk.gdk.screen_height() - height)
+        # self.root.move(x, y)
 
 
 #     def set_controller(self, controller):
 #         self.controller = controller
 
-    def logupdate(self):
-        try:
-            while True:
-                msgstr = self.logqueue.get(block=False)
-
-                self.w.log.insert('end', msgstr + '\n')
-
-        except Queue.Empty:
-            self.w.root.after(200, self.logupdate)
-    
     def popup_error(self, errstr):
-        tkMessageBox.showerror("IntegGUI Error", errstr)
+        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              type=gtk.MESSAGE_WARNING,
+                              buttons=gtk.BUTTONS_OK,
+                              message_format=errstr)
+        #w.connect("close", self.close)
+        w.connect("response", lambda w, id: w.destroy())
+        w.set_title('IntegGUI Error')
+        w.show()
+
+
+    def popup_yesno(self, title, qstr):
+        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              type=gtk.MESSAGE_QUESTION,
+                              buttons=gtk.BUTTONS_YES_NO,
+                              message_format=qstr)
+        w.set_title(title)
+        res = w.run()
+        w.destroy()
+
+        if res == gtk.RESPONSE_YES:
+            return True
+
+        return False
 
 
     def readfile(self, filepath):
@@ -1497,13 +1834,11 @@ class IntegView(object):
 
     def gui_load_ope(self):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-        
-        filepath = tkFileDialog.askopenfilename(title="Load OPE file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
 
+        self.filesel.popup("Load OPE file", self.load_ope,
+                           initialdir=initialdir)
+
+    def load_ope(self, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -1520,13 +1855,8 @@ class IntegView(object):
     def gui_load_log(self):
         initialdir = os.path.abspath(os.environ['LOGHOME'])
         
-        filepath = tkFileDialog.askopenfilename(title="Follow log file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
-
-        self.load_log(filepath)
+        self.filesel.popup("Follow log", self.load_log,
+                           initialdir=initialdir)
 
 
     def load_log(self, filepath):
@@ -1545,12 +1875,10 @@ class IntegView(object):
         initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
                                   'SkPara', 'sk')
         
-        filepath = tkFileDialog.askopenfilename(title="Load sk file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
+        self.filesel.popup("Load skeleton file", self.load_sk,
+                           initialdir=initialdir)
 
+    def load_sk(self, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -1567,12 +1895,10 @@ class IntegView(object):
     def gui_load_task(self):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
         
-        filepath = tkFileDialog.askopenfilename(title="Load task file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
+        self.filesel.popup("Load python task", self.load_task,
+                           initialdir=initialdir)
 
+    def load_task(self, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -1590,13 +1916,8 @@ class IntegView(object):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Launchers')
         
-        filepath = tkFileDialog.askopenfilename(title="Load launcher file",
-                                                initialdir=initialdir,
-                                                parent=self.w.root)
-        if not filepath:
-            return
-
-        self.load_launcher(filepath)
+        self.filesel.popup("Load launcher", self.load_launcher,
+                           initialdir=initialdir)
 
 
     def load_launcher(self, filepath):
@@ -1661,10 +1982,17 @@ class IntegView(object):
             self.cmdcount += 1
             return tag
 
-    def quit(self):
-        # TODO: check for unsaved buffers
+    def delete_event(self, widget, event, data=None):
         self.ev_quit.set()
-        sys.exit(0)
+        gtk.main_quit()
+        return False
+
+    # callback to quit the program
+    def quit(self, widget):
+        self.ev_quit.set()
+        gtk.main_quit()
+        return False
+
 
     def execute(self, opepage):
         """Callback when the EXEC button is pressed.
@@ -1677,50 +2005,53 @@ class IntegView(object):
         #    self.popup_error("Commands are executing!")
         #    return
 
-        tw = opepage.tw
+        buf = opepage.buf
         #self.clear_marks(opepage)
 
-        try:
-            # Get the range of text selected
-            first = tw.index(Tkinter.SEL_FIRST)
-            frow, fcol = str(first).split('.')
-                        
-            last = tw.index(Tkinter.SEL_LAST)
-            lrow, lcol = str(last).split('.')
-
-            # flush queue--selection will override
-            queueObj.flush()
-
-        except Exception, e:
+        if not buf.get_has_selection():
+            # No selection.  See if there are previously queued commands
             if len(queueObj) == 0:
                 self.popup_error("No queued commands and no mouse selection!")
             else:
                 queueObj.enable()
+                
             return
+
+        # Get the range of text selected
+        first, last = buf.get_selection_bounds()
+        frow = first.get_line()
+        lrow = last.get_line()
+
+        # flush queue--selection will override
+        queueObj.flush()
 
         # Break selection into individual lines
         tags = []
-        frow = int(frow)
 
         for i in xrange(int(lrow)+1-frow):
 
             row = frow+i
 
+            first.set_line(row)
+            last.set_line(row)
+            last.forward_to_line_end()
+
             # skip comments and blank lines
-            cmd = tw.get('%d.0linestart' % row, '%d.0lineend' % row)
+            cmd = buf.get_text(first, last).strip()
             if cmd.startswith('#') or (len(cmd) == 0):
                 continue
             self.logger.debug("cmd=%s" % (cmd))
 
             # tag the text so we can manipulate it later
             tag = self.get_tag('ope%d')
-            tw.tag_add(tag, '%d.0linestart' % row, '%d.0lineend' % row)
+            buf.create_tag(tag, foreground="black")
+            buf.apply_tag_by_name(tag, first, last)
 
             tags.append(Bunch.Bunch(tag=tag, opepage=opepage,
                                     type='opepage'))
 
         # deselect the region
-        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
+        #tw.tag_remove(Tkinter.SEL, '1.0', 'end')
 
         # Add tags to queue
         queueObj.extend(tags)
@@ -1742,14 +2073,13 @@ class IntegView(object):
 
         tw = opepage.tw
 
-        # tag the text so we can manipulate it later
         tag = self.get_tag('dd%d')
 
         tags = [Bunch.Bunch(tag=tag, opepage=opepage,
                             type='cmdpage')]
 
         # deselect the region
-        tw.tag_remove(Tkinter.SEL, '1.0', 'end')
+        #tw.tag_remove(Tkinter.SEL, '1.0', 'end')
 
         # Add tags to queue
         queueObj.extend(tags)
@@ -1781,8 +2111,9 @@ class IntegView(object):
             return bnch.cmdstr
 
         # Get the entire buffer from the page's text widget
-        tw = bnch.opepage.tw
-        txtbuf = tw.get('1.0', 'end').strip()
+        buf = bnch.opepage.buf
+        start, end = buf.get_bounds()
+        txtbuf = buf.get_text(start, end).strip()
 
         if bnch.type == 'cmdpage':
             # remove trailing semicolon, if present
@@ -1795,7 +2126,8 @@ class IntegView(object):
         # <-- Page is an OPE page type
 
         # Now get the command from the text widget
-        cmdstr = tw.get('%s.first' % bnch.tag, '%s.last' % bnch.tag).strip()
+        start, end = get_region(buf, bnch.tag)
+        cmdstr = buf.get_text(start, end).strip()
 
         # remove trailing semicolon, if present
         if cmdstr.endswith(';'):
@@ -1815,12 +2147,14 @@ class IntegView(object):
             
 
     def clear_marks(self, opepage):
-        rw = opepage.rw
-        rw.delete('1.0', 'end')
+        return
+        #rw = opepage.rw
+        #rw.delete('1.0', 'end')
 
 
     def mark_exec(self, bnch, char, queueName):
 
+        return
         # Get the entire OPE buffer
         tw = bnch.opepage.tw
         row, col = str(tw.index('end')).split('.')
@@ -1859,6 +2193,7 @@ class IntegView(object):
             
             raise(e)
 
+        self.logger.debug("bnch=%s" % str(bnch))
         cmdstr = self.get_cmdstr(bnch)
 
         if bnch.type == 'opepage':
@@ -1906,7 +2241,7 @@ class IntegView(object):
                 # Put object back on the front of the queue
                 queueObj.prepend(bnch)
 
-        self.w.root.after(100, self.popup_error, [str(e)])
+        gobject.idle_add(self.popup_error, str(e))
         #self.statusMsg(str(e))
 
         # Peeeeeww!
@@ -1922,7 +2257,7 @@ class IntegView(object):
         if not cmd_str:
             return
 
-        if not self.audible_errors.get():
+        if not self.audible_errors:
             return
 
         cmd_str = cmd_str.lower().strip()
@@ -1948,19 +2283,98 @@ class IntegView(object):
             self.logger.error("No such audio file: %s" % soundpath)
         
 
+    def update_frame(self, frameinfo):
+        # because gtk thread handling sucks
+        gobject.idle_add(self.framepage.update_frame, frameinfo)
+
+    def update_frames(self, framelist):
+        # because gtk thread handling sucks
+        gobject.idle_add(self.framepage.update_frames, framelist)
+
     def update_obsinfo(self, infodict):
         self.logger.info("OBSINFO=%s" % str(infodict))
-        self.obsinfo.update_obsinfo(infodict)
-
-    
+        # because gtk thread handling sucks
+        gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
+   
     def process_ast(self, ast_id, vals):
-        self.monpage.process_ast(ast_id, vals)
+        # because gtk thread handling sucks
+        gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
 
     def process_task(self, path, vals):
-        self.monpage.process_task(path, vals)
+        # because gtk thread handling sucks
+        gobject.idle_add(self.monpage.process_task_err, path, vals)
 
     def mainloop(self):
-        self.w.root.mainloop()
+        gtk.main()
 
+
+rc = """
+style "window"
+{
+}
+
+style "button"
+{
+  # This shows all the possible states for a button.  The only one that
+  # doesn't apply is the SELECTED state.
+  
+  #fg[PRELIGHT] = {255, 255, 0}
+  fg[PRELIGHT] = 'yellow'
+  #bg[PRELIGHT] = "#089D20"
+  #bg[PRELIGHT] = {8, 157, 32}
+  bg[PRELIGHT] = 'forestgreen'
+  #bg[PRELIGHT] = {1.0, 0, 0}
+#  bg[ACTIVE] = { 1.0, 0, 0 }
+#  fg[ACTIVE] = { 0, 1.0, 0 }
+#  bg[NORMAL] = { 1.0, 1.0, 0 }
+#  fg[NORMAL] = { .99, 0, .99 }
+#  bg[INSENSITIVE] = { 1.0, 1.0, 1.0 }
+#  fg[INSENSITIVE] = { 1.0, 0, 1.0 }
+
+#GtkButton::focus-line-width = 1
+#GtkButton::focus-padding = 0
+GtkLabel::width-chars = 20
+}
+
+# In this example, we inherit the attributes of the "button" style and then
+# override the font and background color when prelit to create a new
+# "main_button" style.
+
+style "main_button" = "button"
+{
+  font = "-adobe-helvetica-medium-r-normal--*-100-*-*-*-*-*-*"
+  bg[PRELIGHT] = { 0.75, 0, 0 }
+}
+
+style "toggle_button" = "button"
+{
+  fg[NORMAL] = { 1.0, 0, 0 }
+  fg[ACTIVE] = { 1.0, 0, 0 }
+ 
+}
+
+style "text"
+{
+  fg[NORMAL] = { 1.0, 1.0, 1.0 }
+  font_name = "Monospace 10"
+}
+
+# These set the widget types to use the styles defined above.
+# The widget types are listed in the class hierarchy, but could probably be
+# just listed in this document for the users reference.
+
+widget_class "GtkWindow" style "window"
+widget_class "GtkDialog" style "window"
+widget_class "GtkFileSelection" style "window"
+widget_class "*GtkCheckButton*" style "toggle_button"
+widget_class "*GtkRadioButton*" style "toggle_button"
+widget_class "*GtkButton*" style "button"
+widget_class "*GtkTextView" style "text"
+
+# This sets all the buttons that are children of the "main window" to
+# the main_button style.  These must be documented to be taken advantage of.
+widget "main window.*GtkButton*" style "main_button"
+"""
+gtk.rc_parse_string(rc) 
 
 #END

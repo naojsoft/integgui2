@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Apr 21 14:21:56 HST 2010
+#  Last edit: Thu May 13 16:48:00 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -146,7 +146,8 @@ def main(options, args):
         mymon.stop(wait=True)
     
     logger.info("Exiting Gen2/SCM IntegGUI II...")
-    gui.quit()
+    #gui.quit()
+    sys.exit(0)
     
 
 # Create demo in root window for testing.
