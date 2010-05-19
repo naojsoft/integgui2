@@ -1,0 +1,15 @@
+# meta import for all Page-type objects
+
+from OpePage import *
+from SkPage import *
+from TaskPage import *
+from DDCommandPage import *
+from FrameInfoPage import *
+from LauncherPage import *
+from ObsInfoPage import *
+from WorkspacePage import *
+from skMonitorPage import *
+from LogPage import *
+
+#END
+

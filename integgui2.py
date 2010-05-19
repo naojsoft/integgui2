@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 13 16:48:00 HST 2010
+#  Last edit: Fri May 14 14:09:39 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -20,7 +20,8 @@ import ssdlog
 # Local integgui2 imports
 import fits
 import controller as igctrl
-import view as igview
+import IntegView as igview
+import view.common
 import launcher
 
 def main(options, args):
@@ -60,8 +61,8 @@ def main(options, args):
     controller = igctrl.IntegController(logger, ev_quit, mymon,
                                         gui, options)
 
-    igview.set_view(gui)
-    igview.set_controller(controller)
+    view.common.set_view(gui)
+    view.common.set_controller(controller)
 
     # Configure for currently allocated instrument
     if options.instrument:

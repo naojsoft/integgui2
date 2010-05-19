@@ -1,0 +1,118 @@
+#
+# common.py -- common module for IntegGUI view
+#
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Fri May 14 13:57:24 HST 2010
+#]
+
+import Bunch
+
+color_blue = '#cae1ff'     # pale blue
+color_green = '#c1ffc1'     # pale green
+color_yellow = '#fafad2'     # cream
+#color_white = 'whitesmoke'
+color_white = 'white'
+
+color_bg = 'light grey'
+
+# Define sounds used in IntegGUI
+sound = Bunch.Bunch(success='doorbell.au',
+                    failure='splat.au')
+
+
+decorative_tags = [
+    ('comment3', Bunch.Bunch(foreground='indian red')),
+    ('comment2', Bunch.Bunch(foreground='saddle brown')),
+    ('comment1', Bunch.Bunch(foreground='dark green')),
+    ]
+execution_tags = [
+    ('scheduled', Bunch.Bunch(background='lightgreen')),
+    ('executing', Bunch.Bunch(foreground='gold3')),
+    ('done',     Bunch.Bunch(foreground='blue', background='white')),
+    ('error',   Bunch.Bunch(foreground='red')),
+    ]
+
+# Yuk...module-level variables
+view = None
+controller = None
+
+def set_view(pview):
+    global view
+    view = pview
+
+def set_controller(pcontroller):
+    global controller
+    controller = pcontroller
+
+
+def update_line(buf, row, text, tags=None):
+    """Update a line of the text widget _tw_, defined by _row_,
+    with the value _val_.
+    """
+    start = buf.get_start_iter()
+    start.set_line(row)
+    end = start.copy()
+    end.forward_to_line_end()
+    
+    buf.delete(start, end)
+    if not tags:
+        buf.insert(start, text)
+    else:
+        buf.insert_with_tags_by_name(start, text, *tags)
+
+def change_text(page, tagname, **kwdargs):
+    tag = page.tagtbl.lookup(tagname)
+    if not tag:
+        raise TagError("Tag not found: '%s'" % tagname)
+
+    for key, val in kwdargs.items():
+        tag.set_property(key,val)
+
+    # Scroll the view to this area
+    start, end = get_region(page.buf, tagname)
+    page.tw.scroll_to_iter(start, 0.1)
+
+
+def get_region(txtbuf, tagname):
+    """Returns a (start, end) pair of Gtk text buffer iterators
+    associated with this tag.
+    """
+    # Painfully inefficient and error-prone way to locate a tagged
+    # region.  Seems gtk text buffers have tags, but no good way to
+    # manipulate text associated with them efficiently.
+
+    # Get the tag table associated with this text buffer
+    tagtbl = txtbuf.get_tag_table()
+    # Look up the tag
+    tag = tagtbl.lookup(tagname)
+
+    # Get text iters at beginning and end of buffer
+    start, end = txtbuf.get_bounds()
+
+    # Now search forward from beginning for first location of this
+    # tag, and backwards from the end
+    result = start.forward_to_tag_toggle(tag)
+    if not result:
+        raise TagError("Tag not found: '%s'" % tagname)
+    result = end.backward_to_tag_toggle(tag)
+    if not result:
+        raise TagError("Tag not found: '%s'" % tagname)
+
+    return (start, end)
+
+
+def replace_text(page, tagname, textstr):
+    txtbuf = page.buf
+    start, end = get_region(txtbuf, tagname)
+    txtbuf.delete(start, end)
+    txtbuf.insert_with_tags_by_name(start, textstr, tagname)
+
+    # Scroll the view to this area
+    page.tw.scroll_to_iter(start, 0.1)
+
+
+class TagError(Exception):
+    pass
+
+
+#END

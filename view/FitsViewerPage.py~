@@ -1,0 +1,357 @@
+# remove once we're certified on python 2.6
+from __future__ import with_statement
+
+# stdlib imports
+import numpy
+import pyfits
+import threading
+
+# GUI imports
+import gtk
+from matplotlib.axes import Subplot, cm
+from matplotlib.figure import Figure
+
+# uncomment to select /GTK/GTKAgg/GTKCairo
+#from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
+#from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
+from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
+import pango
+
+import Page
+
+import Bunch
+import astro.fitsdata as fitsdata
+import Gen2.Fitsview.Datasrc as Datasrc
+
+
+class FitsViewerPage(Page.Page):
+
+    def __init__(self, datasrc, logger, ev_quit=None):
+        """Implements a fancier display with buttons and accouterments.
+        """
+        
+    def __init__(self, frame, name, title):
+
+        super(FitsViewerPage, self).__init__(frame, name, title)
+
+        # datasrc for incoming images
+        self.datasrc = Datasrc.Datasrc(length=options.bufsize)
+
+        self.cursor = 0
+        self.saved_cursor = 0
+
+        self.lock = threading.RLock()
+        
+        hbox = gtk.Hbox()
+
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
+
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+
+        self.history = gtk.TextView()
+        self.history.set_editable(False)
+        self.history.connect("clicked", self.selectframe)
+        self.history.set_wrap_mode(gtk.WRAP_NONE)
+        self.history.set_left_margin(4)
+        self.history.set_right_margin(4)
+        scrolled_window.add_with_viewport(self.history)
+        self.history.show()
+        scrolled_window.show()
+
+        hbox.pack_start(scrolled_window, expand=True, fill=True)
+
+        self.border = gtk.Frame("")
+        self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        self.border.set_label_align(0.1, 0.5)
+
+        self.fig = Figure(figsize=(5,4), dpi=100)
+        self.axes = self.fig.add_subplot(111, autoscale_on=True)
+        #self.axes.hold(False)
+        self.axes.hold(True)
+        self.canvas = FigureCanvas(self.fig)  # a gtk.DrawingArea
+
+        self.border.add(self.canvas)
+        self.canvas.show()
+
+        hbox.pack_start(self.border, expand=True, fill=True)
+        # Navigation toolbar
+        #toolbar = NavigationToolbar(self.canvas, self.win)
+        #vbox.pack_start(toolbar, expand=False, fill=False)
+
+        self.border.show()
+
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_border_width(2)
+
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
+                                   gtk.POLICY_AUTOMATIC)
+
+        self.fitsinfo = gtk.TextView()
+        self.fitsinfo.set_editable(False)
+        self.fitsinfo.set_wrap_mode(gtk.WRAP_NONE)
+        self.fitsinfo.set_left_margin(4)
+        self.fitsinfo.set_right_margin(4)
+        scrolled_window.add_with_viewport(self.fitsinfo)
+        self.fitsinfo.show()
+        scrolled_window.show()
+
+        hbox.pack_start(scrolled_window, expand=True, fill=True)
+        hbox.show()
+
+        # Font for text panes
+        self.font = pango.FontDescription('Monospace 12')
+        # Colormap we will use for image display
+        self.cmap = cm.gray
+        
+        # Initialize the viewer with an empty image
+        data = numpy.zeros((512,512))
+        self.image = Bunch.Bunch(name='', width=512, height=512,
+                           data=data, header={})
+        self.datasrc['__'] = self.image
+        self.data = self.axes.imshow(self.image.data, origin='lower',
+                                     cmap=self.cmap)
+##         self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
+##                                       shrink=0.8)
+
+        frame.pack_start(self, expand=True, fill=True)
+
+        frame.show_all()
+        
+
+    def cut_levels(self, w):
+        with self.lock:
+            self.logger.debug("Cut levels")
+            fitsdata.cut_levels(self.image.data)
+            self.update_img()
+        return True
+
+
+    def prev_img_in_list(self, w):
+        with self.lock:
+            self.logger.debug("Previous image")
+            try:
+                self.image = self.datasrc[self.cursor-1]
+                self.cursor -= 1
+                self.update_img()
+            except IndexError:
+                self.showStatus("No previous image!")
+                self.logger.error("No previous image!")
+            
+        return True
+
+
+    def next_img_in_list(self, w):
+        with self.lock:
+            self.logger.debug("Next image")
+            try:
+                self.image = self.datasrc[self.cursor+1]
+                self.cursor += 1
+                self.update_img()
+            except IndexError:
+                self.showStatus("No next image!")
+                self.logger.error("No next image!")
+
+        return True
+
+
+    def load_image_datasrc(self, name):
+
+        with self.lock:
+            self.cursor = self.datasrc.index(name)
+            #self.image = self.datasrc[self.cursor]
+            self.image = self.datasrc[name]
+
+            imagelist = self.datasrc.keys()
+
+            w = self.history
+            clear_tv(w)
+            append_tv(w, '\n'.join(imagelist))
+            w.modify_font(self.font)
+
+            self.update_img()
+
+                
+    def load_file(self, fitspath):
+        """Loads a command file from _path_ into the commands window.
+        """
+        with self.lock:
+            try:
+                imgb = open_fits(fitspath)
+
+            except IOError, e:
+                return ro.ERROR
+
+            # Enqueue image to display datasrc
+            self.datasrc[imgb.name] = imgb
+
+            self.load_image_datasrc(imgb.name)
+
+
+    def load_image_file(self, widget):
+        """Runs dialog to read in a command file into the command window.
+        """
+            
+        # Throw up a file selection dialog and let the user pick a file
+        sw = self.widgets['dialog_filechooser1']
+        sw.window.show()
+        resp = sw.run()
+        sw.window.hide()
+
+        # If they clicked "OK" then try to send the file.
+        if resp == gtk.RESPONSE_OK:
+            filepath = sw.get_filename()
+            (filedir, filename) = os.path.split(filepath)
+            
+            try:
+                self.load_file(filepath)
+
+            except IOError, e:
+                self.showStatus("Failed to load '%s': %s" % (filename, str(e)))
+
+        else:
+            self.showStatus("Load cancelled.")
+               
+        return gtk.TRUE
+
+
+    def update_img(self):
+        """Update the image in the window, based on changes to the
+        image data contained in self.image.data.
+        """
+
+        with self.lock:
+            self.logger.debug("Update image start")
+            curtime = time.time()
+            # NOTE: apparently gtk.gdk.threads_enter() is not reentrant
+            # Since the gtk events are processed inside a critical section
+            # in update_loop(), we are already inside the critical section
+            # here and no need to re-enter.
+            #gtk.gdk.threads_enter()
+            try:
+                # Delete previous images--VERY IMPORTANT
+                # If you don't do this the images get stacked in the window
+                # and performance goes down the drain quickly
+                self.axes.images = []
+
+                im = self.axes.imshow(self.image.data, origin='lower',
+                                      interpolation='lanczos',
+                                      #interpolation='bilinear',
+                                      cmap=self.cmap, alpha=1)
+                self.data = im
+                self.logger.debug("Update image data: %.4f sec" % (time.time() - curtime))
+
+                #self.cbar.set_colorbar(im, self.axes)
+                #self.cbar.changed()
+                #self.cbar.update_bruteforce(im)
+                #self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
+                #                              shrink=0.8)
+
+                # Update title bar
+                self.win.set_title(self.image.name)
+
+                # Update the header info
+                hdr_list = []
+                for (key, val) in self.image.header.items():
+                    hdr_list.append("%-8.8s : %s" % (key, str(val)))
+
+                w = self.'fitsinfo'
+                clear_tv(w)
+                append_tv(w, '\n'.join(hdr_list))
+                w.modify_font(self.font)
+                self.logger.debug("Update fits kwds: %.4f sec" % (time.time() - curtime))
+                
+                # THIS IS SLLOOOOWW--what else can we use?
+                self.canvas.draw()
+                #self.win.show_all()
+
+                tottime = time.time() - curtime
+                self.logger.debug("Update image end: time=%.4f sec" % tottime)
+
+            finally:
+                #gtk.gdk.threads_leave()
+                pass
+
+        return True
+
+
+    def select_frame(self, w, evt):
+        with self.lock:
+            widget = self.history
+            win = gtk.TEXT_WINDOW_TEXT
+            buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
+            (startiter, coord) = widget.get_line_at_y(buf_y1)
+            (enditer, coord) = widget.get_line_at_y(buf_y1)
+            enditer.forward_to_line_end()
+            txtbuf = widget.get_buffer()
+            text = txtbuf.get_text(startiter, enditer)
+            filename = text.strip()
+            line = startiter.get_line()
+            print "%d: %s" % (line, filename)
+
+            try:
+                self.image = self.datasrc[line]
+                self.cursor = line
+                self.update_img()
+            except IndexError:
+                pass
+            
+        return True
+        
+
+def open_fits(fitspath):
+
+    fits_f = pyfits.open(fitspath, "readonly")
+
+    # this seems to be necessary now for some fits files...
+    fits_f.verify('fix')
+    
+    data = fits_f[0].data
+
+    header = fits_f[0].header
+    fits_f.close()
+
+    if len(data.shape) == 2:
+        (width, height) = data.shape
+    elif len(data.shape) > 2:
+        while len(data.shape) > 2:
+            data = data[0]
+        (width, height) = data.shape
+    else:
+        raise Exception("Data shape of FITS file is undetermined!")
+
+    (path, filename) = os.path.split(fitspath)
+
+    # Create a bunch with the image params
+    imgb = Bunch.Bunch(name=filename, path=fitspath,
+                       width=width, height=height,
+                       data=data, header=header)
+        
+    return imgb
+
+    
+def get_tv(widget):
+    txtbuf = widget.get_buffer()
+    startiter, enditer = txtbuf.get_bounds()
+    text = txtbuf.get_text(startiter, enditer)
+    return text
+
+def append_tv(widget, text):
+    txtbuf = widget.get_buffer()
+    enditer = txtbuf.get_end_iter()
+    txtbuf.place_cursor(enditer)
+    txtbuf.insert_at_cursor(text)
+    startiter = txtbuf.get_start_iter()
+    txtbuf.place_cursor(startiter)
+    widget.scroll_to_iter(enditer, False, 0, 0)
+
+def clear_tv(widget):
+    txtbuf = widget.get_buffer()
+    startiter = txtbuf.get_start_iter()
+    enditer = txtbuf.get_end_iter()
+    txtbuf.delete(startiter, enditer)
+
+
+#END

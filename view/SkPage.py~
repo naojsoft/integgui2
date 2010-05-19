@@ -1,0 +1,6 @@
+import CodePage
+
+class SkPage(CodePage):
+    pass
+
+#END

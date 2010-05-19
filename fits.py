@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Apr 21 14:21:56 HST 2010
+#  Last edit: Fri May 14 14:25:18 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -10,11 +10,6 @@ import threading
 
 import remoteObjects as ro
 import Bunch
-
-header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
-
-# Format string used to pass information to IntegGUI
-format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s\n"
 
 # Headers we show
 headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',

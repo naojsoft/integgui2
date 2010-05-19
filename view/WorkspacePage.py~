@@ -1,0 +1,7 @@
+import Workspace
+import Page
+
+class WorkspacePage(Workspace, Page):
+    pass
+
+#END
