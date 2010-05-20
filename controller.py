@@ -234,6 +234,14 @@ class IntegController(object):
                     self.sessionName, str(e)))
 
 
+    def load_frames(self, framelist):
+        # TODO: this should maybe be in IntegView
+
+        for frameid in framelist:
+            fitspath = self.insconfig.getFileByFrameId(frameid)
+            self.gui.load_fits(fitspath)
+
+
     def _session_config(self, info):
         self.logger.debug("info=%s" % str(info))
 

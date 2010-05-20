@@ -51,10 +51,25 @@ def update_line(buf, row, text, tags=None):
     """
     start = buf.get_start_iter()
     start.set_line(row)
-    end = start.copy()
-    end.forward_to_line_end()
+    if start.get_line() == row:
+        end = start.copy()
+        end.forward_to_line_end()
     
-    buf.delete(start, end)
+        buf.delete(start, end)
+    else:
+        # append some rows so we can go to the correct row
+        end = buf.get_end_iter()
+        while end.get_line() <= row:
+            buf.insert(end, '\n')
+            end = buf.get_end_iter()
+
+    if len(text) == 0:
+        text = ' '
+
+    res = start.set_line(row)
+    if start.get_line() != row:
+        print "Could not set line to %d !" % row
+
     if not tags:
         buf.insert(start, text)
     else:
@@ -124,6 +139,7 @@ def append_tv(widget, text):
     txtbuf.insert_at_cursor(text)
     startiter = txtbuf.get_start_iter()
     txtbuf.place_cursor(startiter)
+    enditer = txtbuf.get_end_iter()
     widget.scroll_to_iter(enditer, False, 0, 0)
 
 def clear_tv(widget):

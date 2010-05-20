@@ -25,11 +25,11 @@ class ObsInfoPage(Page.Page):
                                    gtk.POLICY_AUTOMATIC)
 
         tw = gtk.TextView()
-        scrolled_window.add_with_viewport(tw)
+        scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
-        tw.set_editable(False)
+        tw.set_editable(True)
         tw.set_wrap_mode(gtk.WRAP_NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
@@ -40,7 +40,7 @@ class ObsInfoPage(Page.Page):
         self.buf = tw.get_buffer()
 
         start = self.buf.get_start_iter()
-        self.buf.insert(start, '\n' * 10)
+        self.buf.insert(start, ' \n' * 10)
 
         frame.pack_start(scrolled_window, fill=True, expand=True)
 
@@ -58,7 +58,9 @@ class ObsInfoPage(Page.Page):
         for i in xrange(1, 6):
             try:
                 val = str(obsdict['OBSINFO%d' % i])
-                common.update_line(self.buf, i+offset, val)
+                row = i + offset
+                print "updating row=%d val='%s'" % (row, val)
+                common.update_line(self.buf, row, val)
             except KeyError:
                 continue
 

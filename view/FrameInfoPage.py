@@ -15,7 +15,7 @@ import common
 header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
 
 # Format string used to pass information to IntegGUI
-format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s\n"
+format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
 
 
 class FrameInfoPage(Page.Page):
@@ -72,6 +72,7 @@ class FrameInfoPage(Page.Page):
         with self.lock:
             text = format_str % frameinfo
 
+            print frameinfo
             if hasattr(frameinfo, 'row'):
                 row = frameinfo.row
                 common.update_line(self.buf, row, text)
@@ -82,7 +83,7 @@ class FrameInfoPage(Page.Page):
                 row = end.get_line()
                 #self.buf.create_tag(frameid, foreground="black")
                 frameinfo.row = row
-                self.buf.insert(end, text)
+                self.buf.insert(end, text + '\n')
                 #self.buf.insert_with_tags_by_name(end, text, [frameid])
 
         
@@ -93,7 +94,7 @@ class FrameInfoPage(Page.Page):
         self.buf.delete(start, end)
         
         # Create header
-        self.buf.insert(start, header)
+        self.buf.insert(start, header+'\n')
 
         # add frames
         for frameinfo in framelist:
@@ -159,6 +160,7 @@ class FrameInfoPage(Page.Page):
             frameno = line.split()[0]
             frames.append(frameno)
 
-        common.view.load_frames(frames)
+        #print "Loading frames", frames
+        common.controller.load_frames(frames)
         
 #END

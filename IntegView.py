@@ -48,7 +48,7 @@ class IntegView(object):
 
         # Create top-level window
         root = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        root.set_size_request(1900, 1100)
+        root.set_size_request(1900, 1050)
         root.set_title('Gen2 Integrated GUI II')
         root.connect("delete_event", self.delete_event)
         root.set_border_width(2)
@@ -685,7 +685,8 @@ class IntegView(object):
 
         if bnch.type == 'opepage':
             #self.clear_marks()
-            self.mark_exec(bnch, 'executing', queueName)
+            #self.mark_exec(bnch, 'executing', queueName)
+            gobject.idle_add(self.mark_exec, bnch, 'executing', queueName)
         
         return bnch, cmdstr
 
@@ -813,7 +814,13 @@ style "button"
 
 #GtkButton::focus-line-width = 1
 #GtkButton::focus-padding = 0
-GtkLabel::width-chars = 20
+#GtkLabel::width-chars = 20
+}
+
+style "nobevel"
+{
+GtkMenuBar::shadow-type = none
+GtkStatusbar::shadow-type = none
 }
 
 # In this example, we inherit the attributes of the "button" style and then
@@ -848,6 +855,8 @@ style "text"
 # The widget types are listed in the class hierarchy, but could probably be
 # just listed in this document for the users reference.
 
+widget_class "GtkMenuBar" style "nobevel"
+widget_class "GtkStatusbar" style "nobevel"
 widget_class "GtkWindow" style "window"
 widget_class "GtkDialog" style "window"
 widget_class "GtkFileSelection" style "window"
