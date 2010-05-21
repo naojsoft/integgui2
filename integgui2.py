@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 14:09:39 HST 2010
+#  Last edit: Thu May 20 13:34:13 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -44,18 +44,11 @@ def main(options, args):
     # Create a local monitor
     mymon = Monitor.Monitor(myMonName, logger, numthreads=20)
 
-    # command queues
-    queues = Bunch.Bunch(executer=igctrl.CommandQueue('executer',
-                                                      logger),
-                         launcher=igctrl.CommandQueue('launcher',
-                                                      logger),
-                         )
-
     # launcher manager
     lnchmgr = launcher.LauncherManager(logger)
 
     # Create view
-    gui = igview.IntegView(logger, ev_quit, queues, lnchmgr)
+    gui = igview.IntegView(logger, ev_quit, lnchmgr)
 
     # Create controller
     controller = igctrl.IntegController(logger, ev_quit, mymon,

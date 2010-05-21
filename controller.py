@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 13 21:52:01 HST 2010
+#  Last edit: Thu May 20 14:20:05 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -8,6 +8,7 @@ from __future__ import with_statement
 
 import os
 import threading
+import Queue
 
 # SSD/Gen2 imports
 import Task
@@ -27,87 +28,6 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               ]
 
 
-class QueueEmpty(Exception):
-    pass
-
-
-class CommandQueue(object):
-    
-    def __init__(self, name, logger):
-        self.name = name
-        self.logger = logger
-
-        self.queue = []
-        self.flag = threading.Event()
-        self.lock = threading.RLock()
-
-    def enabledP(self):
-        return self.flag.isSet()
-
-    def enable(self):
-        return self.flag.set()
-
-    def disable(self):
-        return self.flag.clear()
-
-    def enableIfPending(self):
-        with self.lock:
-            if len(self.queue) > 0:
-                self.enable()
-                return True
-
-            else:
-                return False
-
-    def flush(self):
-        with self.lock:
-            while len(self.queue) > 0:
-                self.queue.pop(0)
-
-    def add(self, arg):
-        with self.lock:
-            self.queue.append(arg)
-            
-    def prepend(self, arg):
-        with self.lock:
-            self.queue.insert(0, arg)
-            
-    def extend(self, args):
-        lstcopy = list(args)
-        with self.lock:
-            self.queue.extend(lstcopy)
-            
-    def __len__(self):
-        with self.lock:
-            return len(self.queue)
-
-    def peek(self):
-        with self.lock:
-            try:
-                return self.queue[0]
-            except IndexError:
-                raise QueueEmpty('Queue %s is empty' % self.name)
-
-
-    def peekAll(self):
-        with self.lock:
-            return list(self.queue)
-
-    def remove(self, obj):
-        with self.lock:
-            self.queue.remove(obj)
-
-    def get(self):
-        with self.lock:
-            if not self.enabledP():
-                raise QueueEmpty('Queue %s is empty' % self.name)
-
-            try:
-                return self.queue.pop(0)
-            except IndexError:
-                raise QueueEmpty('Queue %s is empty' % self.name)
-
-
 class IntegController(object):
     
     def __init__(self, logger, ev_quit, monitor, view, options):
@@ -118,6 +38,10 @@ class IntegController(object):
         self.gui = view
         self.lock = threading.RLock()
         self.options = options
+
+        # command queues
+        self.queue = Bunch.Bunch(executer=Queue.Queue(),
+                                 launcher=Queue.Queue())
 
         # For task inheritance:
         self.threadPool = monitor.get_threadPool()
@@ -146,11 +70,15 @@ class IntegController(object):
     def execute_loop(self, queueName):
         
         self.logger.info("Starting executor for '%s'..." % queueName)
+        queue = self.queue[queueName]
+
         while not self.ev_quit.isSet():
             try:
                 bnch = None
-                # Try to get a command from the GUI for queueName
-                bnch, cmdstr = self.gui.get_queue(queueName)
+                # Try to get a command from our queue
+                bnch = queue.get(block=True, timeout=0.01)
+
+                cmdstr = bnch.cmdstr
 
                 # Try to execute the command in the TaskManager
                 self.logger.debug("Invoking to task manager (%s): '%s'" % (
@@ -159,19 +87,24 @@ class IntegController(object):
                 if res != ro.OK:
                     raise Exception("Command failed with res=%d" % res)
 
-                self.gui.feedback_noerror(queueName, bnch, res)
+                self.gui.command_feedback_ok(queueName, bnch, res)
 
-            except QueueEmpty:
+            except Queue.Empty:
                 # No command ready...busy wait
                 self.ev_quit.wait(0.01)
 
             except Exception, e:
                 # If there was a problem, let the gui know about it
-                self.gui.feedback_error(queueName, bnch, e)
+                self.gui.command_feedback_error(queueName, bnch, e)
 
         self.logger.info("Executor for '%s' shutting down..." % queueName)
 
 
+    def tm_exec(self, queueName, bnch):
+        # Submit 
+        queue = self.queue[queueName]
+        queue.put(bnch)
+        
     def tm_cancel(self, queueName):
         self.tm2.cancel(queueName)
 

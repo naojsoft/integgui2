@@ -1,14 +1,16 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 13:02:33 HST 2010
+#  Last edit: Thu May 20 14:15:15 HST 2010
 #]
 
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
 # Standard library imports
+import sys
 import re, time
 import threading
+import traceback
 
 # Special library imports
 import gtk
@@ -355,7 +357,12 @@ class SkMonitorPage(Page.Page):
 
                 bnch = Bunch.Bunch(page=page, state=state)
                 self.track.setdefault(vals['ast_track'], bnch)
-                
+
+                # It's possible in some cases that the ast_track could
+                # arrive before the page is added or set up
+                if not hasattr(page, 'buf'):
+                    return
+
                 # Replace the decode string with the actual parameters
                 # ?? Has string really changed at this point??
                 self.replace_text(page, ast_num, vals['ast_str'])
@@ -384,12 +391,30 @@ class SkMonitorPage(Page.Page):
             self.process_ast(ast_id, vals)
         except Exception, e:
             self.logger.error("MONITOR ERROR: %s" % str(e))
+            try:
+                (type, value, tb) = sys.exc_info()
+                print "Traceback:\n%s" % \
+                                  "".join(traceback.format_tb(tb))
+                self.logger.error("Traceback:\n%s" % \
+                                  "".join(traceback.format_tb(tb)))
+
+            except Exception, e:
+                self.logger.error("Traceback information unavailable.")
             
     def process_task_err(self, path, vals):
         try:
             self.process_task(path, vals)
         except Exception, e:
             self.logger.error("MONITOR ERROR: %s" % str(e))
+            try:
+                (type, value, tb) = sys.exc_info()
+                print "Traceback:\n%s" % \
+                                  "".join(traceback.format_tb(tb))
+                self.logger.error("Traceback:\n%s" % \
+                                  "".join(traceback.format_tb(tb)))
+
+            except Exception, e:
+                self.logger.error("Traceback information unavailable.")
             
         
 #END

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 20 12:24:56 HST 2010
+#  Last edit: Thu May 20 14:25:20 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -30,20 +30,25 @@ from view.dialogs import *
 
 class IntegView(object):
 
-    def __init__(self, logger, ev_quit, queues, lnchmgr):
+    def __init__(self, logger, ev_quit, lnchmgr):
 
         self.logger = logger
         self.ev_quit = ev_quit
-        self.queue = queues
         self.lnchmgr = lnchmgr
         self.lock = threading.RLock()
         # Used for tagging commands
         self.cmdcount = 0
 
+        # command queues
+        self.queue = Bunch.Bunch(executer=CommandQueue('executer',
+                                                       logger),
+                                 launcher=CommandQueue('launcher',
+                                                       logger) )
+
         # Create the GUI
         self.w = Bunch.Bunch()
 
-        # evil hack required to use threads with GTK
+        # hack required to use threads with GTK
         gtk.gdk.threads_init()
 
         # Create top-level window
@@ -480,9 +485,9 @@ class IntegView(object):
 
         # Check whether we are busy executing a command here
         # and popup an error message if so
-        #if queueObj.executingP():
-        #    self.popup_error("Commands are executing!")
-        #    return
+##         if queueObj.executingP():
+##             self.popup_error("Commands are executing!")
+##             return
 
         buf = opepage.buf
         self.clear_marks(opepage)
@@ -492,7 +497,7 @@ class IntegView(object):
             if len(queueObj) == 0:
                 self.popup_error("No queued commands and no mouse selection!")
             else:
-                queueObj.enable()
+                self.initiate_commands('executer')
                 
             return
 
@@ -536,8 +541,7 @@ class IntegView(object):
         # Add tags to queue
         queueObj.extend(tags)
 
-        # Enable executor thread to proceed
-        queueObj.enable()
+        self.initiate_commands('executer')
 
             
     def execute_dd(self, opepage):
@@ -567,8 +571,7 @@ class IntegView(object):
         # Add tags to queue
         queueObj.extend(tags)
 
-        # Enable executor thread to proceed
-        queueObj.enable()
+        self.initiate_commands('executer')
 
 
     def execute_launcher(self, cmdstr):
@@ -582,8 +585,31 @@ class IntegView(object):
                            cmdstr=cmdstr)
         queueObj.add(bnch)
 
-        # Enable executor thread to proceed
-        queueObj.enable()
+        self.initiate_commands('launcher')
+
+
+    def initiate_commands(self, queueName):
+
+        queueObj = self.queue[queueName]
+        
+        try:
+            bnch = queueObj.get()
+            self.logger.debug("bnch=%s" % str(bnch))
+            
+        except QueueEmpty, e:
+            # TODO: popup error here?
+            raise(e)
+
+        # Get the command string associated with this kind of page
+        self.get_cmdstr(bnch)
+
+        if bnch.type == 'opepage':
+            #self.clear_marks()
+            self.mark_exec(bnch, 'executing', queueName)
+
+        # Ship this command off to the controller
+        # we will be notified later by feedback_error or feedback_ok
+        common.controller.tm_exec(queueName, bnch)
 
 
     def get_cmdstr(self, bnch):
@@ -604,6 +630,7 @@ class IntegView(object):
             if cmdstr.endswith(';'):
                 cmdstr = cmdstr[:-1]
 
+            bnch.cmdstr = cmdstr
             return cmdstr
 
         # <-- Page is an OPE page type
@@ -622,6 +649,7 @@ class IntegView(object):
             p_cmdstr = ope.getCmd(txtbuf, cmdstr)
             self.logger.debug("Processed command is: %s" % p_cmdstr)
 
+            bnch.cmdstr = p_cmdstr
             return p_cmdstr
 
         except Exception, e:
@@ -667,52 +695,30 @@ class IntegView(object):
             buf.apply_tag_by_name('scheduled', start, end)
             
 
-    def get_queue(self, queueName):
-
-        queueObj = self.queue[queueName]
-
-        try:
-            bnch = queueObj.get()
-            
-        except igctrl.QueueEmpty, e:
-            # Disable queue until commands are available
-            queueObj.disable()
-            
-            raise(e)
-
-        self.logger.debug("bnch=%s" % str(bnch))
-        cmdstr = self.get_cmdstr(bnch)
-
-        if bnch.type == 'opepage':
-            #self.clear_marks()
-            #self.mark_exec(bnch, 'executing', queueName)
-            gobject.idle_add(self.mark_exec, bnch, 'executing', queueName)
-        
-        return bnch, cmdstr
-
-
-    def feedback_noerror(self, queueName, bnch, res):
-
+    def feedback_ok(self, queueName, bnch, res):
+        self.logger.info("Ok [%s] %s" % (
+            queueName, bnch.cmdstr))
         queueObj = self.queue[queueName]
 
         if bnch.type == 'opepage':
             self.mark_exec(bnch, 'done', queueName)
-        #self.make_sound(cmd_ok)
         
-        # If queue is empty, disable it until more commands are
-        # added
+        # If queue is empty, play success sound
+        # otherwise issue the next command
         if len(queueObj) == 0:
-            queueObj.disable()
-
             # Bing Bong!
+            # TODO: differentiate for launcher commands
             self.playSound(common.sound.success)
+
+        else:
+            self.initiate_commands(queueName)
 
            
     def feedback_error(self, queueName, bnch, e):
-
+        self.logger.error("Error [%s] %s\n:%s" % (
+            queueName, bnch.cmdstr, str(e)))
+        
         queueObj = self.queue[queueName]
-
-        queueObj.disable()
 
         if bnch:
             if bnch.type == 'opepage':
@@ -722,7 +728,7 @@ class IntegView(object):
                 # Put object back on the front of the queue
                 queueObj.prepend(bnch)
 
-        gobject.idle_add(self.popup_error, str(e))
+        self.popup_error, str(e)
         #self.statusMsg(str(e))
 
         # Peeeeeww!
@@ -765,28 +771,124 @@ class IntegView(object):
         
 
     def update_frame(self, frameinfo):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.framepage.update_frame, frameinfo)
+        if hasattr(self, 'framepage'):
+            # because gtk thread handling sucks
+            gobject.idle_add(self.framepage.update_frame, frameinfo)
 
     def update_frames(self, framelist):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.framepage.update_frames, framelist)
+        if hasattr(self, 'framepage'):
+            # because gtk thread handling sucks
+            gobject.idle_add(self.framepage.update_frames, framelist)
 
     def update_obsinfo(self, infodict):
         self.logger.info("OBSINFO=%s" % str(infodict))
-        # because gtk thread handling sucks
-        gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
+        if hasattr(self, 'obsinfo'):
+            # because gtk thread handling sucks
+            gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
    
     def process_ast(self, ast_id, vals):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
+        if hasattr(self, 'monpage'):
+            # because gtk thread handling sucks
+            gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
 
     def process_task(self, path, vals):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.monpage.process_task_err, path, vals)
+        if hasattr(self, 'monpage'):
+            # because gtk thread handling sucks
+            gobject.idle_add(self.monpage.process_task_err, path, vals)
 
+    def command_feedback_error(self, queueName, bnch, e):
+        # because gtk thread handling sucks
+        gobject.idle_add(self.feedback_error, queueName, bnch, e)
+        
+    def command_feedback_ok(self, queueName, bnch, res):
+        # because gtk thread handling sucks
+        gobject.idle_add(self.feedback_ok, queueName, bnch, res)
+        
     def mainloop(self):
         gtk.main()
+
+
+class QueueEmpty(Exception):
+    pass
+
+
+class CommandQueue(object):
+    
+    def __init__(self, name, logger):
+        self.name = name
+        self.logger = logger
+
+        self.queue = []
+        self.flag = threading.Event()
+        self.lock = threading.RLock()
+
+        self.enable()
+
+    def enabledP(self):
+        return self.flag.isSet()
+
+    def enable(self):
+        return self.flag.set()
+
+    def disable(self):
+        return self.flag.clear()
+
+    def enableIfPending(self):
+        with self.lock:
+            if len(self.queue) > 0:
+                self.enable()
+                return True
+
+            else:
+                return False
+
+    def flush(self):
+        with self.lock:
+            while len(self.queue) > 0:
+                self.queue.pop(0)
+
+    def add(self, arg):
+        with self.lock:
+            self.queue.append(arg)
+            
+    def prepend(self, arg):
+        with self.lock:
+            self.queue.insert(0, arg)
+            
+    def extend(self, args):
+        lstcopy = list(args)
+        with self.lock:
+            self.queue.extend(lstcopy)
+            
+    def __len__(self):
+        with self.lock:
+            return len(self.queue)
+
+    def peek(self):
+        with self.lock:
+            try:
+                return self.queue[0]
+            except IndexError:
+                raise QueueEmpty('Queue %s is empty' % self.name)
+
+
+    def peekAll(self):
+        with self.lock:
+            return list(self.queue)
+
+    def remove(self, obj):
+        with self.lock:
+            self.queue.remove(obj)
+
+    def get(self):
+        with self.lock:
+            if not self.enabledP():
+                raise QueueEmpty('Queue %s is empty' % self.name)
+
+            try:
+                return self.queue.pop(0)
+            except IndexError:
+                raise QueueEmpty('Queue %s is empty' % self.name)
 
 
 rc = """
