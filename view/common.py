@@ -16,7 +16,8 @@ color_white = 'white'
 color_bg = 'light grey'
 
 # Define sounds used in IntegGUI
-sound = Bunch.Bunch(success='doorbell.au',
+sound = Bunch.Bunch(success_executer='doorbell.au',
+                    success_launcher='LAUNCHER_COMPLETE.au',
                     failure='splat.au')
 
 

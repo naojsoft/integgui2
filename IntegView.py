@@ -707,8 +707,14 @@ class IntegView(object):
         # otherwise issue the next command
         if len(queueObj) == 0:
             # Bing Bong!
-            # TODO: differentiate for launcher commands
-            self.playSound(common.sound.success)
+            if bnch.has_key('success_sound'):
+                soundfile = bnch.success_sound
+            elif queueName == 'launcher':
+                soundfile = common.sound.success_launcher
+            else:
+                soundfile = common.sound.success_executer
+
+            self.playSound(soundfile)
 
         else:
             self.initiate_commands(queueName)
@@ -720,6 +726,7 @@ class IntegView(object):
         
         queueObj = self.queue[queueName]
 
+        soundfile = None
         if bnch:
             if bnch.type == 'opepage':
                 # Mark an (E)rror in the opepage
@@ -728,11 +735,17 @@ class IntegView(object):
                 # Put object back on the front of the queue
                 queueObj.prepend(bnch)
 
-        self.popup_error, str(e)
+            if bnch.has_key('failure_sound'):
+                soundfile = bnch.failure_sound
+
+        #self.popup_error(str(e))
         #self.statusMsg(str(e))
 
+        if not soundfile:
+            soundfile = common.sound.failure
+
         # Peeeeeww!
-        self.playSound(common.sound.failure)
+        self.playSound(soundfile)
 
         
     def audible_warn(self, cmd_str, vals):
