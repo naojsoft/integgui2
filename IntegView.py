@@ -919,12 +919,6 @@ style "button"
 #GtkLabel::width-chars = 20
 }
 
-style "nobevel"
-{
-GtkMenuBar::shadow-type = none
-GtkStatusbar::shadow-type = none
-}
-
 # In this example, we inherit the attributes of the "button" style and then
 # override the font and background color when prelit to create a new
 # "main_button" style.
@@ -957,7 +951,7 @@ style "text"
 {
   fg[NORMAL] = { 1.0, 1.0, 1.0 }
   font_name = "Monospace 10"
-  gtk-key-theme-name = "Emacs" 
+##  gtk-key-theme-name = "Emacs" 
 }
 
 # These set the widget types to use the styles defined above.

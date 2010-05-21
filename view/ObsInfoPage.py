@@ -7,6 +7,7 @@
 from __future__ import with_statement
 
 import gtk
+import gobject
 
 import common
 import Page
@@ -73,8 +74,7 @@ class ObsInfoPage(Page.Page):
             return
         self.timer_val = val + 1
         self.logger.debug("timer_val = %d" % self.timer_val)
-        # READ GLOBAL VAR
-        self.timer_interval(view.w.root)
+        self.timer_interval()
 
 
     def timer_interval(self):
