@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 15:38:28 HST 2010
+#  Last edit: Thu May 20 12:24:56 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -838,6 +838,12 @@ style "launcher_button" = "button"
   font_name = "Monospace 10"
 }
 
+style "nobevel"
+{
+GtkMenuBar::shadow-type = 'etched-out'
+GtkStatusbar::shadow-type = 'in'
+}
+
 ## style "toggle_button" = "button"
 ## {
 ##   fg[NORMAL] = { 1.0, 0, 0 }
@@ -849,6 +855,7 @@ style "text"
 {
   fg[NORMAL] = { 1.0, 1.0, 1.0 }
   font_name = "Monospace 10"
+  gtk-key-theme-name = "Emacs" 
 }
 
 # These set the widget types to use the styles defined above.
