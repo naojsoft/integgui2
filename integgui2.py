@@ -36,7 +36,7 @@ def main(options, args):
     ev_quit = threading.Event()
 
     # make a name for our monitor
-    myMonName = options.name
+    myMonName = options.monname
 
     # monitor channels we are interested in
     channels = options.channels.split(',')
@@ -171,15 +171,15 @@ if __name__ == '__main__':
     optprs.add_option("-m", "--monitor", dest="monitor", default='monitor',
                       metavar="NAME",
                       help="Subscribe to feeds from monitor service NAME")
-    optprs.add_option("-n", "--name", dest="name", default='monwatch',
-                      metavar="NAME",
+    optprs.add_option("-n", "--monname", dest="monname",
+                      default='monwatch-ig2', metavar="NAME",
                       help="Use NAME as our subscriber name")
     optprs.add_option("-p", "--path", dest="monpath", default='mon.sktask',
                       metavar="PATH",
                       help="Show values for PATH in monitor")
-    optprs.add_option("--monport", dest="monport", type="int", default=10013,
+    optprs.add_option("--monport", dest="monport", type="int", default=10017,
                       help="Register monitor using PORT", metavar="PORT")
-    optprs.add_option("--port", dest="port", type="int", default=12030,
+    optprs.add_option("--port", dest="port", type="int", default=12050,
                       help="Register using PORT", metavar="PORT")
     optprs.add_option("--profile", dest="profile", action="store_true",
                       default=False,
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     optprs.add_option("--session", dest="session", metavar="NAME",
                       help="Configure from session NAME")
     optprs.add_option("--svcname", dest="svcname", metavar="NAME",
-                      default="integgui-notify",
+                      default="integgui2-notify",
                       help="Register using NAME as service name")
     optprs.add_option("--taskmgr", dest="taskmgr", metavar="NAME",
                       default='taskmgr0',
