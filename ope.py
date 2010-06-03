@@ -30,12 +30,48 @@ pattern2 = re.compile(r'^\s*\<COMMAND\>\s*(.+)\s*\</COMMAND\>\s*$',
 pattern3 = re.compile(r'^\*LOAD\s*"(.+)"\s*$', re.IGNORECASE)
 
 
-def toupper(s):
-    """Function to convert a string to upper case, preserving
-    case inside quotes.
-    """
-    # TODO: this is not sufficient!
-    return s.upper()
+def toupper(cmdstr):
+    quotes = ('"', "'")
+    
+    start_quote = None
+    chars = []             # Character buffer
+
+    charlst = list(cmdstr)
+
+    while len(charlst) > 0:
+        c = charlst.pop(0)
+
+        # process double quotes
+        if c in quotes:
+            # if we are not building a quoted string, then turn on quote
+            # flag and continue scanning
+            if not start_quote:
+                start_quote = c
+                chars.append(c)
+                continue
+            elif start_quote != c:
+                chars.append(c)
+                continue
+            else:
+                # end of quoted string
+                chars.append(c)
+                start_quote = None
+                continue
+        else:
+            if start_quote != None:
+                chars.append(c)
+            else:
+                chars.append(c.upper())
+
+    return ''.join(chars)
+
+
+# def toupper(s):
+#     """Function to convert a string to upper case, preserving
+#     case inside quotes.
+#     """
+#     # TODO: this is not sufficient!
+#     return s.upper()
 
 
 def locate_prm(filename):
