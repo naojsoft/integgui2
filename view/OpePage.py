@@ -83,15 +83,19 @@ class OpePage(CodePage.CodePage):
 
 
     def load(self, filepath, buf):
-
         super(OpePage, self).load(filepath, buf)
+        self.cond_color()
 
+    def reload(self):
+        super(OpePage, self).reload()
+        self.cond_color()
+
+    def cond_color(self):
         name, ext = os.path.splitext(self.filepath)
         ext = ext.lower()
 
         if ext in ('.ope', '.cd'):
             self.color()
-
 
     def showtags(self):
         self.btn_tags.set_active(True)

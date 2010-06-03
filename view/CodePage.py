@@ -64,13 +64,13 @@ class CodePage(Page.ButtonPage):
         item.show()
 
 
-    def loadbuf(self, buf):
+    def loadbuf(self, buftxt):
 
         # insert text
         tags = ['code']
         try:
             start, end = self.buf.get_bounds()
-            tw.delete(start, end)
+            self.buf.delete(start, end)
         except:
             pass
 
@@ -81,7 +81,7 @@ class CodePage(Page.ButtonPage):
             # tag may be already created
             pass
 
-        self.buf.insert_with_tags_by_name(start, buf, *tags)
+        self.buf.insert_with_tags_by_name(start, buftxt, *tags)
 
 
     def load(self, filepath, buf):
@@ -101,7 +101,7 @@ class CodePage(Page.ButtonPage):
             in_f.close()
         except IOError, e:
             # ? raise exception instead ?
-            return common.view.popup_error("Cannot write '%s': %s" % (
+            return common.view.popup_error("Cannot read '%s': %s" % (
                     self.filepath, str(e)))
 
         self.loadbuf(buf)
