@@ -323,6 +323,10 @@ class IntegView(object):
     def load_log(self, filepath):
         try:
             dirname, filename = os.path.split(filepath)
+            # Drop ".log" from tab names
+            filepfx, filesfx = os.path.splitext(filename)
+            if filesfx.lower() == '.log':
+                filename = filepfx
 
             page = self.logpage.addpage(filepath, filename, LogPage)
             page.load(filepath)
@@ -423,7 +427,6 @@ class IntegView(object):
             page.close()
 
     def get_log_path(self, insname):
-
         filename = '%s.log' % insname
         filepath = os.path.join(os.environ['LOGHOME'], filename)
         return filepath
@@ -654,6 +657,7 @@ class IntegView(object):
 
         except Exception, e:
             errstr = "Error parsing command: %s" % (str(e))
+            self.popup_error(errstr)
             raise Exception(errstr)
             
 

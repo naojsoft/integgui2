@@ -207,7 +207,16 @@ class IntegController(object):
         #self.gui.close_logs()
 
         logs = []
-        for name in allocs:
+        names = set(allocs)
+        # Some names of interest that won't show up in the allocations
+        names.update(['qdas_stdout', 'integgui2', 'VGW_stdout'])
+        # Remove some that aren't particularly useful
+        for name in ['frames', 'bootmgr']:
+            names.remove(name)
+        names = list(names)
+        names.sort()
+
+        for name in names:
             filepath = self.gui.get_log_path(name)
             if os.path.exists(filepath):
                 logs.append(filepath)
