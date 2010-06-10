@@ -20,6 +20,12 @@ LABEL "FilterChange"
 	VAL01 INPUT 8 "W-J-B" 
 	CMD FILTERCHANGE OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01"
 
+LABEL "FilterChange2"
+        VAL01 INPUT 8 "W-J-B"
+        VAL02 LIST  "On","Off" "Drive"
+        VAL03 LIST  "SYNC"="TSC","ASYNC"="ABS" "Mode"
+        CMD FILTERCHANGE2 OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01" MOTOR=$VAL02 COORD=$VAL03
+
 <>
 
 #LABEL "Alloc Free Status"

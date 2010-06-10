@@ -37,7 +37,7 @@ class CairoDrawable(gtk.DrawingArea):
         self.draw(cr, *self.window.get_size())
 
 
-class ObsInfoPage(Page.Page):
+class ObsInfoPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
@@ -47,7 +47,7 @@ class ObsInfoPage(Page.Page):
         self.obsdict = {}
         for key in ('OBSINFO1', 'OBSINFO2', 'OBSINFO3', 'OBSINFO4', 'OBSINFO5',
                     'TIMER', 'PROP-ID'):
-            self.obsdict[key] = key
+            self.obsdict[key] = ''
 
         # rgb triplets we use
         self.black = (0.0, 0.0, 0.0)
@@ -56,7 +56,7 @@ class ObsInfoPage(Page.Page):
         self.white = (1.0, 1.0, 1.0)
         self.orange = (0.824, 0.412, 0.1176)
 
-        self.cr = None
+        self.timertask = None
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
@@ -66,14 +66,21 @@ class ObsInfoPage(Page.Page):
         # create cairo drawing area
         self.area = CairoDrawable(self.draw)
         self.area.set_size_request(400, 300)
-        self.maxwd = 700
-        self.maxht = 700
+        self.maxwd = 1200
+        self.maxht = 1000
 
         scrolled_window.add_with_viewport(self.area)
         scrolled_window.show()
         self.area.show()
 
         frame.pack_start(scrolled_window, fill=True, expand=True)
+
+        self.btn_reset = gtk.Button("Reset")
+        self.btn_reset.connect("clicked", lambda w: self.cancel_timer())
+        self.btn_reset.show()
+        self.rightbtns.pack_start(self.btn_reset)
+
+        #self.add_close()
 
     def _draw_blank(self, cr, width, height):
         # Fill the background with white
@@ -88,11 +95,11 @@ class ObsInfoPage(Page.Page):
     def draw(self, cr, width, height):
         self._draw_blank(cr, width, height)
 
-        cr.select_font_face("Georgia",
+        cr.select_font_face("fixed",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_source_rgb(*self.black)
         cr.set_font_size(18.0)
-        self._draw_text(cr, 600, 20, self.obsdict['PROP-ID'])
+        self._draw_text(cr, 300, 20, self.obsdict['PROP-ID'])
 
         cr.set_source_rgb(*self.orange)
         cr.set_font_size(80.0)
@@ -131,8 +138,17 @@ class ObsInfoPage(Page.Page):
 
         self.redraw()
 
+    def cancel_timer(self):
+        if self.timertask:
+            gobject.source_remove(self.timertask)
+        self.timertask = None
+        self.obsdict['TIMER'] = ''
+        self.redraw()
+        # TODO: play sound?
+
     def set_timer(self, val):
         self.logger.debug("val = %s" % str(val))
+        self.cancel_timer()
         val = int(val)
         self.logger.debug("val = %d" % val)
         if val <= 0:
@@ -145,13 +161,15 @@ class ObsInfoPage(Page.Page):
     def timer_interval(self):
         self.logger.debug("timer: %d sec" % self.timer_val)
         self.timer_val -= 1
-        self.obsdict['TIMER'] = str(self.timer_val)
+        self.obsdict['TIMER'] = str(self.timer_val).rjust(5)
         self.redraw()
         if self.timer_val > 0:
-            gobject.timeout_add(1000, self.timer_interval)
+            self.timertask = gobject.timeout_add(1000, self.timer_interval)
         else:
-            # Do something when timer expires?
-            pass
+            # TODO: play sound?
+            self.timertask = None
+            self.obsdict['TIMER'] = ''
+            self.redraw()
         
 
 #END

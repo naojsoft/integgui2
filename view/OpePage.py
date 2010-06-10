@@ -53,6 +53,11 @@ class OpePage(CodePage.CodePage):
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
+        self.btn_sched = gtk.Button("Schedule")
+        self.btn_sched.connect("clicked", lambda w: common.view.schedule(self))
+        self.btn_sched.show()
+        self.leftbtns.pack_end(self.btn_sched)
+
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
         self.btn_cancel.show()
@@ -80,7 +85,11 @@ class OpePage(CodePage.CodePage):
                              "menu.Recolor")
         item.show()
 
-
+        item = gtk.MenuItem(label="Clear Schedule")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: common.view.clear_scheduled(self),
+                             "menu.Clear_Scheduled")
+        item.show()
 
     def load(self, filepath, buf):
         super(OpePage, self).load(filepath, buf)

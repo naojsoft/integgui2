@@ -180,6 +180,11 @@ class IntegController(object):
 
         # Get propid info
         propid = info.get('propid', 'xxxxx')
+        observers = info.get('observers', 'N/A')
+        inst = info.get('mainInst', 'N/A')
+        self.gui.update_obsinfo({'PROP-ID': ('%s - %s - %s' % (propid,
+                                                               inst,
+                                                               observers))})
 
         # Get allocs
         allocs = info.get('allocs', [])
@@ -211,7 +216,7 @@ class IntegController(object):
         # Some names of interest that won't show up in the allocations
         names.update(['qdas_stdout', 'integgui2', 'VGW_stdout'])
         # Remove some that aren't particularly useful
-        for name in ['frames', 'bootmgr']:
+        for name in ['frames', 'bootmgr', 'monitor']:
             names.remove(name)
         names = list(names)
         names.sort()

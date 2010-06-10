@@ -546,7 +546,75 @@ class IntegView(object):
 
         self.initiate_commands('executer')
 
-            
+
+    def schedule(self, opepage):
+        """Callback when the SCHEDULE button is pressed.
+        """
+        queueObj = self.queue['executer']
+
+        buf = opepage.buf
+        #self.clear_marks(opepage)
+
+        if not buf.get_has_selection():
+            # No selection!
+            self.popup_error("No mouse selection!")
+            return
+
+        # Get the range of text selected
+        first, last = buf.get_selection_bounds()
+        frow = first.get_line()
+        lrow = last.get_line()
+
+        # Clear the selection
+        buf.move_mark_by_name("insert", first)         
+        buf.move_mark_by_name("selection_bound", first)
+
+        # Break selection into individual lines
+        tags = []
+
+        for i in xrange(int(lrow)+1-frow):
+
+            row = frow+i
+
+            first.set_line(row)
+            last.set_line(row)
+            last.forward_to_line_end()
+
+            # skip comments and blank lines
+            cmd = buf.get_text(first, last).strip()
+            if cmd.startswith('#') or (len(cmd) == 0):
+                continue
+            self.logger.debug("cmd=%s" % (cmd))
+
+            # tag the text so we can manipulate it later
+            tag = self.get_tag('ope%d')
+            buf.create_tag(tag)
+            buf.apply_tag_by_name(tag, first, last)
+
+            tags.append(Bunch.Bunch(tag=tag, opepage=opepage,
+                                    type='opepage'))
+
+        # Add tags to queue
+        queueObj.extend(tags)
+
+        for nbnch in queueObj.peekAll():
+            start, end = common.get_region(buf, nbnch.tag)
+            try:
+                buf.apply_tag_by_name('scheduled', start, end)
+            except:
+                pass
+
+    def clear_scheduled(self, opepage):
+        queueObj = self.queue['executer']
+        # flush queue
+        queueObj.flush()
+
+        buf = opepage.buf
+        start, end = buf.get_bounds()
+        buf.remove_tag_by_name('scheduled', start, end)
+        # TODO: how about removing tags on other pages?
+
+
     def execute_dd(self, opepage):
         """Callback when the EXEC button is pressed.
         """
