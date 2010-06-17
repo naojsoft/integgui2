@@ -14,7 +14,7 @@ LABEL "AG Probe"
         CMD AG_PROBE OBE_ID=COMMON OBE_MODE=LAUNCHER PROBE=$VAL01
 
 LABEL "AG,SV ExposureTime"
-#        VAL01 LIST "AG ","SV " "Guider"              # option val1,val2,...
+        VAL01 LIST "AG ","SV " "Guider"              # option val1,val2,...
         VAL02 INPUT 6 1000 "ms"
         CMD AG_Change_Exptime OBE_ID=Common OBE_Mode=Launcher AGSV=$VAL01 Exptime=$VAL02
 

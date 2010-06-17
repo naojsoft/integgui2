@@ -4,6 +4,7 @@
 #[ Eric Jeschke (eric@naoj.org) --
 #  Last edit: Mon May 17 15:03:05 HST 2010
 #]
+import gtk
 
 import Bunch
 
@@ -15,25 +16,50 @@ color_white = 'white'
 
 color_bg = 'light grey'
 
+# Gtk color objects used to set widgets dynamically
+launcher_colors = Bunch.Bunch(error = gtk.gdk.color_parse('salmon'),
+                              done = gtk.gdk.color_parse('skyblue'),
+                              normal = gtk.gdk.color_parse('gray'),
+                              executing =  gtk.gdk.color_parse('gold'),
+
+                              execbtn = gtk.gdk.color_parse('royalblue'),
+                              cancelbtn = gtk.gdk.color_parse('palevioletred'),
+                              killbtn = gtk.gdk.color_parse('salmon'),
+                              )
+
 # Define sounds used in IntegGUI
 sound = Bunch.Bunch(success_executer='doorbell.au',
                     success_launcher='LAUNCHER_COMPLETE.au',
+                    tm_kill='SOUND_ART_GUNSHOT.au',
+                    tm_ready='ready.au',
                     failure='splat.au')
 
-
+# Colors used in the OpePage
 decorative_tags = [
     ('comment3', Bunch.Bunch(foreground='indian red')),
     ('comment2', Bunch.Bunch(foreground='saddle brown')),
     ('comment1', Bunch.Bunch(foreground='dark green')),
     ]
+
 execution_tags = [
     ('scheduled', Bunch.Bunch(background='lightgreen')),
-    ('executing', Bunch.Bunch(foreground='gold3')),
-    ('done',     Bunch.Bunch(foreground='blue', background='white')),
-    ('error',   Bunch.Bunch(foreground='red')),
+    ('executing', Bunch.Bunch(foreground='black', background='gold')),
+    ('done',     Bunch.Bunch(foreground='blue2', background='white')),
+    ('error',   Bunch.Bunch(foreground='red', background='white')),
     ]
 
-# Yuk...module-level variables
+# colors used in the SkMonitorPage
+monitor_tags = Bunch.Bunch(
+    code=Bunch.Bunch(foreground='black'),
+    task_start=Bunch.Bunch(foreground='black', background='gold'),
+    cmd_time=Bunch.Bunch(foreground='brown', background='gold'),
+    ack_time=Bunch.Bunch(foreground='green4', background='gold'),
+    end_time=Bunch.Bunch(foreground='blue1', background='gold'),
+    task_end=Bunch.Bunch(foreground='blue2', background='white'),
+    error=Bunch.Bunch(foreground='red', background='lightyellow')
+    )
+
+# Yuk...module-level global variables
 view = None
 controller = None
 

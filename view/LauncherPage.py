@@ -162,7 +162,15 @@ class Launcher(object):
 
     def execute(self):
         cmdstr = self.getcmd()
-        self.execfn(cmdstr)
+        self.execfn(cmdstr, self)
+
+    def show_state(self, state):
+        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors[state])
+
+    def reset(self):
+        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['normal'])
 
 
 class LauncherList(object):
@@ -188,8 +196,7 @@ class LauncherList(object):
         self.vbox.pack_start(frame, expand=False, fill=True)
         self.count += 1
         
-        launcher = Launcher(frame, name, title,
-                            lambda cmdstr: self.execute(name, cmdstr))
+        launcher = Launcher(frame, name, title, self.execfn)
         
         self.llist.append(launcher)
         self.ldict[name.lower()] = launcher
@@ -278,10 +285,6 @@ class LauncherList(object):
                 self.addLauncherFromDef(ast)
 
 
-    def execute(self, name, cmdstr):
-        self.execfn(cmdstr)
-
-
 class LauncherPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
@@ -308,6 +311,8 @@ class LauncherPage(Page.ButtonPage):
 
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_start(self.btn_cancel, padding=4)
 
@@ -327,9 +332,9 @@ class LauncherPage(Page.ButtonPage):
     def addFromDefs(self, ast):
         self.llist.addFromDefs(ast)
 
-    def execute(self, cmdstr):
+    def execute(self, cmdstr, launcher):
         """This is called when a launcher button is pressed."""
-        common.view.execute_launcher(cmdstr)
+        common.view.execute_launcher(cmdstr, launcher)
 
     def close(self):
         super(LauncherPage, self).close()

@@ -8,7 +8,8 @@ from __future__ import with_statement
 
 import os
 import threading
-import Queue
+
+import view.common as common
 
 # SSD/Gen2 imports
 import Task
@@ -29,6 +30,12 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
 
 
 class IntegController(object):
+    """
+    IMPORTANT NOTE: The GUI thread makes calls into this object, but these
+    SHOULD NOT BLOCK or the GUI becomes unresponsive!  ALL CALLS IN should
+    create and start a task to do the work (which will be done on another
+    thread).
+    """
     
     def __init__(self, logger, ev_quit, monitor, view, options):
 
@@ -36,12 +43,11 @@ class IntegController(object):
         self.ev_quit = ev_quit
         self.monitor = monitor
         self.gui = view
+        # mutex on this instance
         self.lock = threading.RLock()
         self.options = options
 
-        # command queues
-        self.queue = Bunch.Bunch(executer=Queue.Queue(),
-                                 launcher=Queue.Queue())
+        self.executingP = threading.Event()
 
         # For task inheritance:
         self.threadPool = monitor.get_threadPool()
@@ -61,61 +67,85 @@ class IntegController(object):
         self.sm = ro.remoteObjectProxy('sessions')
         self.bm = ro.remoteObjectProxy('bootmgr')
 
-    def start_executors(self):
-        t1 = Task.FuncTask(self.execute_loop, ['executer'], {})
-        t2 = Task.FuncTask(self.execute_loop, ['launcher'], {})
-        t1.init_and_start(self)
-        t2.init_and_start(self)
-       
-    def execute_loop(self, queueName):
-        
-        self.logger.info("Starting executor for '%s'..." % queueName)
-        queue = self.queue[queueName]
+        self.transdict = {}
 
-        while not self.ev_quit.isSet():
-            try:
-                bnch = None
-                # Try to get a command from our queue
-                bnch = queue.get(block=True, timeout=0.01)
+    def tm_executer(self, bnch):
+        try:
+            # Try to execute the command in the TaskManager
+            with self.lock:
 
-                cmdstr = bnch.cmdstr
-
-                # Try to execute the command in the TaskManager
                 self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                        queueName, cmdstr))
-                res = self.tm.execTask(queueName, cmdstr, '')
-                if res != ro.OK:
-                    raise Exception("Command failed with res=%d" % res)
+                        bnch.queueName, bnch.cmdstr))
+                tm_tag = self.tm.execTaskNoWait(bnch.queueName, bnch.cmdstr)
+                self.executingP.set()
+                self.put_transaction(tm_tag, bnch)
 
-                self.gui.command_feedback_ok(queueName, bnch, res)
+            self.wait_transaction(bnch)
+            self.executingP.clear()
 
-            except Queue.Empty:
-                # No command ready...busy wait
-                self.ev_quit.wait(0.01)
+        except Exception, e:
+            # If there was a problem, let the gui know about it
+            print "ERROR!"
+            self.gui.command_feedback_error(queueName, bnch, e)
 
-            except Exception, e:
-                # If there was a problem, let the gui know about it
-                self.gui.command_feedback_error(queueName, bnch, e)
+    def tm_launcher(self, bnch):
+        try:
+            # Try to execute the command in the TaskManager
+            self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                    bnch.queueName, bnch.cmdstr))
+            with self.lock:
+                tm_tag = self.tm.execTaskNoWait(bnch.queueName, bnch.cmdstr)
+                self.put_transaction(tm_tag, bnch)
 
-        self.logger.info("Executor for '%s' shutting down..." % queueName)
-
+        except Exception, e:
+            # If there was a problem, let the gui know about it
+            self.gui.command_feedback_error(queueName, bnch, e)
 
     def tm_exec(self, queueName, bnch):
-        # Submit 
-        queue = self.queue[queueName]
-        queue.put(bnch)
-        
+        """"Called by the GUI to execute a command."""
+        if queueName == 'executer':
+            # Check for currently executing command
+            if self.executingP.isSet():
+                self.gui.command_popup_error("There is already a executer task running!")
+                return
+                
+            t = Task.FuncTask(self.tm_executer, [bnch], {})
+            t.init_and_start(self)
+
+        elif queueName == 'launcher':
+            t = Task.FuncTask(self.tm_launcher, [bnch], {})
+            t.init_and_start(self)
+            
+        else:
+            self.gui.command_popup_error("Queue name '%s' is unknown!" % (
+                    queueName))
+
+    def tm_kill(self):
+        self.gui.playSound(common.sound.tm_kill)
+        #self.bm.restart(self.options.taskmgr)
+
+        self.bm.restart(self.options.taskmgr)
+
+        self.release_all_transactions()
+
     def tm_cancel(self, queueName):
-        self.tm2.cancel(queueName)
+        #self.tm2.cancel(queueName)
+        t = Task.FuncTask(self.tm2.cancel, [queueName], {})
+        t.init_and_start(self)
 
     def tm_pause(self, queueName):
-        self.tm2.pause(queueName)
+        #self.tm2.pause(queueName)
+        t = Task.FuncTask(self.tm2.pause, [queueName], {})
+        t.init_and_start(self)
 
     def tm_resume(self, queueName):
-        self.tm2.resume(queueName)
+        #self.tm2.resume(queueName)
+        t = Task.FuncTask(self.tm2.resume, [queueName], {})
+        t.init_and_start(self)
 
     def tm_restart(self):
-        self.bm.restart(self.options.taskmgr)
+        t = Task.FuncTask(self.tm_kill, [], {})
+        t.init_and_start(self)
 
     def set_instrument(self, insname):
         """Called when we notice a change of instrument.
@@ -149,7 +179,7 @@ class IntegController(object):
     def get_alloc_instrument(self):
         insname = self.status.fetchOne('FITS.SBR.MAINOBCP')
         return insname
-
+    
     def config_alloc_instrument(self):
         insname = self.get_alloc_instrument()
         self.set_instrument(insname)
@@ -232,7 +262,43 @@ class IntegController(object):
             self.gui.load_log(filepath)
 
                       
-        
+    def get_transaction(self, path):
+        with self.lock:
+            # Will return KeyError if path does not reference a
+            # valid transaction
+            # TODO: should this dictionary be made persistent so
+            # that we can restart integgui and pick up outstanding
+            # transactions?
+            return self.transdict[path]
+
+    def put_transaction(self, tm_tag, bnch):
+        with self.lock:
+            self.transdict[tm_tag] = bnch
+            bnch.tasktag = tm_tag
+            bnch.ev_trans = threading.Event()
+
+    def wait_transaction(self, bnch):
+        """Wait for transaction to be finished."""
+        bnch.ev_trans.wait()
+
+    def release_transaction(self, bnch):
+        """Signal that transaction is finished."""
+        bnch.ev_trans.set()
+
+    def release_all_transactions(self):
+        with self.lock:
+            bnchs = self.transdict.keys()
+        for bnch in bnchs:
+            self.release_transaction(bnch)
+
+    def del_transaction(self, bnch):
+        with self.lock:
+            try:
+                del self.transdict[bnch.path]
+            except:
+                pass
+
+       
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
 
@@ -259,13 +325,39 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
-        try:
-            ast_id = bnch.value['ast_id']
-            return self.gui.process_ast(ast_id, bnch.value)
+        vals = bnch.value
 
-        except KeyError:
-            return self.gui.process_task(bnch.path, bnch.value)
+        if vals.has_key('ast_id'):
+            # SkMonitorPage update on some AB command
+            self.gui.process_ast(vals['ast_id'], vals)
+
+        # possible SkMonitorPage update on some DD command
+        self.gui.process_task(bnch.path, vals)
         
+        if vals.has_key('task_code'):
+            # possible update on some integgui command finishing
+            try:
+                # Did we initiate this command?
+                tmtrans = self.get_transaction(bnch.path)
+
+                self.release_transaction(tmtrans)
+            except KeyError:
+                # No
+                return
+
+            res = vals['task_code']
+            # Interpret task results:
+            #   task_code == 0 --> OK   task_code != 0 --> ERROR
+            if res == 0:
+                self.gui.command_feedback_ok(tmtrans.queueName, tmtrans,
+                                             res)
+            else:
+                # If there was a problem, let the gui know about it
+                self.gui.command_feedback_error(tmtrans.queueName, tmtrans,
+                                                str(res))
+
+            self.del_transaction(tmtrans)
+
     # this one is called if new data becomes available for integgui
     def arr_obsinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
@@ -278,13 +370,14 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
-        try:
+        vals = bnch.value
+        if vals.has_key('obsinfo'):
             statusDict = bnch.value['obsinfo']
-
             self.update_integgui(statusDict)
 
-        except KeyError:
-            pass
+        elif vals.has_key('ready'):
+            self.gui.playSound(common.sound.tm_ready)
+            
         
     # this one is called if new data becomes available about frames
     def arr_fitsinfo(self, payload, name, channels):

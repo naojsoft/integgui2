@@ -539,7 +539,8 @@ class IntegView(object):
             buf.apply_tag_by_name(tag, first, last)
 
             tags.append(Bunch.Bunch(tag=tag, opepage=opepage,
-                                    type='opepage'))
+                                    type='opepage',
+                                    queueName='executer'))
 
         # Add tags to queue
         queueObj.extend(tags)
@@ -592,7 +593,8 @@ class IntegView(object):
             buf.apply_tag_by_name(tag, first, last)
 
             tags.append(Bunch.Bunch(tag=tag, opepage=opepage,
-                                    type='opepage'))
+                                    type='opepage',
+                                    queueName='executer'))
 
         # Add tags to queue
         queueObj.extend(tags)
@@ -605,14 +607,16 @@ class IntegView(object):
                 pass
 
     def clear_scheduled(self, opepage):
+        """Clear scheduled commands on all pages for the executer"""
         queueObj = self.queue['executer']
-        # flush queue
-        queueObj.flush()
 
-        buf = opepage.buf
-        start, end = buf.get_bounds()
-        buf.remove_tag_by_name('scheduled', start, end)
-        # TODO: how about removing tags on other pages?
+        # flush queue
+        while len(queueObj) > 0:
+            bnch = queueObj.get()
+
+            buf = bnch.opepage.buf
+            start, end = buf.get_bounds()
+            buf.remove_tag_by_name('scheduled', start, end)
 
 
     def execute_dd(self, opepage):
@@ -631,7 +635,8 @@ class IntegView(object):
         tag = self.get_tag('dd%d')
 
         tags = [Bunch.Bunch(tag=tag, opepage=opepage,
-                            type='cmdpage')]
+                            type='cmdpage',
+                            queueName='executer')]
 
         # Clear the selection
         buf = opepage.buf
@@ -645,7 +650,7 @@ class IntegView(object):
         self.initiate_commands('executer')
 
 
-    def execute_launcher(self, cmdstr):
+    def execute_launcher(self, cmdstr, launcher):
         self.logger.info(cmdstr)
         queueObj = self.queue['launcher']
 
@@ -653,7 +658,9 @@ class IntegView(object):
         tag = self.get_tag('ln%d')
 
         bnch = Bunch.Bunch(tag=tag, type='launcher',
-                           cmdstr=cmdstr)
+                           launcher=launcher,
+                           cmdstr=cmdstr,
+                           queueName='launcher')
         queueObj.add(bnch)
 
         self.initiate_commands('launcher')
@@ -674,9 +681,9 @@ class IntegView(object):
         # Get the command string associated with this kind of page
         self.get_cmdstr(bnch)
 
-        if bnch.type == 'opepage':
+        #if bnch.type == 'opepage':
             #self.clear_marks()
-            self.mark_exec(bnch, 'executing', queueName)
+        self.mark_exec(bnch, 'executing', queueName)
 
         # Ship this command off to the controller
         # we will be notified later by feedback_error or feedback_ok
@@ -738,6 +745,14 @@ class IntegView(object):
 
     def mark_exec(self, bnch, tag, queueName):
 
+        if bnch.type == 'launcher':
+            # Indicate execution in the launcher
+            bnch.launcher.show_state('executing')
+            return
+
+        if bnch.type != 'opepage':
+            return
+
         # Get the entire OPE buffer
         buf = bnch.opepage.buf
 ##         start, end = buf.get_bounds()
@@ -775,6 +790,10 @@ class IntegView(object):
         if bnch.type == 'opepage':
             self.mark_exec(bnch, 'done', queueName)
         
+        elif bnch.type == 'launcher':
+            # Change the launcher button to indicate ok
+            bnch.launcher.show_state('done')
+
         # If queue is empty, play success sound
         # otherwise issue the next command
         if len(queueObj) == 0:
@@ -806,6 +825,10 @@ class IntegView(object):
 
                 # Put object back on the front of the queue
                 queueObj.prepend(bnch)
+
+            elif bnch.type == 'launcher':
+                # Change the launcher button to indicate error
+                bnch.launcher.show_state('error')
 
             if bnch.has_key('failure_sound'):
                 soundfile = bnch.failure_sound
@@ -848,6 +871,8 @@ class IntegView(object):
         soundpath = os.path.join(cfg.g2soss.producthome,
                                  'file/Sounds', soundfile)
         if os.path.exists(soundpath):
+            # TODO: use Python module to do this instead of spawning
+            # a process
             cmd = "OSST_audioplay %s" % (soundpath)
             self.logger.debug(cmd)
             res = os.system(cmd)
@@ -888,6 +913,10 @@ class IntegView(object):
     def command_feedback_ok(self, queueName, bnch, res):
         # because gtk thread handling sucks
         gobject.idle_add(self.feedback_ok, queueName, bnch, res)
+        
+    def command_popup_error(self, msgstr):
+        # because gtk thread handling sucks
+        gobject.idle_add(self.popup_error, msgstr)
         
     def mainloop(self):
         gtk.main()
@@ -1025,12 +1054,12 @@ GtkMenuBar::shadow-type = 'etched-out'
 GtkStatusbar::shadow-type = 'in'
 }
 
-## style "toggle_button" = "button"
-## {
-##   fg[NORMAL] = { 1.0, 0, 0 }
-##   fg[ACTIVE] = { 1.0, 0, 0 }
- 
-## }
+style "toggle_button" = "button"
+{
+  fg[NORMAL] = { 1.0, 0, 0 }
+  fg[ACTIVE] = { 1.0, 0, 0 }
+
+}
 
 style "text"
 {
@@ -1048,6 +1077,7 @@ widget_class "GtkStatusbar" style "nobevel"
 widget_class "GtkWindow" style "window"
 widget_class "GtkDialog" style "window"
 widget_class "GtkFileSelection" style "window"
+## widget_class "*GtkToggleButton*" style "toggle_button"
 ## widget_class "*GtkCheckButton*" style "toggle_button"
 ## widget_class "*GtkRadioButton*" style "toggle_button"
 widget_class "launcher.GtkButton*" style "launcher_button"

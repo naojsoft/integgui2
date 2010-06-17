@@ -1,10 +1,9 @@
-  <>    # separetor
 
   LABEL SLEEP                 # label
     VAL01 SELECT time1=1,time2=2,time3=3  # select label,label,label
     CMD SLEEP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01 # command
 
-  <>    # separetor
+  <>    # separator
 
   LABEL SLEEP (time,loop)
     VAL01 INPUT 12 1 "sleep time(ms)" 
@@ -17,5 +16,5 @@
     VAL02 INPUT 5 3
     CMD SLEEPLOOP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01 loop_time=$VAL02
 
-  EASYCMD SLEEP sleep_time loop_time     # cmd arg1 arg2 ...
+#  EASYCMD SLEEP sleep_time loop_time     # cmd arg1 arg2 ...
 

@@ -6,6 +6,7 @@
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+import time
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, cairo
@@ -149,21 +150,21 @@ class ObsInfoPage(Page.ButtonPage):
     def set_timer(self, val):
         self.logger.debug("val = %s" % str(val))
         self.cancel_timer()
-        val = int(val)
-        self.logger.debug("val = %d" % val)
+        val = float(val)
         if val <= 0:
             return
-        self.timer_val = val + 1
+        self.timer_val = time.time() + val
         self.logger.debug("timer_val = %d" % self.timer_val)
         self.timer_interval()
 
 
     def timer_interval(self):
-        self.logger.debug("timer: %d sec" % self.timer_val)
-        self.timer_val -= 1
-        self.obsdict['TIMER'] = str(self.timer_val).rjust(5)
+        diff = self.timer_val - time.time()
+        diff = max(0, int(diff))
+        self.logger.debug("timer: %d sec" % diff)
+        self.obsdict['TIMER'] = str(diff).rjust(5)
         self.redraw()
-        if self.timer_val > 0:
+        if diff > 0:
             self.timertask = gobject.timeout_add(1000, self.timer_interval)
         else:
             # TODO: play sound?

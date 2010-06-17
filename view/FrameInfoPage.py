@@ -52,10 +52,10 @@ class FrameInfoPage(Page.Page):
         btns.set_spacing(5)
         self.btns = btns
 
-        self.btn_load = gtk.Button("Load")
-        self.btn_load.connect("clicked", lambda w: self.load_frames())
-        self.btn_load.show()
-        btns.pack_end(self.btn_load, padding=4)
+#         self.btn_load = gtk.Button("Load")
+#         self.btn_load.connect("clicked", lambda w: self.load_frames())
+#         self.btn_load.show()
+#         btns.pack_end(self.btn_load, padding=4)
 
 ##         self.btn_close = gtk.Button("Close")
 ##         self.btn_close.connect("clicked", lambda w: self.close())

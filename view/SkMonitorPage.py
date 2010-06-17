@@ -162,14 +162,16 @@ class SkMonitorPage(Page.Page):
         self.nb.set_current_page(i)
 
         
-    def change_text(self, page, tagname, **kwdargs):
+    def change_text(self, page, tagname, key):
         tagname = str(tagname)
         tag = page.tagtbl.lookup(tagname)
         if not tag:
             raise TagError("Tag not found: '%s'" % tagname)
 
-        for key, val in kwdargs.items():
-            tag.set_property(key,val)
+        bnch = common.monitor_tags[key]
+
+        for key, val in bnch.items():
+            tag.set_property(key, val)
             
         #page.tw.tag_raise(ast_num)
         # Scroll the view to this area
@@ -224,8 +226,7 @@ class SkMonitorPage(Page.Page):
         start, end = self.get_region(txtbuf, tagname)
         txtbuf.insert_with_tags_by_name(end, textstr, tagname)
 
-        self.change_text(page, tagname,
-                         foreground="red", background="lightyellow")
+        self.change_text(page, tagname, 'error')
 
 
     def update_time(self, page, tagname, vals, time_s):
@@ -284,30 +285,30 @@ class SkMonitorPage(Page.Page):
             else:
                 self.update_time(page, ast_num, vals, '[TE %s]: ' % (
                         self.time2str(vals['task_end'])))
-            self.change_text(page, ast_num, foreground="blue4")
+            self.change_text(page, ast_num, 'task_end')
                 
         elif vals.has_key('end_time'):
             self.update_time(page, ast_num, vals, '[EN %s]: ' % (
                     self.time2str(vals['end_time'])))
-            self.change_text(page, ast_num, foreground="blue1")
+            self.change_text(page, ast_num, 'end_time')
                 
         elif vals.has_key('ack_time'):
             self.update_time(page, ast_num, vals, '[AB %s]: ' % (
                     self.time2str(vals['ack_time'])))
-            self.change_text(page, ast_num, foreground="green4")
+            self.change_text(page, ast_num, 'ack_time')
 
         elif vals.has_key('cmd_time'):
             self.update_time(page, ast_num, vals, '[CD %s]: ' % (
                     self.time2str(vals['cmd_time'])))
-            self.change_text(page, ast_num, foreground="brown")
+            self.change_text(page, ast_num, 'cmd_time')
 
         elif vals.has_key('task_start'):
             self.update_time(page, ast_num, vals, '[TS %s]: ' % (
                     self.time2str(vals['task_start'])))
-            self.change_text(page, ast_num, foreground="gold2")
+            self.change_text(page, ast_num, 'task_start')
 
         else:
-            #self.change_text(page, ast_num, foreground="gold2")
+            #self.change_text(page, ast_num, 'code')
             pass
 
                 
@@ -319,7 +320,7 @@ class SkMonitorPage(Page.Page):
         return title
             
     def process_ast(self, ast_id, vals):
-        #print ast_id, vals
+        print ast_id, vals
 
         with self.lock:
             try:
@@ -371,7 +372,7 @@ class SkMonitorPage(Page.Page):
                 
 
     def process_task(self, path, vals):
-        #print path, vals
+        print path, vals
 
         with self.lock:
             try:

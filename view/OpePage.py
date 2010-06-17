@@ -50,6 +50,8 @@ class OpePage(CodePage.CodePage):
         # add some bottom buttons
         self.btn_exec = gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: common.view.execute(self))
+        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
@@ -60,11 +62,15 @@ class OpePage(CodePage.CodePage):
 
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_end(self.btn_cancel)
 
         self.btn_kill = gtk.Button("Kill")
         self.btn_kill.connect("clicked", lambda w: self.kill())
+        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['killbtn'])
         self.btn_kill.show()
         self.leftbtns.pack_end(self.btn_kill)
 

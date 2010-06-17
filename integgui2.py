@@ -121,7 +121,7 @@ def main(options, args):
         # subscribe our monitor to the central monitor hub
         mymon.subscribe_remote(options.monitor, channels, ())
 
-        controller.start_executors()
+        #controller.start_executors()
 
         svc.ro_start(wait=True)
         ro_server_started = True

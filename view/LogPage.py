@@ -3,12 +3,16 @@
 #  Last edit: Tue May 18 16:36:46 HST 2010
 #]
 
+import re
 import gtk
 import gobject
 import os.path
 
 import Page
 
+
+regex_err1 = re.compile(r'^.*|\sE\s|.*$')
+regex_err1 = re.compile(r'^.*(error|exception).*$', re.I)
 
 class LogPage(Page.ButtonPage):
 
