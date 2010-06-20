@@ -7,6 +7,8 @@ import threading
 
 import gtk
 
+import common
+
 # constants
 LEFT  = 'left'
 RIGHT = 'right'
@@ -87,5 +89,49 @@ class ButtonPage(Page):
             return True
         return False
         
+
+class CommandPage(ButtonPage):
+
+    def kill(self):
+        #controller = self.parent.get_controller()
+        controller = common.controller
+        controller.tm_restart()
+        self.reset_pause()
+
+    def cancel(self):
+        #controller = self.parent.get_controller()
+        controller = common.controller
+        controller.tm_cancel(self.queueName)
+        self.reset_pause()
+
+    def pause(self):
+        self.btn_pause.set_label("Resume")
+        self.paused = True
+        #controller = self.parent.get_controller()
+        controller = common.controller
+        controller.tm_pause(self.queueName)
+
+    def resume(self):
+        self.reset_pause()
+        #controller = self.parent.get_controller()
+        controller = common.controller
+        controller.tm_resume(self.queueName)
+
+    def toggle_pause(self, w):
+        common.view.playSound(common.sound.pause_toggle)
+        if self.paused:
+            self.resume()
+        else:
+            self.pause()
+
+        return True
+
+    def reset_pause(self):
+        self.btn_pause.set_label("Pause")
+        self.paused = False
+
+    def reset(self):
+        self.reset_pause()
+
 
 #END

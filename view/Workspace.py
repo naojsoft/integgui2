@@ -36,14 +36,24 @@ class Workspace(object):
         self.lock = threading.RLock()
 
 
+    def _disambiguate_name(self, name):
+        # WARNING--no mutex--only call from within a mutex
+        if not self.pages.has_key(name):
+            return name
+
+        for i in xrange(2, 100000):
+            possname = '%s(%d)' % (name, i)
+            if not self.pages.has_key(possname):
+                return possname
+
+        raise Exception("A page with name '%s' already exists!" % name)
+
+
     def addpage(self, name, title, klass):
         with self.lock:
-            try:
-                pageobj = self.pages[name]
+            #name = self._disambiguate_name(name)
+            if self.pages.has_key(name):
                 raise Exception("A page with name '%s' already exists!" % name)
-
-            except KeyError:
-                pass
 
             # Make a frame for the notebook tab content
             pagefr = gtk.VBox()
@@ -124,6 +134,10 @@ class Workspace(object):
     def getPage(self, name):
         with self.lock:
             return self.pages[name]
+
+    def getPages(self):
+        with self.lock:
+            return self.pages.values()
 
 
 #END

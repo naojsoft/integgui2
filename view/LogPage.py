@@ -12,7 +12,7 @@ import Page
 
 
 regex_err1 = re.compile(r'^.*|\sE\s|.*$')
-regex_err1 = re.compile(r'^.*(error|exception).*$', re.I)
+regex_err2 = re.compile(r'^.*(error|exception).*$', re.I)
 
 class LogPage(Page.ButtonPage):
 

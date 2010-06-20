@@ -88,6 +88,9 @@ class IntegController(object):
             print "ERROR!"
             self.gui.command_feedback_error(queueName, bnch, e)
 
+    def tm_executingP(self):
+        return self.executingP.isSet()
+
     def tm_launcher(self, bnch):
         try:
             # Try to execute the command in the TaskManager
@@ -99,16 +102,11 @@ class IntegController(object):
 
         except Exception, e:
             # If there was a problem, let the gui know about it
-            self.gui.command_feedback_error(queueName, bnch, e)
+            self.gui.gui_do(self.gui.feedback_error, queueName, bnch, e)
 
     def tm_exec(self, queueName, bnch):
         """"Called by the GUI to execute a command."""
         if queueName == 'executer':
-            # Check for currently executing command
-            if self.executingP.isSet():
-                self.gui.command_popup_error("There is already a executer task running!")
-                return
-                
             t = Task.FuncTask(self.tm_executer, [bnch], {})
             t.init_and_start(self)
 
@@ -117,16 +115,21 @@ class IntegController(object):
             t.init_and_start(self)
             
         else:
-            self.gui.command_popup_error("Queue name '%s' is unknown!" % (
-                    queueName))
+            self.gui.gui_do(self.gui.popup_error, 
+                            "Queue name '%s' is unknown!" % (queueName))
 
     def tm_kill(self):
         self.gui.playSound(common.sound.tm_kill)
-        #self.bm.restart(self.options.taskmgr)
+        
+        # reset visually all command executors
+        self.gui.gui_do(self.gui.reset)
 
+        # ask Boot Manager to restart the Task Manager
         self.bm.restart(self.options.taskmgr)
 
+        # Release all pending transactions
         self.release_all_transactions()
+
 
     def tm_cancel(self, queueName):
         #self.tm2.cancel(queueName)
@@ -212,10 +215,12 @@ class IntegController(object):
         propid = info.get('propid', 'xxxxx')
         observers = info.get('observers', 'N/A')
         inst = info.get('mainInst', 'N/A')
-        self.gui.update_obsinfo({'PROP-ID': ('%s - %s - %s' % (propid,
-                                                               inst,
-                                                               observers))})
-
+        self.gui.update_obsinfo({'PROP-ID':
+                                                      ('%s - %s - %s' % (propid,
+                                                                         inst,
+                                                                         observers))
+                                 })
+        
         # Get allocs
         allocs = info.get('allocs', [])
         allocs_lst = []
@@ -287,9 +292,10 @@ class IntegController(object):
 
     def release_all_transactions(self):
         with self.lock:
-            bnchs = self.transdict.keys()
+            bnchs = self.transdict.values()
         for bnch in bnchs:
             self.release_transaction(bnch)
+        self.executingP.clear()
 
     def del_transaction(self, bnch):
         with self.lock:
@@ -297,7 +303,6 @@ class IntegController(object):
                 del self.transdict[bnch.path]
             except:
                 pass
-
        
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
@@ -349,12 +354,12 @@ class IntegController(object):
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR
             if res == 0:
-                self.gui.command_feedback_ok(tmtrans.queueName, tmtrans,
-                                             res)
+                self.gui.gui_do(self.gui.feedback_ok,
+                                tmtrans.queueName, tmtrans, res)
             else:
                 # If there was a problem, let the gui know about it
-                self.gui.command_feedback_error(tmtrans.queueName, tmtrans,
-                                                str(res))
+                self.gui.gui_do(self.gui.feedback_error,
+                                tmtrans.queueName, tmtrans, str(res))
 
             self.del_transaction(tmtrans)
 

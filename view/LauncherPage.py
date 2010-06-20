@@ -3,6 +3,10 @@
 #  Last edit: Tue May 18 17:16:48 HST 2010
 #]
 
+# remove once we're certified on python 2.6
+from __future__ import with_statement
+
+import threading
 import gtk
 
 import Bunch
@@ -206,6 +210,9 @@ class LauncherList(object):
     def getLauncher(self, name):
         return self.ldict[name.lower()]
 
+    def getLaunchers(self):
+        return self.ldict.values()
+
     def addLauncherFromDef(self, ast):
         assert ast.tag == 'launcher'
         ast_label, ast_body = ast.items
@@ -285,14 +292,14 @@ class LauncherList(object):
                 self.addLauncherFromDef(ast)
 
 
-class LauncherPage(Page.ButtonPage):
+class LauncherPage(Page.CommandPage):
 
     def __init__(self, frame, name, title):
 
         super(LauncherPage, self).__init__(frame, name, title)
 
         self.queueName = 'launcher'
-        self.block = False
+        self.paused = False
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
@@ -316,8 +323,8 @@ class LauncherPage(Page.ButtonPage):
         self.btn_cancel.show()
         self.leftbtns.pack_start(self.btn_cancel, padding=4)
 
-        self.btn_pause = gtk.ToggleButton("Pause")
-        self.btn_pause.connect("toggled", self.toggle_pause)
+        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
         self.leftbtns.pack_start(self.btn_pause)
 
@@ -339,37 +346,9 @@ class LauncherPage(Page.ButtonPage):
     def close(self):
         super(LauncherPage, self).close()
 
-    def cancel(self):
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_cancel(self.queueName)
-        self.block = True
-        self.btn_pause.set_active(False)
-        self.block = False
-
-    def pause(self):
-        if self.block:
-            return
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_pause(self.queueName)
-
-    def resume(self):
-        if self.block:
-            return
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_resume(self.queueName)
-
-    def toggle_pause(self, w):
-        if w.get_active():
-            self.pause()
-            self.btn_pause.set_label("Resume")
-        else:
-            self.resume()
-            self.btn_pause.set_label("Pause")
-
-        return True
-
+    def reset(self):
+        for launcher in self.llist.getLaunchers():
+            launcher.reset()
+        self.reset_pause()
 
 #END

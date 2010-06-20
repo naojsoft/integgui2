@@ -105,8 +105,8 @@ def main(options, args):
                                 usethread=True)
     
     # Load any files specified on the command line
-    #for opefile in args:
-    #    view.load_ope(opefile)
+    for opefile in args:
+        gui.load_ope(opefile)
 
     server_started = False
     ro_server_started = False

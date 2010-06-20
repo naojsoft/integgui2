@@ -110,7 +110,7 @@ class IntegView(object):
         file_item.set_submenu(filemenu)
 
         loadmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Load")
+        item = gtk.MenuItem(label="Load source")
         filemenu.append(item)
         item.show()
         item.set_submenu(loadmenu)
@@ -120,6 +120,30 @@ class IntegView(object):
         item.connect_object ("activate", lambda w: self.gui_load_ope(),
                              "file.Load ope")
         item.show()
+
+        item = gtk.MenuItem(label="sk")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_sk(),
+                             "file.Load sk")
+        item.show()
+
+        item = gtk.MenuItem(label="task")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_task(),
+                             "file.Load task")
+        item.show()
+
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(),
+                             "file.Load launcher")
+        item.show()
+
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
 
         item = gtk.MenuItem(label="fits")
         loadmenu.append(item)
@@ -133,18 +157,6 @@ class IntegView(object):
                              "file.Load log")
         item.show()
         
-        item = gtk.MenuItem(label="sk")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_sk(),
-                             "file.Load sk")
-        item.show()
-
-        item = gtk.MenuItem(label="task")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_task(),
-                             "file.Load task")
-        item.show()
-
         item = gtk.MenuItem(label="launcher")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_launcher(),
@@ -379,6 +391,33 @@ class IntegView(object):
                     filepath, str(e)))
 
 
+    def gui_load_launcher_source(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Launchers')
+        
+        self.filesel.popup("Load launcher source", self.load_launcher_source,
+                           initialdir=initialdir)
+
+
+    def load_launcher_source(self, filepath):
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            match = re.match(r'^(.+)\.def$', filename)
+            if not match:
+                return
+
+            name = match.group(1).replace('_', ' ')
+            page = self.exws.addpage(filepath, name, CodePage)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
     def gui_load_launcher(self):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Launchers')
@@ -404,8 +443,6 @@ class IntegView(object):
             ast = self.lnchmgr.parse_buf(buf)
             page.addFromDefs(ast)
 
-            # Bring FITS tab to front
-            self.oiws.select('loginfo')
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
@@ -484,16 +521,15 @@ class IntegView(object):
     def execute(self, opepage):
         """Callback when the EXEC button is pressed.
         """
-        queueObj = self.queue['executer']
-
         # Check whether we are busy executing a command here
         # and popup an error message if so
-##         if queueObj.executingP():
-##             self.popup_error("Commands are executing!")
-##             return
+        if common.controller.tm_executingP():
+            self.gui.popup_error("There is already a executer task running!")
+            return
+                
+        queueObj = self.queue['executer']
 
         buf = opepage.buf
-        self.clear_marks(opepage)
 
         if not buf.get_has_selection():
             # No selection.  See if there are previously queued commands
@@ -514,7 +550,11 @@ class IntegView(object):
         buf.move_mark_by_name("selection_bound", first)
 
         # flush queue--selection will override
+        self.clear_queued_tags(opepage, ['scheduled'])
         queueObj.flush()
+
+        # ??
+        common.clear_tags(buf, ('executing',))
 
         # Break selection into individual lines
         tags = []
@@ -554,7 +594,6 @@ class IntegView(object):
         queueObj = self.queue['executer']
 
         buf = opepage.buf
-        #self.clear_marks(opepage)
 
         if not buf.get_has_selection():
             # No selection!
@@ -606,19 +645,6 @@ class IntegView(object):
             except:
                 pass
 
-    def clear_scheduled(self, opepage):
-        """Clear scheduled commands on all pages for the executer"""
-        queueObj = self.queue['executer']
-
-        # flush queue
-        while len(queueObj) > 0:
-            bnch = queueObj.get()
-
-            buf = bnch.opepage.buf
-            start, end = buf.get_bounds()
-            buf.remove_tag_by_name('scheduled', start, end)
-
-
     def execute_dd(self, opepage):
         """Callback when the EXEC button is pressed.
         """
@@ -667,7 +693,9 @@ class IntegView(object):
 
 
     def initiate_commands(self, queueName):
-
+        """This method is called when the GUI has commands for the
+        controller.  queueName is in set((launcher, executer))
+        """
         queueObj = self.queue[queueName]
         
         try:
@@ -679,21 +707,20 @@ class IntegView(object):
             raise(e)
 
         # Get the command string associated with this kind of page
+        # (see method below).  The command is added to the bunch.
         self.get_cmdstr(bnch)
-
-        #if bnch.type == 'opepage':
-            #self.clear_marks()
+        
+        # Graphically signal execution in some way
         self.mark_exec(bnch, 'executing', queueName)
 
         # Ship this command off to the controller
-        # we will be notified later by feedback_error or feedback_ok
+        # we will be notified later by feedback_error() or feedback_ok()
         common.controller.tm_exec(queueName, bnch)
 
 
     def get_cmdstr(self, bnch):
         """Called to get a command string from the GUI.
         """
-
         if bnch.type == 'launcher':
             return bnch.cmdstr
 
@@ -736,18 +763,11 @@ class IntegView(object):
             raise Exception(errstr)
             
 
-    def clear_marks(self, opepage):
-        buf = opepage.buf
-        start, end = buf.get_bounds()
-        for tag, bnch in common.execution_tags:
-            buf.remove_tag_by_name(tag, start, end)
-
-
     def mark_exec(self, bnch, tag, queueName):
 
         if bnch.type == 'launcher':
             # Indicate execution in the launcher
-            bnch.launcher.show_state('executing')
+            bnch.launcher.show_state(tag)
             return
 
         if bnch.type != 'opepage':
@@ -755,49 +775,43 @@ class IntegView(object):
 
         # Get the entire OPE buffer
         buf = bnch.opepage.buf
-##         start, end = buf.get_bounds()
-##         rows = end.get_line()
 
         start, end = common.get_region(buf, bnch.tag)
+
+        if tag == 'executing':
+            common.clear_tags_region(buf, ('done', 'error', 'scheduled'),
+                                   start, end)
+
+        elif tag in ('done', 'error'):
+            common.clear_tags_region(buf, ('executing',),
+                                   start, end)
+            
         buf.apply_tag_by_name(tag, start, end)
 
-##         # Make the row marks buffer the same length
-##         # as the text file buffer
-##         rw = bnch.opepage.rw
-##         row, col = str(rw.index('end')).split('.')
-##         rw_len = int(row)
-##         if rw_len < tw_len:
-##             rw.insert('end', '\n' * (tw_len - rw_len))
-
-##         #rw.delete('%s linestart' % index, '%s lineend' % index)
-##         rw.insert(index, char)
-
-        # Mark pending tasks in the queue as '(S)cheduled'
+        # Mark pending tasks in the queue as scheduled
         queueObj = self.queue['executer']
 
         for nbnch in queueObj.peekAll():
-##             index = tw.index('%s.first' % nbnch.tag)
-##             rw.insert(index, 'S')
             start, end = common.get_region(buf, nbnch.tag)
             buf.apply_tag_by_name('scheduled', start, end)
             
 
     def feedback_ok(self, queueName, bnch, res):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed successfully.
+        """
         self.logger.info("Ok [%s] %s" % (
             queueName, bnch.cmdstr))
         queueObj = self.queue[queueName]
 
-        if bnch.type == 'opepage':
-            self.mark_exec(bnch, 'done', queueName)
-        
-        elif bnch.type == 'launcher':
-            # Change the launcher button to indicate ok
-            bnch.launcher.show_state('done')
+        # Mark success graphically appropriate to the source
+        self.mark_exec(bnch, 'done', queueName)
+
+        # TODO: check for BREAK situation.
 
         # If queue is empty, play success sound
         # otherwise issue the next command
         if len(queueObj) == 0:
-            # Bing Bong!
             if bnch.has_key('success_sound'):
                 soundfile = bnch.success_sound
             elif queueName == 'launcher':
@@ -812,6 +826,9 @@ class IntegView(object):
 
            
     def feedback_error(self, queueName, bnch, e):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed with failure.
+        """
         self.logger.error("Error [%s] %s\n:%s" % (
             queueName, bnch.cmdstr, str(e)))
         
@@ -820,29 +837,47 @@ class IntegView(object):
         soundfile = None
         if bnch:
             if bnch.type == 'opepage':
-                # Mark an (E)rror in the opepage
-                self.mark_exec(bnch, 'error', queueName)
-
                 # Put object back on the front of the queue
                 queueObj.prepend(bnch)
 
-            elif bnch.type == 'launcher':
-                # Change the launcher button to indicate error
-                bnch.launcher.show_state('error')
+            # Mark an error graphically appropriate to the source
+            self.mark_exec(bnch, 'error', queueName)
 
+            # Play failure sound
             if bnch.has_key('failure_sound'):
                 soundfile = bnch.failure_sound
+            elif queueName == 'launcher':
+                soundfile = common.sound.failure_launcher
+            else:
+                soundfile = common.sound.failure_executer
 
         #self.popup_error(str(e))
         #self.statusMsg(str(e))
 
         if not soundfile:
-            soundfile = common.sound.failure
+            soundfile = common.sound.failure_executer
 
-        # Peeeeeww!
         self.playSound(soundfile)
 
         
+    def clear_queued_tags(self, opepage, tags):
+        """Clear scheduled commands on all pages for the executer"""
+        queueObj = self.queue['executer']
+
+        # flush queue
+        while len(queueObj) > 0:
+            bnch = queueObj.get()
+            common.clear_tags(bnch.opepage.buf, tags)
+
+    def reset(self):
+        # Perform a global reset across all command-type pages
+        for ws in self.ds.getWorkspaces():
+            for page in ws.getPages():
+                if (isinstance(page, OpePage) or 
+                    isinstance(page, LauncherPage) or
+                    isinstance(page, DDCommandPage)):
+                    page.reset()
+
     def audible_warn(self, cmd_str, vals):
         """Called when we get a failed command and should/could issue an audible
         error.  cmd_str, if not None, is the device dependent command that caused
@@ -871,53 +906,48 @@ class IntegView(object):
         soundpath = os.path.join(cfg.g2soss.producthome,
                                  'file/Sounds', soundfile)
         if os.path.exists(soundpath):
-            # TODO: use Python module to do this instead of spawning
-            # a process
+            # TODO: use Python soundsink module to do this instead of
+            # spawning a process
             cmd = "OSST_audioplay %s" % (soundpath)
             self.logger.debug(cmd)
             res = os.system(cmd)
         else:
             self.logger.error("No such audio file: %s" % soundpath)
         
+    ############################################################
+    # Interface from controller into the view
+    #
+    # Due to poor thread-handling in gtk, we are forced to spawn
+    # these calls off to the GUI thread using idle_add()
+    ############################################################
 
     def update_frame(self, frameinfo):
         if hasattr(self, 'framepage'):
-            # because gtk thread handling sucks
             gobject.idle_add(self.framepage.update_frame, frameinfo)
 
     def update_frames(self, framelist):
         if hasattr(self, 'framepage'):
-            # because gtk thread handling sucks
             gobject.idle_add(self.framepage.update_frames, framelist)
 
     def update_obsinfo(self, infodict):
         self.logger.info("OBSINFO=%s" % str(infodict))
         if hasattr(self, 'obsinfo'):
-            # because gtk thread handling sucks
             gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
    
     def process_ast(self, ast_id, vals):
         if hasattr(self, 'monpage'):
-            # because gtk thread handling sucks
             gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
 
     def process_task(self, path, vals):
         if hasattr(self, 'monpage'):
-            # because gtk thread handling sucks
             gobject.idle_add(self.monpage.process_task_err, path, vals)
 
-    def command_feedback_error(self, queueName, bnch, e):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.feedback_error, queueName, bnch, e)
-        
-    def command_feedback_ok(self, queueName, bnch, res):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.feedback_ok, queueName, bnch, res)
-        
-    def command_popup_error(self, msgstr):
-        # because gtk thread handling sucks
-        gobject.idle_add(self.popup_error, msgstr)
-        
+    def gui_do(self, method, *args, **kwdargs):
+        """General method for calling into the GUI.
+        """
+        gobject.idle_add(method, *args, **kwdargs)
+     
+   
     def mainloop(self):
         gtk.main()
 

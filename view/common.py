@@ -20,19 +20,12 @@ color_bg = 'light grey'
 launcher_colors = Bunch.Bunch(error = gtk.gdk.color_parse('salmon'),
                               done = gtk.gdk.color_parse('skyblue'),
                               normal = gtk.gdk.color_parse('gray'),
-                              executing =  gtk.gdk.color_parse('gold'),
+                              executing =  gtk.gdk.color_parse('palegreen'),
 
                               execbtn = gtk.gdk.color_parse('royalblue'),
                               cancelbtn = gtk.gdk.color_parse('palevioletred'),
                               killbtn = gtk.gdk.color_parse('salmon'),
                               )
-
-# Define sounds used in IntegGUI
-sound = Bunch.Bunch(success_executer='doorbell.au',
-                    success_launcher='LAUNCHER_COMPLETE.au',
-                    tm_kill='SOUND_ART_GUNSHOT.au',
-                    tm_ready='ready.au',
-                    failure='splat.au')
 
 # Colors used in the OpePage
 decorative_tags = [
@@ -42,24 +35,39 @@ decorative_tags = [
     ]
 
 execution_tags = [
-    ('scheduled', Bunch.Bunch(background='lightgreen')),
-    ('executing', Bunch.Bunch(foreground='black', background='gold')),
-    ('done',     Bunch.Bunch(foreground='blue2', background='white')),
-    ('error',   Bunch.Bunch(foreground='red', background='white')),
+    ('scheduled', Bunch.Bunch(background='lightyellow')),
+    ('executing', Bunch.Bunch(background='palegreen')),
+    ('done',     Bunch.Bunch(foreground='blue2')),
+    ('error',   Bunch.Bunch(foreground='red')),
     ]
 
 # colors used in the SkMonitorPage
 monitor_tags = Bunch.Bunch(
     code=Bunch.Bunch(foreground='black'),
-    task_start=Bunch.Bunch(foreground='black', background='gold'),
-    cmd_time=Bunch.Bunch(foreground='brown', background='gold'),
-    ack_time=Bunch.Bunch(foreground='green4', background='gold'),
-    end_time=Bunch.Bunch(foreground='blue1', background='gold'),
+    task_start=Bunch.Bunch(foreground='black', background='palegreen'),
+    cmd_time=Bunch.Bunch(foreground='brown', background='palegreen'),
+    ack_time=Bunch.Bunch(foreground='green4', background='palegreen'),
+    end_time=Bunch.Bunch(foreground='blue1', background='palegreen'),
     task_end=Bunch.Bunch(foreground='blue2', background='white'),
     error=Bunch.Bunch(foreground='red', background='lightyellow')
     )
 
-# Yuk...module-level global variables
+# Define sounds used in IntegGUI
+sound = Bunch.Bunch(success_executer='doorbell.au',
+                    #success_executer='beep-09.au',
+                    success_launcher='beep-02.au',
+                    #success_launcher='LAUNCHER_COMPLETE.au',
+                    tm_kill='photon-torpedo.au',
+                    tm_ready='tos-computer-03.au',
+                    #fail_executer='splat.au',
+                    failure_executer='hit-02.au',
+                    failure_launcher='beep-04.au',
+                    #tags_toggle='tos-turboliftdoor.au',
+                    tags_toggle='beep-07.au',
+                    pause_toggle='beep-05.au',
+                    )
+
+# YUK...MODULE-LEVEL GLOBAL VARIABLES
 view = None
 controller = None
 
@@ -152,6 +160,15 @@ def replace_text(page, tagname, textstr):
     # Scroll the view to this area
     page.tw.scroll_to_iter(start, 0.1)
 
+
+def clear_tags_region(buf, tags, start, end):
+    for tag in tags:
+        buf.remove_tag_by_name(tag, start, end)
+
+def clear_tags(buf, tags):
+    start, end = buf.get_bounds()
+    for tag in tags:
+        buf.remove_tag_by_name(tag, start, end)
 
 def get_tv(widget):
     txtbuf = widget.get_buffer()

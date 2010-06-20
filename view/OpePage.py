@@ -7,17 +7,17 @@ import os
 import gtk
 
 import common
-import CodePage
+import Page, CodePage
 
 
-class OpePage(CodePage.CodePage):
+class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def __init__(self, frame, name, title):
 
         super(OpePage, self).__init__(frame, name, title)
 
         self.queueName = 'executer'
-        self.block = False
+        self.paused = False
 
         # Create the widgets for the tag buffer text
         scrolled_window = gtk.ScrolledWindow()
@@ -74,8 +74,8 @@ class OpePage(CodePage.CodePage):
         self.btn_kill.show()
         self.leftbtns.pack_end(self.btn_kill)
 
-        self.btn_pause = gtk.ToggleButton("Pause")
-        self.btn_pause.connect("toggled", self.toggle_pause)
+        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
         self.leftbtns.pack_end(self.btn_pause)
 
@@ -89,6 +89,12 @@ class OpePage(CodePage.CodePage):
         self.menu.append(item)
         item.connect_object ("activate", lambda w: self.color(),
                              "menu.Recolor")
+        item.show()
+
+        item = gtk.MenuItem(label="Current")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.current(),
+                             "menu.Current")
         item.show()
 
         item = gtk.MenuItem(label="Clear Schedule")
@@ -119,6 +125,7 @@ class OpePage(CodePage.CodePage):
         self.btn_tags.set_active(False)
         
     def toggle_tags(self, w):
+        #common.view.playSound(common.sound.tags_toggle)
         if w.get_active():
             self.hbox.set_position(250)
         else:
@@ -201,44 +208,34 @@ class OpePage(CodePage.CodePage):
         print "line->%d res=%s" % (lineno, res)
             
 
-    def kill(self):
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_restart()
-        self.block = True
-        self.btn_pause.set_active(False)
-        self.block = False
+    def current(self):
+        """Scroll to the current position in the buffer.  The current
+        poistion is determined by the first tag found, otherwise it
+        just scrolls to the mark position.
+        """
+        # TODO: might be lots of tags of 'error' and 'done' in the buffer
+        # It might be better to scroll to the mark than these tags
+        for tag in ('executing', 'scheduled', 'error', 'done'):
+            try:
+                start, end = common.get_region(self.buf, tag)
+                
+                self.buf.move_mark(self.mark, start)
+                res = self.tw.scroll_to_mark(self.mark, 0.2)
+                if not res:
+                    res = self.tw.scroll_mark_onscreen(self.mark)
 
-    def cancel(self):
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_cancel(self.queueName)
-        self.block = True
-        self.btn_pause.set_active(False)
-        self.block = False
+                return
 
-    def pause(self):
-        if self.block:
-            return
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_pause(self.queueName)
+            except common.TagError:
+                continue
 
-    def resume(self):
-        if self.block:
-            return
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_resume(self.queueName)
+        #common.view.popup_error("Sorry, cannot find any region of interest.")
+        # Scroll to mark, if any
+        res = self.tw.scroll_mark_onscreen(self.mark)
 
-    def toggle_pause(self, w):
-        if w.get_active():
-            self.pause()
-            self.btn_pause.set_label("Resume")
-        else:
-            self.resume()
-            self.btn_pause.set_label("Pause")
 
-        return True
+    def reset(self):
+        common.clear_tags(self.buf, ('executing',))
+        self.reset_pause()
 
 #END

@@ -3,6 +3,10 @@
 #  Last edit: Tue May 18 10:19:48 HST 2010
 #]
 
+# remove once we're certified on python 2.6
+from __future__ import with_statement
+
+import threading
 import gtk
 
 import Workspace
@@ -47,28 +51,43 @@ class Desktop(object):
             }
 
         self.ws = {}
+        self.lock = threading.RLock()
 
         paned.show_all()
 
 
     def get_wsframe(self, name):
-        return self.ws_fr[name]
+        with self.lock:
+            return self.ws_fr[name]
 
     def addws(self, loc, name, title):
 
-        frame = self.get_wsframe(loc)
+        with self.lock:
+            if self.ws.has_key(name):
+                raise Exception("A workspace with name '%s' already exists!" % name)
 
-        ws = Workspace.Workspace(frame, name, title)
-        # Some attributes we force on our children
-        ws.logger = self.logger
+            frame = self.get_wsframe(loc)
 
-        frame.show_all()
-        
-        self.ws[name] = ws
-        return ws
+            ws = Workspace.Workspace(frame, name, title)
+            # Some attributes we force on our children
+            ws.logger = self.logger
 
-    def getws(self, name):
-        return self.ws[name]
+            frame.show_all()
+
+            self.ws[name] = ws
+            return ws
+
+    def getWorkspace(self, name):
+        with self.lock:
+            return self.ws[name]
+
+    def getWorkspaces(self):
+        with self.lock:
+            return self.ws.values()
+
+    def getNames(self):
+        with self.lock:
+            return self.ws.keys()
 
 
 #END
