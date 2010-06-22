@@ -151,11 +151,11 @@ class IntegView(object):
         item.show()
         item.set_submenu(loadmenu)
 
-        item = gtk.MenuItem(label="fits")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_fits(),
-                             "file.Load fits")
-        item.show()
+        # item = gtk.MenuItem(label="fits")
+        # loadmenu.append(item)
+        # item.connect_object ("activate", lambda w: self.gui_load_fits(),
+        #                      "file.Load fits")
+        # item.show()
 
         item = gtk.MenuItem(label="log")
         loadmenu.append(item)
@@ -223,7 +223,8 @@ class IntegView(object):
 
 
     def add_dialogs(self):
-        self.filesel = FileSelection()
+        self.filesel = FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
+        self.filesave = FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
     
     def logupdate(self):
         pass
@@ -309,6 +310,14 @@ class IntegView(object):
         in_f.close()
 
         return buf
+
+
+    def popup_select(self, title, execfn, filedir):
+        self.filesel.popup(title, execfn, initialdir=filedir)
+
+    def popup_save(self, title, execfn, filedir, filename=None):
+        self.filesave.popup(title, execfn, initialdir=filedir,
+                            filename=filename)
 
 
     def gui_load_log(self):

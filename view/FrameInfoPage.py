@@ -6,6 +6,7 @@
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+import os, time
 import gtk
 
 import Page
@@ -18,7 +19,7 @@ header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Ob
 format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
 
 
-class FrameInfoPage(Page.Page):
+class FrameInfoPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
@@ -57,12 +58,22 @@ class FrameInfoPage(Page.Page):
 #         self.btn_load.show()
 #         btns.pack_end(self.btn_load, padding=4)
 
-##         self.btn_close = gtk.Button("Close")
-##         self.btn_close.connect("clicked", lambda w: self.close())
-##         self.btn_close.show()
-##         btns.pack_end(self.btn_close, padding=4)
-
         frame.pack_end(btns, fill=False, expand=False, padding=2)
+
+        self.add_menu()
+#        self.add_close()
+
+        item = gtk.MenuItem(label="Save Journal")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_journal(),
+                             "menu.Save")
+        item.show()
+
+        # item = gtk.MenuItem(label="Print")
+        # self.menu.append(item)
+        # item.connect_object ("activate", lambda w: self.print_journal(),
+        #                      "menu.Print")
+        # item.show()
 
 
     def update_frame(self, frameinfo):
@@ -162,5 +173,37 @@ class FrameInfoPage(Page.Page):
 
         #print "Loading frames", frames
         common.controller.load_frames(frames)
+
+    def save_journal(self):
+        homedir = os.path.join(os.environ['HOME'], 'Procedure')
+        filename = time.strftime("%Y%m%d-obs") + '.txt'
+
+        common.view.popup_save("Save frame journal", self.save,
+                               homedir, filename=filename)
+
+    def save(self, filepath):
+        if os.path.exists(filepath):
+
+            res = common.view.popup_yesno("File '%s' exists.", 
+                                          'Overwrite ?')
+            if not res:
+                return
+
+        # get text to save
+        start, end = self.buf.get_bounds()
+        buf = self.buf.get_text(start, end)
+
+        try:
+            out_f = open(filepath, 'w')
+            out_f.write(buf)
+            out_f.close()
+            #self.statusMsg("%s saved." % self.filepath)
+        except IOError, e:
+            return common.view.popup_error("Cannot write '%s': %s" % (
+                    filepath, str(e)))
+
         
+    def print_journal(self):
+        pass
+
 #END
