@@ -12,6 +12,7 @@ from OpePage import *
 from SkPage import *
 from TaskPage import *
 from CodePage import *
+from InfPage import *
 from DDCommandPage import *
 from FrameInfoPage import *
 from LauncherPage import *

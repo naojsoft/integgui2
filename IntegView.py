@@ -139,6 +139,12 @@ class IntegView(object):
                              "file.Load launcher")
         item.show()
 
+        item = gtk.MenuItem(label="inf")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_inf(),
+                             "file.Load inf")
+        item.show()
+
         loadmenu = gtk.Menu()
         item = gtk.MenuItem(label="Load")
         filemenu.append(item)
@@ -305,26 +311,6 @@ class IntegView(object):
         return buf
 
 
-    def gui_load_ope(self):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-
-        self.filesel.popup("Load OPE file", self.load_ope,
-                           initialdir=initialdir)
-
-    def load_ope(self, filepath):
-        try:
-            buf = self.readfile(filepath)
-
-            dirname, filename = os.path.split(filepath)
-
-            page = self.exws.addpage(filepath, filename, OpePage)
-            page.load(filepath, buf)
-
-        except Exception, e:
-            self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-
-
     def gui_load_log(self):
         initialdir = os.path.abspath(os.environ['LOGHOME'])
         
@@ -350,68 +336,86 @@ class IntegView(object):
                     filepath, str(e)))
 
 
+    def gui_load_ope(self):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+
+        self.filesel.popup("Load OPE file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              OpePage),
+                           initialdir=initialdir)
+
     def gui_load_sk(self):
         initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
                                   'SkPara', 'sk')
         
-        self.filesel.popup("Load skeleton file", self.load_sk,
+        self.filesel.popup("Load skeleton file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              SkPage),
                            initialdir=initialdir)
-
-    def load_sk(self, filepath):
-        try:
-            buf = self.readfile(filepath)
-
-            dirname, filename = os.path.split(filepath)
-
-            page = self.exws.addpage(filepath, filename, SkPage)
-            page.load(filepath, buf)
-
-        except Exception, e:
-            self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-                               
 
     def gui_load_task(self):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
         
-        self.filesel.popup("Load python task", self.load_task,
+        self.filesel.popup("Load python task",
+                           lambda filepath: self.load_generic(filepath,
+                                                              TaskPage),
                            initialdir=initialdir)
 
-    def load_task(self, filepath):
-        try:
-            buf = self.readfile(filepath)
-
-            dirname, filename = os.path.split(filepath)
-
-            page = self.exws.addpage(filepath, filename, TaskPage)
-            page.load(filepath, buf)
-
-        except Exception, e:
-            self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-
+    def gui_load_inf(self):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure',
+                                  'COMICS')
+        
+        self.filesel.popup("Load inf file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              InfPage),
+                           initialdir=initialdir)
 
     def gui_load_launcher_source(self):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Launchers')
         
-        self.filesel.popup("Load launcher source", self.load_launcher_source,
+        self.filesel.popup("Load launcher source",
+                           lambda filepath: self.load_generic(filepath,
+                                                              CodePage),
                            initialdir=initialdir)
 
 
-    def load_launcher_source(self, filepath):
+    # def load_launcher_source(self, filepath):
+    #     try:
+    #         buf = self.readfile(filepath)
+
+    #         dirname, filename = os.path.split(filepath)
+
+    #         match = re.match(r'^(.+)\.def$', filename)
+    #         if not match:
+    #             return
+
+    #         name = match.group(1).replace('_', ' ')
+    #         page = self.exws.addpage(filepath, name, CodePage)
+    #         page.load(filepath, buf)
+
+    #     except Exception, e:
+    #         self.popup_error("Cannot load '%s': %s" % (
+    #                 filepath, str(e)))
+
+
+    def open_generic(self, buf, filepath, pageKlass):
+        try:
+            dirname, filename = os.path.split(filepath)
+
+            page = self.exws.addpage(filepath, filename, pageKlass)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def load_generic(self, filepath, pageKlass):
         try:
             buf = self.readfile(filepath)
 
-            dirname, filename = os.path.split(filepath)
-
-            match = re.match(r'^(.+)\.def$', filename)
-            if not match:
-                return
-
-            name = match.group(1).replace('_', ' ')
-            page = self.exws.addpage(filepath, name, CodePage)
-            page.load(filepath, buf)
+            return self.open_generic(buf, filepath, pageKlass)
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (

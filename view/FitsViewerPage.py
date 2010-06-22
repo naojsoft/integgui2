@@ -15,7 +15,7 @@ import threading
 
 # GUI imports
 import gtk
-from matplotlib.axes import Subplot, cm
+from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 
 # uncomment to select /GTK/GTKAgg/GTKCairo
@@ -92,7 +92,8 @@ class FitsViewerPage(Page.ButtonPage):
         hbox1.show()
 
         # Colormap we will use for image display
-        self.cmap = cm.gray
+        #self.cmap = cm.gray
+        self.cmap = 'gray'
         
         # Initialize the viewer with an empty image
         data = numpy.zeros((512,512))
