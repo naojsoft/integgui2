@@ -347,10 +347,10 @@ class IntegView(object):
 
     def gui_load_ope(self):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-
         self.filesel.popup("Load OPE file",
                            lambda filepath: self.load_generic(filepath,
-                                                              OpePage),
+                                                              # ???!!!
+                                                              OpePage.OpePage),
                            initialdir=initialdir)
 
     def gui_load_sk(self):
@@ -385,7 +385,8 @@ class IntegView(object):
         
         self.filesel.popup("Load launcher source",
                            lambda filepath: self.load_generic(filepath,
-                                                              CodePage),
+                                                              # ???!!!
+                                                              CodePage.CodePage),
                            initialdir=initialdir)
 
 
@@ -411,6 +412,7 @@ class IntegView(object):
     def open_generic(self, buf, filepath, pageKlass):
         try:
             dirname, filename = os.path.split(filepath)
+            #print pageKlass
 
             page = self.exws.addpage(filepath, filename, pageKlass)
             page.load(filepath, buf)
@@ -557,6 +559,7 @@ class IntegView(object):
         first, last = buf.get_selection_bounds()
         frow = first.get_line()
         lrow = last.get_line()
+        print "selection: %d-%d" % (frow, lrow)
 
         # Clear the selection
         buf.move_mark_by_name("insert", first)         
@@ -575,6 +578,7 @@ class IntegView(object):
         for i in xrange(int(lrow)+1-frow):
 
             row = frow+i
+            print "row: %d" % (row)
 
             first.set_line(row)
             last.set_line(row)
@@ -585,6 +589,7 @@ class IntegView(object):
             if cmd.startswith('#') or (len(cmd) == 0):
                 continue
             self.logger.debug("cmd=%s" % (cmd))
+            print cmd
 
             # tag the text so we can manipulate it later
             tag = self.get_tag('ope%d')
