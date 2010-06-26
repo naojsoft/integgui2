@@ -320,7 +320,7 @@ class SkMonitorPage(Page.Page):
         return title
             
     def process_ast(self, ast_id, vals):
-        print ast_id, vals
+        #print ast_id, vals
 
         with self.lock:
             try:
@@ -372,7 +372,7 @@ class SkMonitorPage(Page.Page):
                 
 
     def process_task(self, path, vals):
-        print path, vals
+        #print path, vals
 
         with self.lock:
             try:

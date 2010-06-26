@@ -422,6 +422,9 @@ class IntegView(object):
                     filepath, str(e)))
 
 
+    def load_ope(self, filepath):
+        return self.load_generic(filepath, OpePage.OpePage)
+
     def load_generic(self, filepath, pageKlass):
         try:
             buf = self.readfile(filepath)
@@ -879,6 +882,7 @@ class IntegView(object):
 
         
     def clear_queued_tags(self, opepage, tags):
+
         """Clear scheduled commands on all pages for the executer"""
         queueObj = self.queue['executer']
 

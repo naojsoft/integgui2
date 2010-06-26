@@ -35,7 +35,7 @@ decorative_tags = [
     ]
 
 execution_tags = [
-    ('scheduled', Bunch.Bunch(background='lightyellow')),
+    ('scheduled', Bunch.Bunch(background='lightyellow2')),
     ('executing', Bunch.Bunch(background='palegreen')),
     ('done',     Bunch.Bunch(foreground='blue2')),
     ('error',   Bunch.Bunch(foreground='red')),

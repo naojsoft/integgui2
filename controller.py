@@ -85,7 +85,7 @@ class IntegController(object):
 
         except Exception, e:
             # If there was a problem, let the gui know about it
-            print "ERROR!"
+            #print "ERROR!"
             self.gui.command_feedback_error(queueName, bnch, e)
 
     def tm_executingP(self):

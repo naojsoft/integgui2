@@ -99,7 +99,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         item = gtk.MenuItem(label="Clear Schedule")
         self.menu.append(item)
-        item.connect_object ("activate", lambda w: common.view.clear_scheduled(self),
+        item.connect_object ("activate", lambda w: common.view.clear_queued_tags(self, ['scheduled']),
                              "menu.Clear_Scheduled")
         item.show()
 
