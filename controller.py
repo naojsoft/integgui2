@@ -221,6 +221,8 @@ class IntegController(object):
                                                                          observers))
                                  })
         
+        self.set_instrument(inst)
+
         # Get allocs
         allocs = info.get('allocs', [])
         allocs_lst = []
