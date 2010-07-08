@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 20 14:20:05 HST 2010
+#  Last edit: Thu Jul  8 11:14:39 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -14,7 +14,7 @@ import view.common as common
 # SSD/Gen2 imports
 import Task
 import remoteObjects as ro
-import Monitor
+import remoteObjects.Monitor as Monitor
 import Bunch
 from cfg.INS import INSdata
 

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 20 13:34:13 HST 2010
+#  Last edit: Thu Jul  8 11:14:39 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -13,7 +13,7 @@ import threading
 
 # SSD/Gen2 imports
 import remoteObjects as ro
-import Monitor
+import remoteObjects.Monitor as Monitor
 import Bunch
 import ssdlog
 
