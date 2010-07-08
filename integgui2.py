@@ -71,23 +71,19 @@ def main(options, args):
     # Subscribe our callback functions to the local monitor
     # Task info
     channels = [options.taskmgr, 'g2task']
-    mymon.subscribe_cb(controller.arr_taskinfo, controller.arr_taskinfo, 
-                       channels)
+    mymon.subscribe_cb(controller.arr_taskinfo, channels)
     
     # Obsinfo
     ig_ch = options.taskmgr + '-ig'
-    mymon.subscribe_cb(controller.arr_obsinfo, controller.arr_obsinfo, 
-                       [ig_ch])
+    mymon.subscribe_cb(controller.arr_obsinfo, [ig_ch])
     channels.append(ig_ch)
 
     # Fits info
-    mymon.subscribe_cb(controller.arr_fitsinfo, controller.arr_fitsinfo, 
-                       ['frames'])
+    mymon.subscribe_cb(controller.arr_fitsinfo, ['frames'])
     channels.append('frames')
 
     # Session info
-    #mymon.subscribe_cb(controller.arr_sessinfo, controller.arr_sessinfo, 
-    #                   ['sessions'])
+    #mymon.subscribe_cb(controller.arr_sessinfo, ['sessions'])
     #channels.append('sessions')
 
     # Configure from session, if requested
