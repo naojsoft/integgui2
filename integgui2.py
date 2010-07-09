@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Jul  8 11:14:39 HST 2010
+#  Last edit: Fri Jul  9 11:49:59 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -50,9 +50,13 @@ def main(options, args):
     # Create view
     gui = igview.IntegView(logger, ev_quit, lnchmgr)
 
+    # Create network callable object for notifications
+    notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
+    notify_obj.update_framelist()
+    
     # Create controller
     controller = igctrl.IntegController(logger, ev_quit, mymon,
-                                        gui, options)
+                                        gui, fits, options)
 
     view.common.set_view(gui)
     view.common.set_controller(controller)
@@ -90,15 +94,11 @@ def main(options, args):
     if options.session:
         controller.config_from_session(options.session)
 
-    # Create network callable object for notifications
-    notify_obj = fits.IntegGUINotify(gui.framepage, options.fitsdir)
-    notify_obj.update_framelist()
-    
-    svc = ro.remoteObjectServer(svcname=options.svcname,
-                                obj=notify_obj, logger=logger,
-                                port=options.port,
-                                ev_quit=ev_quit,
-                                usethread=True)
+##     svc = ro.remoteObjectServer(svcname=options.svcname,
+##                                 obj=notify_obj, logger=logger,
+##                                 port=options.port,
+##                                 ev_quit=ev_quit,
+##                                 usethread=True)
     
     # Load any files specified on the command line
     for opefile in args:
@@ -119,8 +119,8 @@ def main(options, args):
 
         #controller.start_executors()
 
-        svc.ro_start(wait=True)
-        ro_server_started = True
+##         svc.ro_start(wait=True)
+##         ro_server_started = True
 
         try:
             gui.mainloop()

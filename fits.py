@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 14 14:25:18 HST 2010
+#  Last edit: Fri Jul  9 11:47:21 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -9,11 +9,12 @@ from __future__ import with_statement
 import threading
 
 import remoteObjects as ro
+import remoteObjects.Monitor as Monitor
 import Bunch
 
 # Headers we show
 headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
-           'OBJECT', 'FILTERS', 'MEMO' ]
+            'OBJECT', 'FILTERS', 'MEMO' ]
 
 
 class IntegGUINotify(object):
@@ -55,8 +56,6 @@ class IntegGUINotify(object):
 
 
     def _getframe(self, frameid, **kwdargs):
-        """Called when the _frameid_ is first seen."""
-
         with self.lock:
             if self.framecache.has_key(frameid):
                 d = self.framecache[frameid]
@@ -84,46 +83,57 @@ class IntegGUINotify(object):
             return d
 
 
-    def frame_allocated(self, frameid, vals):
-        """Called when the _frameid_ is allocated."""
-
+    def frame_allocated(self, frameid):
+        """Called when _frameid_ is allocated.
+        """
         with self.lock:
             # Create a new entry
             d = self._getframe(frameid)
 
             self.output_line(d)
-            return ro.OK
 
-    def transfer_started(self, frameid, vals):
+
+    def transfer_started(self, frameid):
         """Called when the _frameid_ transfer from the OBCP has been
-        initiated."""
-
+        initiated.
+        """
         with self.lock:
             d = self._getframe(frameid)
             if d.status == 'A':
                 d.status = 'X'
 
             self.output_line(d)
-            return ro.OK
 
-    def fits_info(self, frameid, frameinfo, vals):
+
+    def transfer_done(self, frameid, status):
         """Called when the _frameid_ transfer from the OBCP has
-        finished.  _frameinfo_ is some information about the frame."""
+        finished.  status==0 indicates success, error otherwise.
+        """
+        with self.lock:
+            d = self._getframe(frameid)
+            if d.status == 'X':
+                if status == 0:
+                    d.status = 'R'
+                else:
+                    d.status = 'E'
 
+            self.output_line(d)
+
+
+    def fits_info(self, frameid, frameinfo):
+        """Called when there is some information about the frame.
+        """
         with self.lock:
             d = self._getframe(frameid, **frameinfo)
 
             # Is there a memo attached to this file?
             self.get_memo(frameid, d)
 
-            if d.status != 'RS':
-                d.status = 'R'
-
             self.output_line(d)
             return ro.OK
 
 
-    def in_stars(self, frameid, vals):
+    def in_stars(self, frameid):
         """Called when the _frameid_ is registered in STARS."""
 
         with self.lock:
@@ -134,4 +144,30 @@ class IntegGUINotify(object):
             return ro.OK
 
     
+    def INSint_hdlr(self, frameid, vals):
+        """Called with information provided by the instrument interface."""
+        
+        if Monitor.has_keys(vals, ['done', 'time_done', 'status',
+                                   'filepath']):
+            self.transfer_done(frameid, vals['status'])
+
+        elif vals.has_key('time_start'):
+            self.transfer_started(frameid)
+
+
+    def Archive_hdlr(self, frameid, vals):
+        """Called with information provided by the Archiver."""
+        
+        self.fits_info(frameid, vals)
+
+
+    def STARSint_hdlr(self, frameid, vals):
+        """Called with information provided by the STARS interface."""
+        
+        if Monitor.has_keys(vals, ['done', 'time_done', 'end_result']) \
+               and vals['end_result'] == 0:
+            # --> STARS may have the file
+            self.in_stars(frameid)
+
+
 # END

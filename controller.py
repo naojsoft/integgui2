@@ -1,11 +1,12 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Jul  8 11:14:39 HST 2010
+#  Last edit: Fri Jul  9 11:47:22 HST 2010
 #]
 
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+import re
 import os
 import threading
 
@@ -17,6 +18,9 @@ import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
 import Bunch
 from cfg.INS import INSdata
+
+# Regex used to discover/parse frame info
+regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
 
 # These are the status variables pulled from the status system. "%s" is
 # replaced by the 3-letter instrument mnemonic of the currently allocated
@@ -37,12 +41,13 @@ class IntegController(object):
     thread).
     """
     
-    def __init__(self, logger, ev_quit, monitor, view, options):
+    def __init__(self, logger, ev_quit, monitor, view, fits, options):
 
         self.logger = logger
         self.ev_quit = ev_quit
         self.monitor = monitor
         self.gui = view
+        self.fits = fits
         # mutex on this instance
         self.lock = threading.RLock()
         self.options = options
@@ -397,6 +402,33 @@ class IntegController(object):
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
+
+        match = regex_frame.match(bnch.path)
+        if match:
+            (frameid, subsys) = match.groups()
+
+            try:
+                method = getattr(self.fits, '%s_hdlr' % subsys)
+
+            except AttributeError:
+                self.logger.debug("No handler for '%s' subsystem" % subsys)
+                return
+
+            try:
+                # Get all the saved items to report to these handlers
+                vals = self.monitor.getitems_suffixOnly(bnch.path)
+                
+                method(frameid, bnch.path, vals)
+                return
+
+            except Exception, e:
+                self.logger.error("Error processing '%s': %s" % (
+                    str(bnch.path), str(e)))
+            return
+
+        # Skip things that don't match the expected paths
+        self.logger.error("No match for path '%s'" % bnch.path)
+        return
 
                 
     # this one is called if new data becomes available about the session
