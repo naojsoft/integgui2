@@ -28,25 +28,6 @@ class IntegGUINotify(object):
         self.needsort = False
         self.lock = threading.RLock()
 
-    def get_memo(self, frameid, frameinfo):
-        # Try to read a memo for this frame
-        frameinfo['MEMO'] = '[N/A]'
-        if self.fitsdir:
-            try:
-                #memodir = './IntegObsNote.workdir'
-                memodir = self.fitsdir
-                memofile = memodir + '/' + frameid + '.memo'
-                memo_f = open(memofile, 'r')
-
-                memo = memo_f.read().strip()
-                frameinfo['MEMO'] = memo
-
-                memo_f.close()
-
-            except IOError:
-                pass
-
-
     def update_framelist(self):
         with self.lock:
             return self.gui.update_frames(self.framelist)
@@ -126,9 +107,6 @@ class IntegGUINotify(object):
         with self.lock:
             d = self._getframe(frameid, **frameinfo)
 
-            # Is there a memo attached to this file?
-            self.get_memo(frameid, d)
-
             self.output_line(d)
             return ro.OK
 
@@ -155,9 +133,11 @@ class IntegGUINotify(object):
             self.transfer_started(frameid)
 
 
-    def Archive_hdlr(self, frameid, vals):
+    def Archiver_hdlr(self, frameid, vals):
         """Called with information provided by the Archiver."""
         
+        # TODO: check vals['PROP-ID'] against propid for this
+        # integgui before proceeding
         self.fits_info(frameid, vals)
 
 

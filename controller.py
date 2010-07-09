@@ -403,11 +403,14 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
+        # Find out the source of this information by examining the path
         match = regex_frame.match(bnch.path)
         if match:
             (frameid, subsys) = match.groups()
 
             try:
+                # See if there is method to handle this information
+                # in the 'fits' object
                 method = getattr(self.fits, '%s_hdlr' % subsys)
 
             except AttributeError:
@@ -415,10 +418,11 @@ class IntegController(object):
                 return
 
             try:
-                # Get all the saved items to report to these handlers
+                # Get all the saved items under this path to report to
+                # the handler
                 vals = self.monitor.getitems_suffixOnly(bnch.path)
                 
-                method(frameid, bnch.path, vals)
+                method(frameid, vals)
                 return
 
             except Exception, e:

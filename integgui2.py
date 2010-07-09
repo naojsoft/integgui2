@@ -56,7 +56,7 @@ def main(options, args):
     
     # Create controller
     controller = igctrl.IntegController(logger, ev_quit, mymon,
-                                        gui, fits, options)
+                                        gui, notify_obj, options)
 
     view.common.set_view(gui)
     view.common.set_controller(controller)
@@ -74,7 +74,7 @@ def main(options, args):
 
     # Subscribe our callback functions to the local monitor
     # Task info
-    channels = [options.taskmgr, 'g2task']
+    channels = [options.taskmgr, options.taskmgr]
     mymon.subscribe_cb(controller.arr_taskinfo, channels)
     
     # Obsinfo
