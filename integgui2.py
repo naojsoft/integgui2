@@ -36,7 +36,12 @@ def main(options, args):
     ev_quit = threading.Event()
 
     # make a name for our monitor
-    myMonName = options.monname
+    if options.monname:
+        myMonName = options.monname
+    else:
+        myMonName = 'integgui2-%s-%d.mon' % (
+            ro.get_myhost().split('.')[0],
+            os.getpid())
 
     # monitor channels we are interested in
     channels = options.channels.split(',')
@@ -115,7 +120,7 @@ def main(options, args):
         server_started = True
 
         # subscribe our monitor to the central monitor hub
-        mymon.subscribe_remote(options.monitor, channels, ())
+        mymon.subscribe_remote(options.monitor, channels, {})
 
         #controller.start_executors()
 
@@ -167,9 +172,8 @@ if __name__ == '__main__':
     optprs.add_option("-m", "--monitor", dest="monitor", default='monitor',
                       metavar="NAME",
                       help="Subscribe to feeds from monitor service NAME")
-    optprs.add_option("-n", "--monname", dest="monname",
-                      default='monwatch-ig2', metavar="NAME",
-                      help="Use NAME as our subscriber name")
+    optprs.add_option("--monname", dest="monname", metavar="NAME",
+                      help="Use NAME as our monitor subscriber name")
     optprs.add_option("-p", "--path", dest="monpath", default='mon.sktask',
                       metavar="PATH",
                       help="Show values for PATH in monitor")

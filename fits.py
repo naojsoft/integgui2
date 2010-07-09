@@ -122,6 +122,13 @@ class IntegGUINotify(object):
             return ro.OK
 
     
+    def frameSvc_hdlr(self, frameid, vals):
+        """Called with information provided by the frame service."""
+        
+        if vals.has_key('time_alloc'):
+            self.frame_allocated(frameid)
+
+
     def INSint_hdlr(self, frameid, vals):
         """Called with information provided by the instrument interface."""
         
