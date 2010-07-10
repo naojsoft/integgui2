@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jul  9 11:49:59 HST 2010
+#  Last edit: Fri Jul  9 14:56:41 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -40,8 +40,7 @@ def main(options, args):
         myMonName = options.monname
     else:
         myMonName = 'integgui2-%s-%d.mon' % (
-            ro.get_myhost().split('.')[0],
-            os.getpid())
+            ro.get_myhost(short=True), os.getpid())
 
     # monitor channels we are interested in
     channels = options.channels.split(',')
