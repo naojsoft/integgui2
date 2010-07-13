@@ -14,6 +14,7 @@ from TaskPage import *
 from CodePage import *
 from InfPage import *
 from DDCommandPage import *
+from TerminalPage import *
 from FrameInfoPage import *
 from LauncherPage import *
 from ObsInfoPage import *

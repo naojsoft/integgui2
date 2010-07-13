@@ -85,6 +85,7 @@ class IntegView(object):
         self.oiws.select('obsinfo')
 
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
+        self.gui_load_terminal()
         self.exws.addpage('ddcommands', "Commands", DDCommandPage)
 
         self.add_statusbar()
@@ -161,6 +162,12 @@ class IntegView(object):
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_log(),
                              "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="terminal")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_terminal(),
+                             "file.Load terminal")
         item.show()
         
         item = gtk.MenuItem(label="launcher")
@@ -318,6 +325,20 @@ class IntegView(object):
     def popup_save(self, title, execfn, filedir, filename=None):
         self.filesave.popup(title, execfn, initialdir=filedir,
                             filename=filename)
+
+
+    def gui_load_terminal(self):
+        try:
+            os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
+
+            name = 'shell %f' % time.time()
+            page = self.exws.addpage(name, 'Terminal', TerminalPage)
+
+            # Bring shell tab to front
+            #self.exws.select(name)
+        except Exception, e:
+            self.popup_error("Cannot start terminal: %s" % (str(e)))
+
 
 
     def gui_load_log(self):
