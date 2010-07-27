@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jul 26 14:12:44 HST 2010
+#  Last edit: Mon Jul 26 14:49:38 HST 2010
 #]
 
 import os, re
@@ -117,6 +117,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                              "menu.Clear_Scheduled")
         item.show()
 
+
     def load(self, filepath, buf):
         super(OpePage, self).load(filepath, buf)
         self.cond_color()
@@ -139,7 +140,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_tags.set_active(False)
         
     def toggle_tags(self, w):
-        print "Toggled!"
         #common.view.playSound(common.sound.tags_toggle)
         if w.get_active():
             self.hbox.set_position(250)
@@ -171,10 +171,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         badtags = []
         self.tagidx = {}
 
+        tagtbl = self.buf.get_tag_table()
+
         # remove decorative tags
         for tag, bnch in common.decorative_tags:
+            gtktag = tagtbl.lookup(tag)
             try:
-                self.buf.remove_tag_by_name(tag, start, end)
+                if gtktag:
+                    self.buf.remove_tag_by_name(tag, start, end)
             except:
                 # tag may not exist--that's ok
                 pass
@@ -330,6 +334,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         buf = tw.get_buffer()
         tagtbl = buf.get_tag_table()
         varref = tagtbl.lookup('varref')
+        if not varref:
+            return False
         
         # Check if we are in the middle of a varref
         result = txtiter.has_tag(varref)
