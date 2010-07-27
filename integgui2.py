@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jul  9 14:56:41 HST 2010
+#  Last edit: Mon Jul 26 09:22:20 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -68,9 +68,14 @@ def main(options, args):
     # Configure for currently allocated instrument
     if options.instrument:
         insname = options.instrument
+        controller.set_instrument(insname)
     else:
-        insname = controller.get_alloc_instrument()
-    controller.set_instrument(insname)
+        try:
+            insname = controller.get_alloc_instrument()
+            controller.set_instrument(insname)
+        except Exception, e:
+            # TODO: error popup?
+            pass
 
     if options.geometry:
         gui.setPos(options.geometry)

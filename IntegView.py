@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 20 14:25:20 HST 2010
+#  Last edit: Mon Jul 26 14:22:09 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -19,9 +19,9 @@ import gtk, gobject
 # SSD/Gen2 imports
 import Bunch
 import cfg.g2soss
+import SOSS.parse.ope as ope
 
 # Local integgui2 imports
-import ope
 import controller as igctrl
 import view.common as common
 from view.pages import *

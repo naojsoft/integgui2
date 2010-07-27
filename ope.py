@@ -3,7 +3,7 @@
 # ope.py -- helper code for processing legacy OPE (observation) files
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Apr 20 23:02:32 HST 2010
+#  Last edit: Mon Jul 26 12:12:17 HST 2010
 #]
 #
 # remove once we're certified on python 2.6
@@ -103,9 +103,9 @@ def prepend_prm(lines, filename):
         raise OPEerror(str(e))
 
         
-def substitute_params(plist, cmdstr):
-
-    # Build substitution dictionary from the PARAMETER_LIST section
+def get_vars(plist):
+    """Build substitution dictionary from the <Parameter_List> section
+    of an OPE file."""
 
     lines = plist.split('\n')
     substDict = Bunch.caselessDict()
@@ -130,7 +130,13 @@ def substitute_params(plist, cmdstr):
             substDict[var] = val
 
     #pprint.pprint(substDict)
+    return substDict
 
+
+def substitute_params(plist, cmdstr):
+
+    substDict = get_vars(plist)
+    
     cmdstr = toupper(cmdstr)
 
     # Now substitute into the command line wherever we see any of these

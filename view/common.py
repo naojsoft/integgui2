@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon May 17 15:03:05 HST 2010
+#  Last edit: Mon Jul 26 13:26:19 HST 2010
 #]
 import gtk
 
@@ -32,6 +32,8 @@ decorative_tags = [
     ('comment3', Bunch.Bunch(foreground='indian red')),
     ('comment2', Bunch.Bunch(foreground='saddle brown')),
     ('comment1', Bunch.Bunch(foreground='dark green')),
+    ('varref', Bunch.Bunch(foreground='royalblue')),
+    ('badref', Bunch.Bunch(foreground='darkorange')),
     ]
 
 execution_tags = [
