@@ -48,11 +48,11 @@ launchers:
         label: "Focus OBE" # FocusOBE
         cmd  : FOCUSOBE OBE_ID=HICIAO OBE_MODE=TOOL Z=$VAL01 DELTAZ=$VAL02 EXPTIME=$VAL03 NFRAME=$VAL04 EXP_MODE=$VAL05
         params:
-            - [ VAL01, INPUT, 6, "!TSCL.Z", "Start Z" ]
+            - [ VAL01, INPUT, 8, "!TSCL.Z", "Start Z" ]
             - [ VAL02, INPUT, 6, 0.07, "Delta Z" ]
             - [ VAL03, INPUT, 6, 1.4, "Exp time" ]
             - [ VAL04, INPUT, 6, 3, "No. of frames" ]
-            - [ VAL05, INPUT, 6, SHUTTER, "Exp Mode" ]
+            - [ VAL05, INPUT, 8, SHUTTER, "Exp Mode" ]
 
     - sep
 

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Aug 12 12:38:53 HST 2010
+#  Last edit: Fri Aug 13 13:46:11 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -73,7 +73,8 @@ class Launcher(object):
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
                           xoptions=gtk.FILL, yoptions=gtk.FILL,
                           xpadding=1, ypadding=1)
-        field = gtk.Entry(max=width)
+        field = gtk.Entry()
+        field.set_width_chars(width)
         field.set_text(str(defVal))
         field.show()
         self.table.attach(field, self.col, self.col+1, self.row, self.row+1,

@@ -25,7 +25,7 @@ launchers:
         label: "FOCUS"
         cmd  : SET_FOCUS OBE_ID=COMICS OBE_MODE=IMAG_SPEC Z=$VAL01 FOCUS_MODE=SET
         params:
-            - [ VAL01, INPUT, 10, "!TSCL.Z", "Z" ] #  Z
+            - [ VAL01, INPUT, 8, "!TSCL.Z", "Z" ] #  Z
 
     - 
         label: "ADJ FIELD"

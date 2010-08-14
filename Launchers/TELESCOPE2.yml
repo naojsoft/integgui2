@@ -96,6 +96,8 @@ launchers:
         params:
             - { name: VAL01, type: SELECT, values: [On, Off] }
 
+    -   sep
+
     -
         label: "Gen2 Precheck"
         cmd  : AG_PRECHECK OBE_ID=COMMON OBE_MODE=PRECHECK

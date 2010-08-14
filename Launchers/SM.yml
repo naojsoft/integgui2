@@ -30,10 +30,6 @@ launchers:
         params:
             - [ VAL01, INPUT,  40, all, "Service Names" ]
 
-    -
-        label: "Restart IntegGUI"
-        cmd  : EXEC BOOTMANAGER restart "integgui"
-
     - sep
 
     -
@@ -41,12 +37,10 @@ launchers:
         cmd  : EXEC SESSIONMANAGER changeProp main PROPID=$VAL01 OBSERVERS=$VAL02 SS=$VAL03 OPERATOR=$VAL04
         params:
             - [ VAL01, INPUT, 8, oXXXXX, "Prop-Id" ]
+            - [ VAL03, INPUT, 20, xxxxxx, "Support Scientist" ]
+            - [ VAL04, INPUT, 20, xxxxxx, "Operator" ]
             - break
             - [ VAL02, INPUT, 50, xxxxxx, "Observers" ]
-            - break
-            - [ VAL03, INPUT, 20, xxxxxx, "Support Scientist" ]
-            - break
-            - [ VAL04, INPUT, 20, xxxxxx, "Operator" ]
 
     - sep
 

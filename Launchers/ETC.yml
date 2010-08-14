@@ -36,13 +36,13 @@ launchers:
         label: "Gen Data Key"
         cmd  : EXEC SESSIONMANAGER gen_datakey "main" "xxxx" $VAL01
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
 
     -
         label: "Load Data Key"
         cmd  : EXEC SESSIONMANAGER load_datakey "main" "xxxx" $VAL01 $VAL02 $VAL03
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
             - [ VAL02, LIST, ["PUSH", "NOTIFY"], "Type" ]
             - [ VAL03, LIST, ["SUMMIT", "BASE", "MITAKA", "OTHER"], "Realm" ]
 
@@ -50,13 +50,13 @@ launchers:
         label: "Revoke Data Key"
         cmd  : EXEC SESSIONMANAGER revoke_datakey "main" "xxxx" $VAL01
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
 
     -
         label: "Add DataSink"
         cmd  : EXEC SESSIONMANAGER add_datasink $VAL01 $VAL02 $VAL03 
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
             - [ VAL02, INPUT, 20, "XXXXXX", "Host or IP" ]
             - [ VAL03, INPUT, 5, 15003, "Port" ]
 
@@ -64,7 +64,7 @@ launchers:
         label: "Del DataSink"
         cmd  : EXEC SESSIONMANAGER del_datasink $VAL01 $VAL02 $VAL03
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
             - [ VAL02, INPUT, 20, "XXXXXX", "Host or IP" ]
             - [ VAL03, INPUT, 5, 15003, "Port" ]
 
@@ -72,7 +72,7 @@ launchers:
         label: "Clear DataSink"
         cmd  : EXEC SESSIONMANAGER clear_datasink $VAL01
         params:
-            - [ VAL01, INPUT, 6, "oXXXXX", "PropID" ]
+            - [ VAL01, INPUT, 8, "oXXXXX", "PropID" ]
 
     - sep
 
