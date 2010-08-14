@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 15:42:42 HST 2010
+#  Last edit: Thu Aug 12 11:09:29 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -98,6 +98,7 @@ class Workspace(object):
             pageobj.logger = self.logger
             # ?? cyclical reference causes problems for gc?
             pageobj.parent = self
+            pageobj.tablbl = label
 
             # store away our handles to the page
             self.pages[name] = pageobj

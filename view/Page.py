@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 17:15:12 HST 2010
+#  Last edit: Thu Aug 12 11:09:29 HST 2010
 #]
 #
 import threading
@@ -32,6 +32,12 @@ class Page(object):
         self.parent.delpage(self.name)
 
         self.closed = True
+
+    def setLabel(self, name):
+        # tablbl attribute is added by parent workspace
+        # NOTE: this doesn't really change the name of the page, as known
+        # by the parent, just the appearance of the tab
+        self.tablbl.set_label(name)
 
 
 class ButtonPage(Page):

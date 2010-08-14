@@ -1,0 +1,45 @@
+# 
+# COMICS.yml -- AO188 launchers file 
+#
+# This is a YAML file
+
+tabname: "COMICS"
+launchers:
+
+    - 
+        label: "TELESCOPE MOVE"
+        cmd  : MOVE_FIELD OBE_ID=COMICS OBE_MODE=IMAG_SPEC DELTA_RA=$VAL01 DELTA_DEC=$VAL02
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "RA arcsec" ]     #delta-RA
+            - [ VAL02, INPUT, 6, 0.0,  "DEC arcsec" ]   #delta-DEC
+
+    - 
+        label: "ON_DETECTOR MOVE"
+        cmd  : MOVE_ONDETECTOR OBE_ID=COMICS OBE_MODE=IMAG_SPEC DELTA_X=$VAL01 DELTA_Y=$VAL02 MOVEMODE=$VAL03
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "X pixel" ]    #delta-X
+            - [ VAL02, INPUT, 6, 0.0, "Y pixel" ]    #delta-Y
+            - [ VAL03, INPUT, 6, "-1", "-2/-1/0/1/3" ]
+
+    - 
+        label: "FOCUS"
+        cmd  : SET_FOCUS OBE_ID=COMICS OBE_MODE=IMAG_SPEC Z=$VAL01 FOCUS_MODE=SET
+        params:
+            - [ VAL01, INPUT, 10, "!TSCL.Z", "Z" ] #  Z
+
+    - 
+        label: "ADJ FIELD"
+        cmd  : ADJ_FIELD OBE_ID=COMICS OBE_MODE=IMAG_SPEC MOVEMODE=$VAL01
+        params:
+            - [ VAL01, INPUT, 6, "-1", "-2/-1/0/1/3" ]
+
+    - 
+        label: "TRANS DATA"
+        cmd  : TRANS_DATA OBE_ID=COMICS OBE_MODE=IMAG_SPEC DATA_NO_FROM=$VAL01 DATA_NO_TO=$VAL02
+        params:
+            - [ VAL01, INPUT, 20, COMA00000000, "From" ]
+            - [ VAL02, INPUT, 20, "!FITS.COM.FRAMEID", "To" ]
+
+    - sep
+
+#END

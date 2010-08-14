@@ -1,0 +1,61 @@
+# 
+# SM.yml -- SessionManager Command Launcher definitions
+#
+# Eric Jeschke  2010.08.13
+#
+# This is a YAML file
+
+tabname: "SM"
+launchers:
+
+    -
+        label: "Alloc"
+        cmd  : EXEC SESSIONMANAGER alloc $VAL01 $VAL02
+        params:
+            - [ VAL01, LIST, ["IRCS", "FOCAS", "HDS", "COMICS", "SPCAM",
+                  "SUKA", "K3D", "MOIRCS", "FMOS", "FLDMON", "HICIAO",
+                  "WAVEPLAT", "SIMCAM"],
+                "Primary" ]
+            - [ VAL02, INPUT,  20, VGW, "Secondary" ]
+
+    -
+        label: "Custom Alloc"
+        cmd  : EXEC SESSIONMANAGER alloc $VAL01
+        params:
+            - [ VAL01, INPUT,  40, SIMCAM, "Service Names" ]
+
+    -
+        label: "Dealloc"
+        cmd  : EXEC SESSIONMANAGER free $VAL01
+        params:
+            - [ VAL01, INPUT,  40, all, "Service Names" ]
+
+    -
+        label: "Restart IntegGUI"
+        cmd  : EXEC BOOTMANAGER restart "integgui"
+
+    - sep
+
+    -
+        label: "Change Proposal"
+        cmd  : EXEC SESSIONMANAGER changeProp main PROPID=$VAL01 OBSERVERS=$VAL02 SS=$VAL03 OPERATOR=$VAL04
+        params:
+            - [ VAL01, INPUT, 8, oXXXXX, "Prop-Id" ]
+            - break
+            - [ VAL02, INPUT, 50, xxxxxx, "Observers" ]
+            - break
+            - [ VAL03, INPUT, 20, xxxxxx, "Support Scientist" ]
+            - break
+            - [ VAL04, INPUT, 20, xxxxxx, "Operator" ]
+
+    - sep
+
+    -
+        label: "Change Session"
+        cmd  : EXEC SESSIONMANAGER changeSession $VAL01 $VAL02
+        params:
+            - [ VAL01, INPUT, 10, main, "Session" ]
+            - [ VAL02, INPUT, 20, xxxx-xxxx-xxxx-xxxx, "Key" ]
+
+
+#END

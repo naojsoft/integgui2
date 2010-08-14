@@ -1,0 +1,33 @@
+# 
+# SUKA.yml -- SUKA launchers file 
+#
+# This is a YAML file
+
+tabname: "SUKA"
+launchers:
+
+    -
+        label: "SLEEP"
+        cmd  : SLEEP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01 
+        params:
+            - [ VAL01, SELECT, [[time1, 1], [time2, 2], [time3, 3]] ]
+
+    - sep
+
+    -
+        label: "SLEEP (time,loop)"
+        cmd  : SLEEP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01
+        params:
+            - [ VAL01, INPUT, 12, 1, "sleep time(ms)"  ]
+
+    - sep
+
+    -
+        label: "SLEEP_LOOP (time,loop)"
+        cmd  : SLEEPLOOP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01 loop_time=$VAL02
+        params:
+            - [ VAL01, LIST, [[time1, 1], [time2, 2], [time3, 3]] ]
+            - [ VAL02, INPUT, 5, 3 ]
+
+#END
+

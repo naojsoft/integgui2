@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jul 26 14:22:09 HST 2010
+#  Last edit: Thu Aug 12 11:09:30 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -15,6 +15,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject
+import yaml
 
 # SSD/Gen2 imports
 import Bunch
@@ -471,7 +472,8 @@ class IntegView(object):
 
             dirname, filename = os.path.split(filepath)
 
-            match = re.match(r'^(.+)\.def$', filename)
+            #match = re.match(r'^(.+)\.def$', filename)
+            match = re.match(r'^(.+)\.yml$', filename)
             if not match:
                 return
 
@@ -479,8 +481,9 @@ class IntegView(object):
             page = self.lws.addpage(name, name, LauncherPage)
             #page.load(buf)
 
-            ast = self.lnchmgr.parse_buf(buf)
-            page.addFromDefs(ast)
+            #ast = self.lnchmgr.parse_buf(buf)
+            #page.addFromDefs(ast)
+            page.load(buf)
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (

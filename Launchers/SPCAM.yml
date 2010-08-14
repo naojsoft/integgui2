@@ -1,0 +1,224 @@
+# 
+# SPCAM.yml -- SPCAM launchers file 
+#
+# This is a YAML file
+
+tabname: "SPCAM"
+launchers:
+    -
+        label: "FilterChange"
+        cmd  : FILTERCHANGE OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01"
+        params:
+            - [ VAL01, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
+                ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
+                ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
+                ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", ="W-S-Z+"],
+                ["NB711 (N-B-L711)", "N-B-L711"], ["NB816 (N-B-L816)", "N-B-L816"],
+                ["NB921 (N-B-L921)", "N-B-L921"], ["V+R (W-J-VR)", "W-J-VR"]] ]
+
+    -
+        label: "FilterChange"
+        cmd  : FILTERCHANGE OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01"
+        params:
+            - [ VAL01, INPUT, 8, "W-J-B"  ]
+
+    -
+        label: "FilterChange2"
+        cmd  : FILTERCHANGE2 OBE_ID=SPCAM OBE_MODE=LAUNCHER Filter="$VAL01" MOTOR=$VAL02 COORD=$VAL03
+        params:
+            - [ VAL01, INPUT, 8, "W-J-B" ]
+            - [ VAL02, LIST,  ["On", "Off"], "Drive" ]
+            - [ VAL03, LIST,  [["SYNC", "TSC"], ["ASYNC", "ABS"]], "Mode" ]
+
+    - sep
+
+#    -
+#         label: "Alloc Free Status"
+#         cmd  : TROUBLESHOOT OBE_ID=SPCAM OBE_MODE=LAUNCHER DDCOM=$VAL01
+#         params:
+#             - [ VAL01, SELECT, [["Alloc", ALLOC], ["Free", FREE],
+#                                 ["Status", STATUS]] ]
+
+    -
+        label: "Status"
+        cmd  : STATUS OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    -
+        label: "Alloc"
+        cmd  : ALLOC OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    -
+        label: "Free"
+        cmd  : FREE OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    - sep
+
+    -
+        label: "Wipe"
+        cmd  : WIPE OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    -
+        label: "Bias"
+        cmd  : GETBIAS OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    - sep
+
+    -
+        label: "Abort Exposure" 
+        cmd  : READABORT OBE_ID=SPCAM OBE_MODE=LAUNCHER TARGET=$VAL01
+        params:
+            - [ VAL01, LIST, [["Do not readout CCD", READ], ["Read CCD", EXP]] ]
+
+    - sep
+
+    -
+        label: "AG Probe  (X, Y, Z)"
+        cmd  : AGPROBE OBE_ID=SPCAM OBE_MODE=LAUNCHER AG_X=$VAL01 AG_Y=$VAL02 AG_Z=$VAL03
+        params:
+            - [ VAL01, INPUT, 8, 120.0 ]
+            - [ VAL02, INPUT, 8, 0.0 ]
+            - [ VAL03, INPUT, 8, 0.0 ]
+
+    - sep
+
+    -
+        label: "FocusAGSeq.Zon (Z,dZ,ExpTFac,InstDZ)"
+        cmd  : FOCUSAGSEQUENCE_ZON OBE_ID=SPCAM OBE_MODE=LAUNCHER F_SELECT=P_OPT Z=$VAL01 DELTAZ=$VAL02 EXPTIME_FACTOR=$VAL03 Instrument_DeltaZ=$VAL04 AGSH_ZDRIVE=$VAL05
+        params:
+            - [ VAL01, INPUT, 8, "!TSCL.Z", "CenterZ" ]
+            - [ VAL02, INPUT, 8, 0.07, "SampleDZ" ]
+            - [ VAL03, LIST, ["1.0", "2.0", "4.0", "8.0", "0.5"], "ExpTFac" ]
+            - [ VAL04, INPUT, 8, 0.0, "InstDeltaZ" ]
+            - [ VAL05, LIST, ["Off", "On"], "AG-Z" ]
+
+    -
+        label: "FocusAGSeq. (Z,dZ,ExpTFac)"
+        cmd  : FOCUSAGSEQUENCE OBE_ID=COMMON OBE_MODE=LAUNCHER F_SELECT=P_OPT Z=$VAL01 DELTAZ=$VAL02 EXPTIME_FACTOR=$VAL03 Instrument_DeltaZ=$VAL04
+        params:
+            - [ VAL01, INPUT, 8, "!TSCL.Z", "CenterZ" ]
+            - [ VAL02, INPUT, 8, 0.07, "SampleDZ" ]
+            - [ VAL03, LIST, ["1.0", "2.0", "4.0", "8.0", "0.5"], "ExpTFac" ]
+            - [ VAL04, INPUT, 8, 0.0, "InstDeltaZ" ]
+
+    -
+        label: "FocusAG (Z,dZ,InstDeltaZ)"
+        cmd  : FOCUSAG OBE_ID=COMMON OBE_MODE=LAUNCHER F_SELECT=P_OPT Z=$VAL01 DELTAZ=$VAL02 Instrument_DeltaZ=$VAL03
+        params:
+            - [ VAL01, INPUT, 8, "!TSCL.Z", "CenterZ" ]
+            - [ VAL02, INPUT, 8, 0.07, "SampleDeltaZ" ]
+            - [ VAL03, INPUT, 8, 0.0, "InstDeltaZ" ]
+
+#    - sep
+
+#    -
+#         label: "Boot VGW"
+#         cmd  : BOOTVGW OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+#     -
+#         label: "Shutdown VGW"
+#         cmd  : SHUTDOWNVGW OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    - sep
+
+    -
+        label: "Setup SkyFlat"
+        cmd  : SETUPSKYFLAT OBE_ID=SPCAM OBE_MODE=IMAG FILTER="$VAL01"
+        params:
+#             - [ VAL01, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
+#                 ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
+#                 ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
+#                 ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", "W-S-Z+"]] ]
+              - [ VAL01, INPUT, 8, "W-J-B" ]
+
+    -
+        label: "Setup SkyFlat_NOAG"
+        cmd  : SETUPSKYFLAT_NOAG OBE_ID=SPCAM OBE_MODE=IMAG FILTER="$VAL01"
+        params:
+#             - [ VAL01, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
+#                 ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
+#                 ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
+#                 ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", "W-S-Z+"]] ]
+              - [ VAL01, INPUT, 8, "W-J-B" ]
+
+    -
+        label: "Get SkyFlat"
+        cmd  : GETSKYFLAT OBE_ID=SPCAM OBE_MODE=IMAG FILTER="$VAL01" EXPTIME=$VAL02
+        params:
+#             - [ VAL01, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
+#                 ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
+#                 ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
+#                 ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", "W-S-Z+"]] ]
+              - [ VAL01, INPUT, 8, "W-J-B" ]
+              - [ VAL02, INPUT, 4, 30 ]
+        
+    - sep
+
+    -
+        label: "Setup DomeFlat"
+        cmd  : SETUPDOMEFLAT OBE_ID=COMMON OBE_MODE=TOOL SETUP=$VAL03 LAMP=4X10W VOLT=$VAL01 AMP=$VAL02
+        params:
+            - [ VAL01, LIST, [["B (W-J-B)", 6.00], ["V (W-J-V)", 4.00], 
+                ["R (W-C-RC)", 3.00], ["I (W-C-IC)", 2.70],
+                ["g (W-S-G+)", 5.00], ["r (W-S-R+)", 3.00],
+                ["i (W-S-I+)", 2.70], ["z (W-S-Z+)", 2.67]] ]
+            - [ VAL02, LIST, [["B (W-J-B)", 6.33], ["V (W-J-V)", 5.10],
+                 ["R (W-C-RC)", 4.36], ["I (W-C-IC)", 4.15], 
+                 ["g (W-S-G+)", 5.72], ["r (W-S-R+)", 4.34],
+                 ["i (W-S-I+)", 4.11], ["z (W-S-Z+)", 4.08]] ]
+            - [ VAL03, LIST, [["Setup", SETUP], ["Change", CHANGE]] ]
+
+    -
+        label: "Get DomeFlat"
+        cmd  : GETDOMEFLAT OBE_ID=SPCAM OBE_MODE=IMAG EXPTIME=$VAL01 FILTER="$VAL02"
+        params:
+            - [ VAL01, LIST, [["B (W-J-B)", 10], ["V (W-J-V)", 15],
+                  ["R (W-C-RC)", 15], ["I (W-C-IC)", 10],
+                  ["g (W-S-G+)", 10], ["r (W-S-R+)", 15],
+                  ["i (W-S-I+)", 10], ["z (W-S-Z+)", 10]] ]
+            - [ VAL02, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
+                ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
+                ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
+                ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", "W-S-Z+"]] ]
+
+    -
+        label: "Shutdown DomeFlat"
+        cmd  : SHUTDOWNDOMEFLAT OBE_ID=COMMON OBE_MODE=TOOL
+
+    - sep
+
+    -
+        label: "WindScreen"
+        cmd  : WINDSCREENOPE OBE_ID=SPCAM OBE_MODE=LAUNCHER MOTOR=$VAL01 COORD=$VAL02
+        params:
+            - [ VAL01, LIST,  ["On", "Off"], "Drive" ]
+            - [ VAL02, LIST,  [["SYNC", "TSC"], ["ASYNC", "ABS"]],  "Mode" ]
+
+    - sep
+
+    -
+        label: "Filter Storing"
+        cmd  : FILTERSTOREALL OBE_ID=SPCAM OBE_MODE=LAUNCHER
+
+    - sep
+
+    -
+        label: "Grism PFUOffset"
+        cmd  : PFUOFFSET OBE_ID=SPCAM OBE_MODE=LAUNCHER PFU_OFFSET=$VAL01
+        params:
+            - [ VAL01, INPUT, 8, 1.85, "(mm) Offset" ]
+
+    -
+        label: "PFUOffsetMemoryTest"
+        cmd  : PFUOFFSET_MEMORYTEST OBE_ID=SPCAM OBE_MODE=LAUNCHER PFU_OFFSET=$VAL01
+        params:
+            - [ VAL01, INPUT, 8, 1.85, "(mm) Offset" ]
+
+    -
+        label: "Grism PFUOffset Loop"
+        cmd  : PFUOFFSET_LOOP OBE_ID=SPCAM OBE_MODE=LAUNCHER PFU_OFFSET=$VAL01 NLOOP=$VAL02 INTERVAL=$VAL03
+        params:
+            - [ VAL01, INPUT, 8, 1.85, "(mm) Offset" ]
+            - [ VAL02, INPUT, 8, 5, "Ntime" ]
+            - [ VAL03, INPUT, 8, 60, "Interval" ]
+
+#END

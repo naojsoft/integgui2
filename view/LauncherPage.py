@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 17:16:48 HST 2010
+#  Last edit: Thu Aug 12 12:38:53 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -8,6 +8,7 @@ from __future__ import with_statement
 
 import threading
 import gtk
+import yaml
 
 import Bunch
 import common
@@ -16,6 +17,8 @@ import Page
 # Default width of the main launcher buttons
 default_width = 150
 
+class LauncherError(Exception):
+    pass
 
 class Launcher(object):
     
@@ -291,6 +294,109 @@ class LauncherList(object):
             else:
                 self.addLauncherFromDef(ast)
 
+    def _validate_elt(self, elt):
+        if isinstance(elt, list) and len(elt) == 2:
+            return elt
+        
+        elt_s = str(elt)
+        if not '=' in elt_s:
+            return [elt_s, elt_s]
+        else:
+            return elt_s.split('=')
+        
+    def addLauncherFromYAMLdef(self, d):
+        assert isinstance(d, dict) and d.has_key('label'), \
+               LauncherError("Malformed launcher def: expected key 'label': %s" % (
+            str(d)))
+        name = d['label']
+
+        launcher = self.addLauncher(name, name)
+
+        assert d.has_key('cmd'), \
+               LauncherError("Malformed launcher def: expected key 'cmd': %s" % (
+            str(d)))
+        launcher.add_cmd(d['cmd'])
+
+        if d.has_key('params'):
+            for param in d['params']:
+                if param == 'break':
+                    launcher.add_break()
+                    continue
+
+                if isinstance(param, dict):
+                    assert param.has_key('type')
+                    p_type = param['type'].lower()
+
+                    if p_type == 'input':
+                        var = param['name']
+                        width = param.get('width', 10)
+                        val = param.get('value', '')
+                        lbl = param.get('label', '')
+                        width = int(width)
+
+                        launcher.add_input(var, width, val, lbl)
+
+                    elif p_type == 'select':
+                        var = param['name']
+                        vallst = map(self._validate_elt, param['values'])
+                        lbl = param.get('label', '')
+
+                        launcher.add_radio(var, vallst, lbl)
+
+                    elif p_type == 'list':
+                        var = param['name']
+                        vallst = map(self._validate_elt, param['values'])
+                        lbl = param.get('label', '')
+
+                        launcher.add_list(var, vallst, lbl)
+
+                elif isinstance(param, list):
+                    var = param[0]
+                    p_type = param[1].lower()
+
+                    if p_type == 'input':
+                        width = 10
+                        val = ''
+                        lbl = ''
+                        if len(param) > 2:
+                            width = param[2]
+                            width = int(width)
+                        if len(param) > 3:
+                            val = param[3]
+                        if len(param) > 4:
+                            lbl = param[4]
+
+                        launcher.add_input(var, width, val, lbl)
+
+                    elif p_type == 'select':
+                        vallst = map(self._validate_elt, param[2])
+                        lbl = ''
+                        if len(param) > 3:
+                            lbl = param[3]
+
+                        launcher.add_radio(var, vallst, lbl)
+
+                    elif p_type == 'list':
+                        vallst = map(self._validate_elt, param[2])
+                        lbl = ''
+                        if len(param) > 3:
+                            lbl = param[3]
+
+                        launcher.add_list(var, vallst, lbl)
+
+                else:
+                    # don't know what we are looking at
+                    continue
+                
+        
+    def loadLauncher(self, d):
+        for d in d['launchers']:
+            if d == 'sep':
+                self.addSeparator()
+
+            elif isinstance(d, dict):
+                self.addLauncherFromYAMLdef(d)
+
 
 class LauncherPage(Page.CommandPage):
 
@@ -334,10 +440,17 @@ class LauncherPage(Page.CommandPage):
 
 
     def load(self, buf):
-        self.llist.loadLauncher(buf)
+        ymldef = yaml.load(buf)
+        self.llist.loadLauncher(ymldef)
+
+        if ymldef.has_key('tabname'):
+            self.setLabel(ymldef['tabname'])
 
     def addFromDefs(self, ast):
         self.llist.addFromDefs(ast)
+
+    def addFromList(self, llist):
+        self.llist.addFromDefs(llist)
 
     def execute(self, cmdstr, launcher):
         """This is called when a launcher button is pressed."""

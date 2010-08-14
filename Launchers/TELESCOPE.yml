@@ -1,0 +1,127 @@
+# 
+# TELESCOPE.yml -- Telescope launchers file 
+#
+# This is a YAML file
+
+tabname: TELESCOPE
+launchers:
+    - 
+        label: "Telescope Setup"
+        cmd  :  BootTelescope OBE_ID=Common OBE_MODE=Tool F_Select=$VAL01
+        params:
+            - [ VAL01, LIST, [Cs_Opt, Cs_IR, Ns_Opt, Ns_IR, P_Opt, P_IR,
+                Ns_IR_OptM2] ]
+
+    - sep
+
+    -
+        label: "AG,SV Tracking"
+        cmd  : AGTRACKING OBE_ID=COMMON OBE_MODE=LAUNCHER AGTRACKING=$VAL02 GUIDER=$VAL01
+        params:
+            - [ VAL01, LIST, [AG, SV], "Guider" ]
+            - [ VAL02, LIST, [On, Off] ]
+
+    -
+        label: "AG Probe"
+        cmd  : AG_PROBE OBE_ID=COMMON OBE_MODE=LAUNCHER PROBE=$VAL01
+        params:
+            - [ VAL01, SELECT, [Retract, Insert] ]
+
+    -
+        label: "AG,SV ExposureTime"
+        cmd  : AG_Change_Exptime OBE_ID=Common OBE_Mode=Launcher AGSV=$VAL01 Exptime=$VAL02
+        params:
+            - [ VAL01, LIST, [AG, SV], "Guider" ]
+            - [ VAL02, INPUT, 6, 1000, "ms" ]
+
+    -
+        label: "AG,SV Sky Cut LVL"
+        cmd  : AG_Change_SkyLvl OBE_ID=Common OBE_Mode=Launcher AGSV=$VAL01 I_Bottom=$VAL02
+        params:
+            - [ VAL01, LIST, [AG, SV], "Guider" ]
+            - [ VAL02, INPUT, 6, 5000, "Counts" ]
+
+    -
+        label: "Start AG (DoAG)"
+        cmd  : DOAG OBE_ID=COMMON OBE_MODE=LAUNCHER AG_Select=$VAL01 EXPTIME_FACTOR=$VAL02
+        params:
+            - [ VAL01, LIST, [ Semiauto, Manual, Auto ], "StarSelect" ]
+            - [ VAL02, INPUT, 8, 1.0, "ExpFactor" ]
+
+    -
+        label: "Offset by Guider"
+        cmd  : MOVEGUIDE OBE_ID=COMMON OBE_MODE=LAUNCHER GUIDER=$VAL01 DELTA_RA=$VAL02 DELTA_DEC=$VAL03
+        params:
+            - [ VAL01, LIST, [AG, SV], "Guider" ]
+            - [ VAL02, INPUT, 8, 0.0, "RA asec" ]
+            - [ VAL03, INPUT, 8, 0.0, "DEC asec" ]
+
+    -
+        label: "Save VGW Images"
+        cmd  : SAVE_VLAN OBE_ID=COMMON OBE_MODE=LAUNCHER SAVE_MODE=$VAL01 VLAN=$VAL02 NFRAME=$VAL03
+        params:
+            - [ VAL01, LIST, [ Current, NFrame ], "SaveMode" ]
+            - [ VAL02, LIST, [ AG, SV, SH ] ]
+            - [ VAL03, INPUT, 6, 1, "NFrame" ]
+
+    - sep
+
+    -
+        label: "Setup Field"
+        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL RA=$VAL01 DEC=$VAL02 EQUINOX=$VAL03 INSROT_PA=$VAL04 Object=$VAL05
+        params:
+            - [ VAL01, INPUT, 10, 000000.000, "RA" ]
+            - [ VAL02, INPUT, 10, "+00000.00", "DEC" ]
+            - [ VAL03, INPUT, 6, 2000.0, "Equinox" ]
+            - break
+            - [ VAL04, INPUT, 6, 0.00, "Insrot_PA" ]
+            - [ VAL05, INPUT, 16, "Object", "Object" ]
+
+    -
+        label: "NonSiderealTracking"
+        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL Target=$VAL01 INSROT_PA=$VAL02 Object=$VAL03 Coord=file
+        params:
+            - [ VAL01, INPUT, 16, "08###.dat", "TargetFile" ]
+            - [ VAL02, INPUT, 8, 0.00, "Insrot_PA" ]
+            - [ VAL03, INPUT, 16, "Object", "Object" ]
+
+    -
+        label: "Set AzEl"
+        cmd  : SETAzEl OBE_ID=COMMON OBE_MODE=LAUNCHER Az=$VAL01 El=$VAL02
+        params:
+            - [ VAL01, INPUT, 6, nop, "Az" ]
+            - [ VAL02, INPUT, 6, nop, "El" ]
+
+    -
+        label: "Start Tracking"
+        cmd  : TelTrack OBE_ID=COMMON OBE_MODE=LAUNCHER
+
+    -
+        label: "OffsetTelescope"
+        cmd  : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=LAUNCHER OFFSET_Mode=$VAL01 DELTA_RA=$VAL02 DELTA_DEC=$VAL03
+        params:
+            - [ VAL01, LIST, [ "Relative", "Offset" ], "Mode" ]
+            - [ VAL02, INPUT, 6, 0.0, "RAasec" ]
+            - [ VAL03, INPUT, 6, 0.0, "DECasec" ]
+
+    - sep
+
+    -
+        label: "Set Atm.Dsp.Offset"
+        cmd  : SETAD OBE_ID=COMMON OBE_MODE=PROTO OBS_WAVELEN=$VAL01 REF_WAVELEN=$VAL02 Mode=$VAL03 OFFSET_TIME=0
+        params:
+            - [ VAL01, INPUT, 10, 10, "ObsWavelen(micron)" ]
+            - [ VAL02, INPUT, 10, 0.73, "GuidWavelen(micron)" ]
+            - [ VAL03, LIST, [ "SET", "CLEAR" ], "Mode" ]
+
+    -
+        label: "Atm.Dsp.Correction"
+        cmd  : CORRECTAD OBE_ID=COMMON OBE_MODE=PROTO OBS_WAVELEN=$VAL01 REF_WAVELEN=$VAL02 OFFSET_TIME=$VAL03 Guider=$VAL04 IMGROT_FLAG=$VAL05
+        params:
+            - [ VAL01, INPUT, 10, 10, "ObsWavelen(micron)" ]
+            - [ VAL02, INPUT, 10, 0.73, "GuidWavelen(micron)" ]
+            - [ VAL03, INPUT, 10, 0, "OffsetTime(sec)" ]
+            - [ VAL04, LIST, ["AG", "SV"], "Guider" ]
+            - [ VAL05, LIST, [["wo_IMR", 0], ["w_IMR", 1]], "ImgRotFlag" ]
+
+#END

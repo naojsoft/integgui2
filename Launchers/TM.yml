@@ -1,0 +1,46 @@
+# 
+# TM.yml -- TaskManager Command Launcher definitions
+#
+# Eric Jeschke  2010.08.13
+#
+# This is a YAML file
+
+tabname: "TM"
+launchers:
+
+    -
+        label: "Reset Task Manager"
+        cmd  : EXEC TASKMANAGER reset
+
+    -
+        label: "Restart Task Manager"
+        cmd  : EXEC BOOTMANAGER restart "taskmgr0"
+
+    -
+        label: "Init From Session"
+        cmd  : EXEC TASKMANAGER initializeFromSession $VAL01
+        params:
+            - [ VAL01, INPUT, 10, main, "Session" ]
+
+    - sep
+
+    -
+        label: "Load Tasks"
+        cmd  : EXEC TASKMANAGER loadModules $VAL01
+        params:
+            - [ VAL01, INPUT, 40, xxxxx, "Module Names" ]
+
+    -
+        label: "Load AbsCmds"
+        cmd  : EXEC TASKMANAGER loadAbsCmds $VAL01 $VAL02
+        params:
+            - [ VAL01, INPUT, 10, IRCS, "Inst" ]
+            - [ VAL02, INPUT, 20, ALL,  "Mode" ]
+
+    -
+        label: "Load PARA Dirs"
+        cmd  : EXEC TASKMANAGER loadParaDirs $VAL01
+        params:
+            - [ VAL01, INPUT, 40, IRCS, "PARA Directories" ]
+
+#END

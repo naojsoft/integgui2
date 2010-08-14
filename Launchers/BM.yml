@@ -1,0 +1,67 @@
+# 
+# BM.yml -- BootManager launchers file 
+#
+# Eric Jeschke  2010.08.13
+#
+# This is a YAML file
+
+tabname: "BM"
+launchers:
+
+    -
+        label: "Restart Server"
+        cmd: EXEC BOOTMANAGER restart $VAL01
+        params:
+            - [ VAL01, LIST, [["Task Manager", "taskmgr0"],
+                ["Status", "status"], ["Telescope Interface", "TSC0"],
+                ["STARS Interface", "STARSint"], ["Frame Manager", "frames"],
+                ["Session Manager", "sessions"], ["Monitor", "monitor"],
+                ["Instrument Simulator", "simcam"],
+                ["Telescope Simulator", "tsccam"],
+                ["STARS Simulator", "STARSsim"]],
+                "Subsystem" ]
+
+    -
+        label: "Restart Client"
+        cmd  : EXEC BOOTMANAGER restart $VAL01
+        params:
+            - [ VAL01, LIST, [["IntegGUI", "integgui"], ["VGW", "vgw"],
+                  ["QDAS", "qdas"], ["Sky Monitor", "skymon"],
+                  ["FITS Viewer", "fitsview"], ["TelStat", "telstat"]],
+                  "Application" ]
+
+    -
+        label: "Custom Restart"
+        cmd  : EXEC BOOTMANAGER restart $VAL01
+        params:
+            - [ VAL01, INPUT, 40, "vgw", "Subsystem" ]
+
+    -
+        label: "Stop All"
+        cmd  : EXEC BOOTMANAGER stopall
+
+    -
+        label: "Reset"
+        cmd  : EXEC BOOTMANAGER reset
+
+    -
+        label: "To Stage"
+        cmd  : EXEC BOOTMANAGER tostage $VAL01
+        params:
+            - [ VAL01, INPUT, 10, 0, "Stage" ]
+
+    - sep
+
+#     -
+#         label: "Clear Config"
+#         cmd  : EXEC BOOTMANAGER clearall
+
+    -
+        label: "Reload Config"
+        cmd  : EXEC BOOTMANAGER reloadConfig
+
+    -
+        label: "Distribute Config"
+        cmd  : EXEC BOOTMANAGER setup
+
+#END
