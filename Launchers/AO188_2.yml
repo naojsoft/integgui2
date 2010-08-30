@@ -32,7 +32,7 @@ launchers:
         cmd  : AO188_CALLD_POWER OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
         params:
             - [ VAL01, LIST, [["655nm", 1], ["1550nm", 2], ["589nm", 3]] ]
-            - [ VAL02, LIST, [ON, OFF], "power" ]
+            - [ VAL02, LIST, ["ON", "OFF"], "power" ]
 
     -
         label: "Set CALLD current"
@@ -94,7 +94,7 @@ launchers:
         label: "Set VMpower"  # Set power
         cmd:   AO188_VMPOWER OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
         params:
-            - [ VAL01, LIST, [["On", ON], ["Off", OFF]] ]
+            - [ VAL01, LIST, [["On", "ON"], ["Off", "OFF"]] ]
 
     -
         label: "Set DMvolt"  # Set voltage

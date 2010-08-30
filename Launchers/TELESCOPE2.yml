@@ -74,7 +74,7 @@ launchers:
         params:
             - { name: VAL01, type: LIST, values: [Hal1, Hal2, FeNe, ThAr,
                 Ne, Ar], label: Lamp }
-            - { name: VAL02, type: LIST, values: [On, Off] }
+            - { name: VAL02, type: LIST, values: ["On", "Off"] }
             - { name: VAL03, type: LIST, values: [nop, None, ND1, ND2, ND3],
                 label: Filter1 }
             - { name: VAL04, type: LIST, values: [nop, None, ND1IR, ND2IR],
@@ -94,7 +94,7 @@ launchers:
         label: "WindScreen"
         cmd  :  WindScreen OBE_ID=COMMON OBE_MODE=LAUNCHER Motor=$VAL01
         params:
-            - { name: VAL01, type: SELECT, values: [On, Off] }
+            - { name: VAL01, type: SELECT, values: ["On", "Off"] }
 
     -   sep
 

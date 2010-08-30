@@ -111,7 +111,7 @@ launchers:
         label: "Set Loop"     # AO188 loop
         cmd  : AO188_LOOP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 TIME=$VAL02
         params:
-            - [ VAL01, LIST, [["ON", ON], ["STOP", STOP], ["OFF(DECAY)", OFF]],
+            - [ VAL01, LIST, [["ON", "ON"], ["STOP", STOP], ["OFF(DECAY)", "OFF"]],
                "state" ]
             - [ VAL02, INPUT, 6, 10, "t_decay" ]
 

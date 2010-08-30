@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Aug 12 11:09:30 HST 2010
+#  Last edit: Mon Aug 30 10:02:35 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -492,7 +492,7 @@ class IntegView(object):
 
     def get_launcher_paths(self, insname):
 
-        filename = '%s*.def' % insname.upper()
+        filename = '%s*.yml' % insname.upper()
         pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                  'Launchers', filename)
 

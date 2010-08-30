@@ -60,7 +60,7 @@ launchers:
         label: POL
         cmd  : PolInsert OBE_ID=FOCAS OBE_MODE=LAUNCHER "Select"=$VAL01
         params:
-            - [ VAL01, SELECT, [[None, None], [HWV, HWV], [QWV, QWV]] ]
+            - [ VAL01, SELECT, [[None, "None"], [HWV, HWV], [QWV, QWV]] ]
 
     - sep
 

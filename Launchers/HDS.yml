@@ -46,8 +46,8 @@ launchers:
         label: "Re-Target Acq."
         cmd  : TargetAcquisition OBE_ID=HDS OBE_MODE=LAUNCHER QDAS=$VAL01 AD_Correction=$VAL02 OBS_WAVELEN=$VAL03 REF_WAVELEN=$VAL04
         params:
-            - [ VAL01, LIST, [["QDAS_ON", ON], ["QDAS_OFF", OFF]] ]
-            - [ VAL02, LIST, [["On_Slit", OFF], ["Correction", ON]] ]
+            - [ VAL01, LIST, [["QDAS_ON", "ON"], ["QDAS_OFF", "OFF"]] ]
+            - [ VAL02, LIST, [["On_Slit", "OFF"], ["Correction", "ON"]] ]
             - [ VAL03, INPUT, 7, 0.35, "HDS(um)" ]
             - [ VAL04, INPUT, 7, 0.70, "Guider" ]
   

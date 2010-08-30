@@ -19,7 +19,7 @@ launchers:
         cmd  : AGTRACKING OBE_ID=COMMON OBE_MODE=LAUNCHER AGTRACKING=$VAL02 GUIDER=$VAL01
         params:
             - [ VAL01, LIST, [AG, SV], "Guider" ]
-            - [ VAL02, LIST, [On, Off] ]
+            - [ VAL02, LIST, ["On", "Off"] ]
 
     -
         label: "AG Probe"

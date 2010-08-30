@@ -130,8 +130,8 @@ launchers:
         label: "Motor Power"
         cmd  : MotorPower OBE_ID=MOIRCS OBE_MODE=LAUNCHER TURRET=$VAL01 MOS=$VAL02
         params:
-            - [ VAL01, LIST, [NOP, ON, OFF],  "TURRET" ]
-            - [ VAL02, LIST, [NOP, ON, OFF],  "MOS" ]
+            - [ VAL01, LIST, ["NOP", "ON", "OFF"],  "TURRET" ]
+            - [ VAL02, LIST, ["NOP", "ON", "OFF"],  "MOS" ]
 
     - sep
 
