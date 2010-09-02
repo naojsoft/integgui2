@@ -14,11 +14,11 @@ import Page
 regex_err1 = re.compile(r'^.*|\sE\s|.*$')
 regex_err2 = re.compile(r'^.*(error|exception).*$', re.I)
 
-class LogPage(Page.ButtonPage):
+class BaseLogPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
-        super(LogPage, self).__init__(frame, name, title)
+        super(BaseLogPage, self).__init__(frame, name, title)
 
         self.logsize = 5000
 
@@ -48,6 +48,8 @@ class LogPage(Page.ButtonPage):
 
         self.add_close()
 
+
+class LogPage(BaseLogPage):
 
     def load(self, filepath):
         self.filepath = filepath
@@ -99,6 +101,33 @@ class LogPage(Page.ButtonPage):
             self.tw.scroll_to_mark(self.mark, 0.0)
 
         gobject.timeout_add(100, self.poll)
+
+
+class MonLogPage(BaseLogPage):
+
+    def push(self, logname, logdict):
+        #self.tw.scroll_mark_onscreen(self.mark)
+
+        msgstr = logdict['msgstr'] + '\n'
+        level = logdict['level']
+        # TODO: local check on level or other filtering
+
+        loc = self.buf.get_end_iter()
+        self.buf.insert(loc, msgstr)
+
+        # Remove some old log lines if necessary
+        excess_lines = loc.get_line() - self.logsize
+        if excess_lines > 0:
+            bitr1 = self.buf.get_start_iter()
+            bitr2 = bitr1.copy()
+            bitr2.set_line(excess_lines)
+            self.buf.delete(bitr1, bitr2)
+
+        loc = self.buf.get_end_iter()
+        self.buf.move_mark(self.mark, loc)
+        #self.tw.scroll_to_iter(loc, 0.0)
+        #self.tw.scroll_mark_onscreen(self.mark)
+        self.tw.scroll_to_mark(self.mark, 0.0)
 
 
 #END
