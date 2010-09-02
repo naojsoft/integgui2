@@ -1,13 +1,14 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jul 26 14:49:38 HST 2010
+#  Last edit: Wed Sep  1 20:28:52 HST 2010
 #]
 
 import os, re
-import gtk
+import gobject, gtk
 
 import common
 import Page, CodePage
+import CommandObject
 
 import SOSS.parse.ope as ope
 
@@ -63,14 +64,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         # add some bottom buttons
         self.btn_exec = gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: common.view.execute(self))
+        self.btn_exec.connect("clicked", lambda w: self.execute())
         self.btn_exec.modify_bg(gtk.STATE_NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
         self.btn_sched = gtk.Button("Schedule")
-        self.btn_sched.connect("clicked", lambda w: common.view.schedule(self))
+        self.btn_sched.connect("clicked", lambda w: self.schedule())
         self.btn_sched.show()
         self.leftbtns.pack_end(self.btn_sched)
 
@@ -113,7 +114,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         item = gtk.MenuItem(label="Clear Schedule")
         self.menu.append(item)
-        item.connect_object ("activate", lambda w: common.view.clear_queued_tags(self, ['scheduled']),
+        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
                              "menu.Clear_Scheduled")
         item.show()
 
@@ -379,4 +380,260 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
         return False
     
+
+    def _get_commands_from_selection(self):
+
+        # Get the range of text selected
+        first, last = self.buf.get_selection_bounds()
+        frow = first.get_line()
+        lrow = last.get_line()
+        if last.starts_line():
+            # Hack to fix problem where selection covers the newline
+            # but not the first character of the next line
+            lrow -= 1
+        print "selection: %d-%d" % (frow, lrow)
+
+        # Clear the selection
+        self.buf.move_mark_by_name("insert", first)         
+        self.buf.move_mark_by_name("selection_bound", first)
+
+        # Break selection into individual lines
+        cmds = []
+
+        for i in xrange(int(lrow)+1-frow):
+
+            row = frow+i
+            print "row: %d" % (row)
+
+            first.set_line(row)
+            last.set_line(row)
+            last.forward_to_line_end()
+
+            # skip comments and blank lines
+            cmd = self.buf.get_text(first, last).strip()
+            if cmd.startswith('#') or (len(cmd) == 0):
+                continue
+            self.logger.debug("cmd=%s" % (cmd))
+            print cmd
+
+            # tag the text so we can manipulate it later
+            cmdobj = OpeCommandObject('ope%d', self.queueName,
+                                      self.logger, self)
+            tag = cmdobj.guitag
+            self.buf.create_tag(tag)
+            self.buf.apply_tag_by_name(tag, first, last)
+
+            cmds.append(cmdobj)
+
+        return cmds
+
+
+    def execute(self):
+        """Callback when the EXEC button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        if common.controller.executingP.isSet():
+            # Yep--popup an error message
+            common.view.popup_error("There is already a %s task running!" % (
+                self.queueName))
+            return
+
+        # Get length of queued items, if any
+        num_queued = common.controller.get_queueLength(self.queueName)
+        
+        if not self.buf.get_has_selection():
+            # No selection.  See if there are previously queued commands
+            if num_queued == 0:
+                common.view.popup_error("No mouse selection and no %s queued commands!" % (
+                    self.queueName))
+            else:
+                if common.view.popup_confirm("Confirm execute",
+                                             "No selection--resume execution of %s queued commands?" % (
+                    self.queueName)):
+                    common.controller.resumeQueue(self.queueName)
+                
+            return
+
+        if num_queued > 0:
+            if not common.view.popup_confirm("Confirm execute",
+                                             "Replace %s queued commands with selection?" % (
+                self.queueName)):
+                return
+
+        cmds = self._get_commands_from_selection()
+
+        common.controller.replaceQueueAndExecute(self.queueName, cmds)
+
+
+    def schedule(self):
+        """Callback when the SCHEDULE button is pressed.
+        """
+        if not self.buf.get_has_selection():
+            # No selection.
+            common.view.popup_error("No mouse selection!")
+            return
+
+        # TODO: what if a command is already selected once in queue?
+        cmds = self._get_commands_from_selection()
+        print len(cmds), "selected!"
+
+        common.controller.appendQueue(self.queueName, cmds)
+
+
+class OpeCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, opepage):
+        self.page = opepage
+        
+        super(OpeCommandObject, self).__init__(format, queueName, logger)
+
+    def get_preview(self):
+        """This is called to get a preview of the command string that
+        should be executed.
+        """
+        # Get the entire buffer from the page's text widget
+        buf = self.page.buf
+        # Now get the command from the text widget
+        #start, end = common.get_region_lines(buf, self.tag)
+        start, end = common.get_region(buf, self.guitag)
+        cmdstr = buf.get_text(start, end).strip()
+
+        # remove trailing semicolon, if present
+        if cmdstr.endswith(';'):
+            cmdstr = cmdstr[:-1]
+
+        self.logger.info("preview is '%s'" % (cmdstr))
+        return cmdstr
+
+    def get_cmdstr(self):
+        """This is called to get the command string that should be executed.
+        """
+        # Get the entire buffer from the page's text widget
+        buf = self.page.buf
+        start, end = buf.get_bounds()
+        txtbuf = buf.get_text(start, end).strip()
+
+        # Now get the command from the text widget
+        #start, end = common.get_region_lines(buf, self.guitag)
+        start, end = common.get_region(buf, self.guitag)
+        cmdstr = buf.get_text(start, end).strip()
+
+        # remove trailing semicolon, if present
+        if cmdstr.endswith(';'):
+            cmdstr = cmdstr[:-1]
+
+        # Resolve all variables/macros
+        try:
+            self.logger.debug("Unprocessed command is: %s" % cmdstr)
+            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
+            self.logger.debug("Processed command is: %s" % p_cmdstr)
+
+            self.cmdstr = p_cmdstr
+            return p_cmdstr
+
+        except Exception, e:
+            errstr = "Error parsing command: %s" % (str(e))
+            raise Exception(errstr)
+            
+
+    def _mark_status(self, txttag):
+        """This is called when our command changes status.  _txttag_ should
+        be 'scheduled', 'executing', 'done' or 'error'.
+        """
+
+        # Get the entire OPE buffer
+        buf = self.page.buf
+        #start, end = common.get_region_lines(buf, self.tag)
+        start, end = common.get_region(buf, self.guitag)
+
+        if txttag == 'normal':
+            common.clear_tags_region(buf, ('done', 'error', 'executing',
+                                           'scheduled'),
+                                     start, end)
+            return
+
+        if txttag == 'scheduled':
+            common.clear_tags_region(buf, ('done', 'error', 'executing'),
+                                     start, end)
+
+        elif txttag == 'executing':
+            common.clear_tags_region(buf, ('done', 'error', 'scheduled'),
+                                     start, end)
+
+        elif txttag in ('done', 'error'):
+            common.clear_tags_region(buf, ('executing',),
+                                     start, end)
+            
+        buf.apply_tag_by_name(txttag, start, end)
+
+    def mark_status(self, txttag):
+        gobject.idle_add(self._mark_status, txttag)
+
+    def execute(self):
+        try:
+            self.mark_status('executing')
+
+            # Get the command string associated with this kind of page.
+            cmdstr = self.get_cmdstr()
+        
+            # Try to execute the command in the TaskManager
+            self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                self.queueName, cmdstr))
+
+            common.controller.executingP.set()
+
+            res = common.controller.tm.execTask(self.queueName,
+                                                cmdstr, '')
+            common.controller.executingP.clear()
+
+            if res == 0:
+                self.feedback_ok(res)
+            else:
+                self.feedback_error('Command terminated with res=%d' % res)
+
+        except Exception, e:
+            common.controller.executingP.clear()
+            self.feedback_error(str(e))
+
+
+    def feedback_ok(self, res):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed successfully.
+        """
+        self.logger.info("Ok [%s] %s" % (
+            self.queueName, self.cmdstr))
+
+        # Mark success graphically appropriate to the source
+        self.mark_status('done')
+
+        # If queue is empty, play success sound
+        # otherwise issue the next command
+        if common.controller.get_queueLength(self.queueName) == 0:
+            soundfile = common.sound.success_executer
+            common.controller.playSound(soundfile)
+
+        else:
+            # Invoke next item in queue
+            common.controller.resumeQueue(self.queueName)
+
+           
+    def feedback_error(self, e):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed with failure.
+        """
+        self.logger.error("Error [%s] %s\n:%s" % (
+            self.queueName, self.cmdstr, str(e)))
+        
+        # Put object back on the front of the queue
+        common.controller.prependQueue(self.queueName, self)
+
+        # Mark an error graphically appropriate to the source
+        self.mark_status('error')
+
+        soundfile = common.sound.failure_executer
+        #common.view.gui_do(common.view.popup_error, str(e))
+        #common.view.statusMsg(str(e))
+        common.controller.playSound(soundfile)
+
+        
 #END

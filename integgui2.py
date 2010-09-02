@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jul 26 09:22:20 HST 2010
+#  Last edit: Wed Sep  1 20:58:19 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -16,13 +16,14 @@ import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
 import Bunch
 import ssdlog
+import Gen2.soundsink as SoundSink
 
 # Local integgui2 imports
 import fits
 import controller as igctrl
-import IntegView as igview
+import view.IntegView as igview
 import view.common
-import launcher
+import CommandQueue
 
 def main(options, args):
     
@@ -40,27 +41,37 @@ def main(options, args):
         myMonName = options.monname
     else:
         myMonName = 'integgui2-%s-%d.mon' % (
-            ro.get_myhost(short=True), os.getpid())
+            ro.get_myhost(short=True), options.monport)
 
     # monitor channels we are interested in
-    channels = options.channels.split(',')
+    sub_channels = []
+    pub_channels = []
 
     # Create a local monitor
     mymon = Monitor.Monitor(myMonName, logger, numthreads=20)
 
-    # launcher manager
-    lnchmgr = launcher.LauncherManager(logger)
+    # command queues
+    queues = Bunch.Bunch(executer=CommandQueue.CommandQueue('executer',
+                                                            logger),
+                         launcher=CommandQueue.CommandQueue('launcher',
+                                                            logger) )
 
     # Create view
-    gui = igview.IntegView(logger, ev_quit, lnchmgr)
+    gui = igview.IntegView(logger, ev_quit, queues)
 
     # Create network callable object for notifications
     notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
     notify_obj.update_framelist()
-    
+
+    # For playing sounds
+    soundsink = SoundSink.SoundSink(monitor=mymon, logger=logger,
+                                    channels=['sound'])
+    pub_channels.append('sound')
+
     # Create controller
     controller = igctrl.IntegController(logger, ev_quit, mymon,
-                                        gui, notify_obj, options)
+                                        gui, queues, notify_obj,
+                                        soundsink, options)
 
     view.common.set_view(gui)
     view.common.set_controller(controller)
@@ -83,21 +94,27 @@ def main(options, args):
 
     # Subscribe our callback functions to the local monitor
     # Task info
-    channels = [options.taskmgr, options.taskmgr]
-    mymon.subscribe_cb(controller.arr_taskinfo, channels)
+    # TODO: g2task should not be fixed
+    taskch = [options.taskmgr, 'g2task']
+    mymon.subscribe_cb(controller.arr_taskinfo, taskch)
+    sub_channels.extend(taskch)
     
     # Obsinfo
     ig_ch = options.taskmgr + '-ig'
     mymon.subscribe_cb(controller.arr_obsinfo, [ig_ch])
-    channels.append(ig_ch)
+    sub_channels.append(ig_ch)
+
+    # Log info
+    mymon.subscribe_cb(controller.arr_loginfo, ['logs'])
+    #sub_channels.append('logs')
 
     # Fits info
     mymon.subscribe_cb(controller.arr_fitsinfo, ['frames'])
-    channels.append('frames')
+    sub_channels.append('frames')
 
     # Session info
     #mymon.subscribe_cb(controller.arr_sessinfo, ['sessions'])
-    #channels.append('sessions')
+    #sub_channels.append('sessions')
 
     # Configure from session, if requested
     if options.session:
@@ -124,9 +141,15 @@ def main(options, args):
         server_started = True
 
         # subscribe our monitor to the central monitor hub
-        mymon.subscribe_remote(options.monitor, channels, {})
+        if sub_channels:
+            mymon.subscribe_remote(options.monitor, sub_channels, {})
+        # publish to central monitor hub
+        if pub_channels:
+            mymon.subscribe(options.monitor, pub_channels, {})
 
-        #controller.start_executors()
+        if options.logmon:
+            mymon.subscribe_remote(options.logmon, ['logs'], {})
+            mymon.subscribe(options.logmon, ['logs'], {})
 
 ##         svc.ro_start(wait=True)
 ##         ro_server_started = True
@@ -160,9 +183,9 @@ if __name__ == '__main__':
     optprs.add_option("--debug", dest="debug", default=False,
                       action="store_true",
                       help="Enter the pdb debugger on main()")
-    optprs.add_option("-c", "--channels", dest="channels", default='taskmgr0,g2task',
-                      metavar="LIST",
-                      help="Subscribe to the comma-separated LIST of channels")
+##     optprs.add_option("-c", "--channels", dest="channels", default='g2task',
+##                       metavar="LIST",
+##                       help="Subscribe to the comma-separated LIST of channels")
     optprs.add_option("--display", dest="display", metavar="HOST:N",
                       help="Use X display on HOST:N")
     optprs.add_option("--fitsdir", dest="fitsdir",
@@ -197,6 +220,7 @@ if __name__ == '__main__':
                       default='taskmgr0',
                       help="Connect to TaskManager with name NAME")
     ssdlog.addlogopts(optprs)
+
 
     (options, args) = optprs.parse_args(sys.argv[1:])
 

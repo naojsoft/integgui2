@@ -1,0 +1,686 @@
+# 
+#[ Eric Jeschke (eric@naoj.org) --
+#  Last edit: Tue Aug 31 12:09:43 HST 2010
+#]
+
+# remove once we're certified on python 2.6
+from __future__ import with_statement
+
+# Standard library imports
+import sys, os, glob
+import re
+import threading
+
+# Special library imports
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject
+
+# SSD/Gen2 imports
+import Bunch
+
+# Local integgui2 imports
+import common
+from pages import *
+from dialogs import *
+
+
+class IntegView(object):
+
+    def __init__(self, logger, ev_quit, queues):
+
+        self.logger = logger
+        self.ev_quit = ev_quit
+        self.queue = queues
+        self.lock = threading.RLock()
+        # Used for tagging commands
+        self.cmdcount = 0
+
+        # Create the GUI
+        self.w = Bunch.Bunch()
+
+        # hack required to use threads with GTK
+        gtk.gdk.threads_init()
+
+        # Create top-level window
+        root = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        root.set_size_request(1900, 1050)
+        root.set_title('Gen2 Integrated GUI II')
+        root.connect("delete_event", self.delete_event)
+        root.set_border_width(2)
+
+        # create main frame
+        self.w.mframe = gtk.VBox(spacing=2)
+        root.add(self.w.mframe)
+        #self.w.mframe.show()
+
+        self.w.root = root
+
+        self.add_menus()
+        self.add_dialogs()
+
+        self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
+        # Some attributes we force on our children
+        self.ds.logger = logger
+
+        self.ojws = self.ds.addws('ul', 'obsjrn', "Observation Journal")
+        self.framepage = self.ojws.addpage('frames', "Frames", FrameInfoPage)
+
+        self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
+        self.executer = self.lws.addpage('executer', "ExecuterQ",
+                                         QueuePage)
+        self.executer.set_queue('executer', self.queue.executer)
+
+        self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
+        self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
+        self.monpage = self.oiws.addpage('moninfo', "Monitor", SkMonitorPage)
+        self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
+        self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
+        self.oiws.select('obsinfo')
+
+        self.exws = self.ds.addws('lr', 'executor', "Command Executers")
+        self.gui_load_terminal()
+        self.exws.addpage('ddcommands', "Commands", DDCommandPage)
+
+        self.add_statusbar()
+
+        self.w.root.show_all()
+
+    def toggle_var(self, widget, key):
+        if widget.active: 
+            self.__dict__[key] = True
+        else:
+            self.__dict__[key] = False
+
+    def add_menus(self):
+
+        menubar = gtk.MenuBar()
+        self.w.mframe.pack_start(menubar, expand=False)
+
+        # create a File pulldown menu, and add it to the menu bar
+        filemenu = gtk.Menu()
+        file_item = gtk.MenuItem(label="File")
+        menubar.append(file_item)
+        file_item.show()
+        file_item.set_submenu(filemenu)
+
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load source")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
+
+        item = gtk.MenuItem(label="ope")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_ope(),
+                             "file.Load ope")
+        item.show()
+
+        item = gtk.MenuItem(label="sk")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_sk(),
+                             "file.Load sk")
+        item.show()
+
+        item = gtk.MenuItem(label="task")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_task(),
+                             "file.Load task")
+        item.show()
+
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(),
+                             "file.Load launcher")
+        item.show()
+
+        item = gtk.MenuItem(label="inf")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_inf(),
+                             "file.Load inf")
+        item.show()
+
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
+
+        # item = gtk.MenuItem(label="fits")
+        # loadmenu.append(item)
+        # item.connect_object ("activate", lambda w: self.gui_load_fits(),
+        #                      "file.Load fits")
+        # item.show()
+
+        item = gtk.MenuItem(label="log")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_log(),
+                             "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="monlog")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
+                             "file.Load mon log")
+        item.show()
+        
+        item = gtk.MenuItem(label="terminal")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_terminal(),
+                             "file.Load terminal")
+        item.show()
+        
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher(),
+                             "file.Load launcher")
+        item.show()
+
+        item = gtk.MenuItem(label="Config from session")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.reconfig(),
+                             "file.Config from session")
+        item.show()
+
+        sep = gtk.SeparatorMenuItem()
+        filemenu.append(sep)
+        sep.show()
+        quit_item = gtk.MenuItem(label="Exit")
+        filemenu.append(quit_item)
+        quit_item.connect_object ("activate", self.quit, "file.exit")
+        quit_item.show()
+
+        # create an Option pulldown menu, and add it to the menu bar
+        optionmenu = gtk.Menu()
+        option_item = gtk.MenuItem(label="Option")
+        menubar.append(option_item)
+        option_item.show()
+        option_item.set_submenu(optionmenu)
+
+        monitormenu = gtk.Menu()
+        # Option variables
+        self.save_decode_result = False
+        self.show_times = False
+        self.track_elapsed = False
+        self.audible_errors = True
+
+        item = gtk.MenuItem(label="Monitor")
+        optionmenu.append(item)
+        item.show()
+        item.set_submenu(monitormenu)
+
+        # Monitor menu
+        w = gtk.CheckMenuItem("Save Decode Result")
+        w.set_active(False)
+        monitormenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
+        w = gtk.CheckMenuItem("Show Times")
+        w.set_active(False)
+        monitormenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
+        w = gtk.CheckMenuItem("Track Elapsed")
+        w.set_active(False)
+        monitormenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
+
+        w = gtk.CheckMenuItem("Audible Errors")
+        w.set_active(True)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
+
+
+    def add_dialogs(self):
+        self.filesel = FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
+        self.filesave = FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
+    
+    def logupdate(self):
+        pass
+    
+    def add_statusbar(self):
+        self.w.status = gtk.Statusbar()
+        self.status_cid = self.w.status.get_context_id("msg")
+        self.status_mid = self.w.status.push(self.status_cid, "")
+
+        self.w.mframe.pack_end(self.w.status, expand=False, fill=True,
+                               padding=2)
+
+
+    def statusMsg(self, format, *args):
+        if not format:
+            s = ''
+        else:
+            s = format % args
+
+        self.w.status.remove(self.status_cid, self.status_mid)
+        self.status_mid = self.w.status.push(self.status_cid, s)
+
+
+    def setPos(self, geom):
+        # TODO: currently does not seem to be honoring size request
+        match = re.match(r'^(?P<size>\d+x\d+)?(?P<pos>[\-+]\d+[\-+]\d+)?$',
+                         geom)
+        if not match:
+            return
+        
+        size = match.group('size')
+        pos = match.group('pos')
+
+        if size:
+            match = re.match(r'^(\d+)x(\d+)$', size)
+            if match:
+                width, height = map(int, match.groups())
+                self.w.root.set_default_size(width, height)
+
+        # TODO: placement
+        if pos:
+            pass
+
+        #self.root.set_gravity(gtk.gdk.GRAVITY_NORTH_WEST)
+        ##width, height = window.get_size()
+        ##window.move(gtk.gdk.screen_width() - width, gtk.gdk.screen_height() - height)
+        # self.root.move(x, y)
+
+
+#     def set_controller(self, controller):
+#         self.controller = controller
+
+    def popup_error(self, errstr):
+        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              type=gtk.MESSAGE_WARNING,
+                              buttons=gtk.BUTTONS_OK,
+                              message_format=errstr)
+        #w.connect("close", self.close)
+        w.connect("response", lambda w, id: w.destroy())
+        w.set_title('IntegGUI Error')
+        w.show()
+
+
+    def popup_confirm(self, title, qstr):
+        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              type=gtk.MESSAGE_QUESTION,
+                              buttons=gtk.BUTTONS_YES_NO,
+                              message_format=qstr)
+        w.set_title(title)
+        res = w.run()
+        w.destroy()
+
+        if res == gtk.RESPONSE_YES:
+            return True
+
+        return False
+
+    def readfile(self, filepath):
+
+        in_f = open(filepath, 'r')
+        buf = in_f.read()
+        in_f.close()
+
+        return buf
+
+    def popup_select(self, title, execfn, filedir):
+        self.filesel.popup(title, execfn, initialdir=filedir)
+
+    def popup_save(self, title, execfn, filedir, filename=None):
+        self.filesave.popup(title, execfn, initialdir=filedir,
+                            filename=filename)
+
+    def gui_load_terminal(self):
+        try:
+            os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
+
+            name = 'shell %f' % time.time()
+            page = self.exws.addpage(name, 'Terminal', TerminalPage)
+
+            # Bring shell tab to front
+            #self.exws.select(name)
+        except Exception, e:
+            self.popup_error("Cannot start terminal: %s" % (str(e)))
+
+    def gui_load_monlog(self):
+        self.load_monlog('taskmgr0')
+
+    def load_monlog(self, logname):
+        try:
+            page = self.logpage.addpage(logname, logname, MonLogPage)
+
+            # Bring log tab to front
+            self.oiws.select('loginfo')
+        except Exception, e:
+            self.popup_error("Cannot load log '%s': %s" % (
+                    logname, str(e)))
+
+
+    def gui_load_log(self):
+        initialdir = os.path.abspath(os.environ['LOGHOME'])
+        
+        self.filesel.popup("Follow log", self.load_log,
+                           initialdir=initialdir)
+
+    def load_log(self, filepath):
+        try:
+            dirname, filename = os.path.split(filepath)
+            # Drop ".log" from tab names
+            filepfx, filesfx = os.path.splitext(filename)
+            if filesfx.lower() == '.log':
+                filename = filepfx
+
+            page = self.logpage.addpage(filepath, filename, LogPage)
+            page.load(filepath)
+
+            # Bring log tab to front
+            self.oiws.select('loginfo')
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def gui_load_ope(self):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        self.filesel.popup("Load OPE file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              # ???!!!
+                                                              OpePage.OpePage),
+                           initialdir=initialdir)
+
+    def gui_load_sk(self):
+        initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
+                                  'SkPara', 'sk')
+        
+        self.filesel.popup("Load skeleton file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              SkPage),
+                           initialdir=initialdir)
+
+    def gui_load_task(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
+        
+        self.filesel.popup("Load python task",
+                           lambda filepath: self.load_generic(filepath,
+                                                              TaskPage),
+                           initialdir=initialdir)
+
+    def gui_load_inf(self):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure',
+                                  'COMICS')
+        
+        self.filesel.popup("Load inf file",
+                           lambda filepath: self.load_generic(filepath,
+                                                              InfPage),
+                           initialdir=initialdir)
+
+    def gui_load_launcher_source(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Launchers')
+        
+        self.filesel.popup("Load launcher source",
+                           lambda filepath: self.load_generic(filepath,
+                                                              # ???!!!
+                                                              CodePage.CodePage),
+                           initialdir=initialdir)
+
+
+    def open_generic(self, buf, filepath, pageKlass):
+        try:
+            dirname, filename = os.path.split(filepath)
+            #print pageKlass
+
+            page = self.exws.addpage(filepath, filename, pageKlass)
+            page.load(filepath, buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def load_ope(self, filepath):
+        return self.load_generic(filepath, OpePage.OpePage)
+
+    def load_generic(self, filepath, pageKlass):
+        try:
+            buf = self.readfile(filepath)
+
+            return self.open_generic(buf, filepath, pageKlass)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def gui_load_launcher(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Launchers')
+        
+        self.filesel.popup("Load launcher", self.load_launcher,
+                           initialdir=initialdir)
+
+
+    def load_launcher(self, filepath):
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            match = re.match(r'^(.+)\.yml$', filename)
+            if not match:
+                return
+
+            name = match.group(1).replace('_', ' ')
+            page = self.lws.addpage(name, name, LauncherPage)
+            page.load(buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def get_launcher_paths(self, insname):
+
+        filename = '%s*.yml' % insname.upper()
+        pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                 'Launchers', filename)
+
+        res = glob.glob(pathmatch)
+        return res
+
+        
+    def close_launchers(self):
+        for name in self.lws.getNames():
+            page = self.lws.getPage(name)
+            page.close()
+
+    def get_log_path(self, insname):
+        filename = '%s.log' % insname
+        filepath = os.path.join(os.environ['LOGHOME'], filename)
+        return filepath
+
+    def close_logs(self):
+        for name in self.logpage.getNames():
+            page = self.logpage.getPage(name)
+            page.close()
+
+    def gui_load_fits(self):
+        initialdir = os.environ['DATAHOME']
+        
+        self.filesel.popup("Load FITS file", self.load_fits,
+                           initialdir=initialdir)
+        
+    def load_fits(self, filepath):
+            
+        (filedir, filename) = os.path.split(filepath)
+        (filepfx, fileext) = os.path.splitext(filename)
+        try:
+            page = self.fitspage.addpage(filepath, filepfx, FitsViewerPage)
+            page.load(filepath)
+
+            # Bring FITS tab to front
+            self.oiws.select('fitsview')
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def reconfig(self):
+        self.close_logs()
+        self.close_launchers()
+
+        common.controller.config_from_session('main')
+
+    def delete_event(self, widget, event, data=None):
+        self.ev_quit.set()
+        gtk.main_quit()
+        return False
+
+    # callback to quit the program
+    def quit(self, widget):
+        self.ev_quit.set()
+        gtk.main_quit()
+        return False
+
+    def reset(self):
+        # Perform a global reset across all command-type pages
+        for ws in self.ds.getWorkspaces():
+            for page in ws.getPages():
+                if (isinstance(page, OpePage) or 
+                    isinstance(page, LauncherPage) or
+                    isinstance(page, DDCommandPage)):
+                    page.reset()
+
+    ############################################################
+    # Interface from controller into the view
+    #
+    # Due to poor thread-handling in gtk, we are forced to spawn
+    # these calls off to the GUI thread using idle_add()
+    ############################################################
+
+    def update_frame(self, frameinfo):
+        if hasattr(self, 'framepage'):
+            gobject.idle_add(self.framepage.update_frame, frameinfo)
+
+    def update_frames(self, framelist):
+        if hasattr(self, 'framepage'):
+            gobject.idle_add(self.framepage.update_frames, framelist)
+
+    def update_obsinfo(self, infodict):
+        self.logger.info("OBSINFO=%s" % str(infodict))
+        if hasattr(self, 'obsinfo'):
+            gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
+   
+    def update_loginfo(self, logname, infodict):
+        #self.logger.debug("LOGNAME=%s LOGINFO=%s" % (logname,
+        #                                             str(infodict)))
+        #print "=====>", logname, infodict
+        if hasattr(self, 'logpage'):
+            try:
+                #print "Getting page %s" % logname
+                page = self.logpage.getPage(logname)
+                #print "*****", page
+                gobject.idle_add(page.push, logname, infodict)
+            except KeyError:
+                # No log page for this log loaded, so silently drop message
+                # TODO: drop into the integgui2 log page?
+                pass
+   
+    def process_ast(self, ast_id, vals):
+        if hasattr(self, 'monpage'):
+            gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
+
+    def process_task(self, path, vals):
+        if hasattr(self, 'monpage'):
+            gobject.idle_add(self.monpage.process_task_err, path, vals)
+
+    def gui_do(self, method, *args, **kwdargs):
+        """General method for calling into the GUI.
+        """
+        gobject.idle_add(method, *args, **kwdargs)
+     
+   
+    def mainloop(self):
+        gtk.main()
+
+
+rc = """
+style "window"
+{
+}
+
+style "button"
+{
+  # This shows all the possible states for a button.  The only one that
+  # doesn't apply is the SELECTED state.
+  
+  #fg[PRELIGHT] = {255, 255, 0}
+  fg[PRELIGHT] = 'yellow'
+  #bg[PRELIGHT] = "#089D20"
+  #bg[PRELIGHT] = {8, 157, 32}
+  bg[PRELIGHT] = 'forestgreen'
+  #bg[PRELIGHT] = {1.0, 0, 0}
+#  bg[ACTIVE] = { 1.0, 0, 0 }
+#  fg[ACTIVE] = { 0, 1.0, 0 }
+#  bg[NORMAL] = { 1.0, 1.0, 0 }
+#  fg[NORMAL] = { .99, 0, .99 }
+#  bg[INSENSITIVE] = { 1.0, 1.0, 1.0 }
+#  fg[INSENSITIVE] = { 1.0, 0, 1.0 }
+
+#GtkButton::focus-line-width = 1
+#GtkButton::focus-padding = 0
+#GtkLabel::width-chars = 20
+}
+
+# In this example, we inherit the attributes of the "button" style and then
+# override the font and background color when prelit to create a new
+# "main_button" style.
+
+style "main_button" = "button"
+{
+  font = "-adobe-helvetica-medium-r-normal--*-100-*-*-*-*-*-*"
+  bg[PRELIGHT] = { 0.75, 0, 0 }
+}
+
+style "launcher_button" = "button"
+{
+  font_name = "Monospace 10"
+}
+
+style "nobevel"
+{
+GtkMenuBar::shadow-type = 'etched-out'
+GtkStatusbar::shadow-type = 'in'
+}
+
+style "toggle_button" = "button"
+{
+  fg[NORMAL] = { 1.0, 0, 0 }
+  fg[ACTIVE] = { 1.0, 0, 0 }
+
+}
+
+style "text"
+{
+  fg[NORMAL] = { 1.0, 1.0, 1.0 }
+  font_name = "Monospace 10"
+##  gtk-key-theme-name = "Emacs" 
+}
+
+# These set the widget types to use the styles defined above.
+# The widget types are listed in the class hierarchy, but could probably be
+# just listed in this document for the users reference.
+
+widget_class "GtkMenuBar" style "nobevel"
+widget_class "GtkStatusbar" style "nobevel"
+widget_class "GtkWindow" style "window"
+widget_class "GtkDialog" style "window"
+widget_class "GtkFileSelection" style "window"
+## widget_class "*GtkToggleButton*" style "toggle_button"
+## widget_class "*GtkCheckButton*" style "toggle_button"
+## widget_class "*GtkRadioButton*" style "toggle_button"
+widget_class "launcher.GtkButton*" style "launcher_button"
+widget_class "*GtkButton*" style "button"
+widget_class "*GtkTextView" style "text"
+
+# This sets all the buttons that are children of the "main window" to
+# the main_button style.  These must be documented to be taken advantage of.
+widget "main window.*GtkButton*" style "main_button"
+"""
+gtk.rc_parse_string(rc) 
+
+#END

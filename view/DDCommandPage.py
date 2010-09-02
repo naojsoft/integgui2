@@ -1,13 +1,13 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:36:44 HST 2010
+#  Last edit: Wed Sep  1 21:03:27 HST 2010
 #]
 
 import gtk
 
 import common
 import Page
-
+import CommandObject
 
 class DDCommandPage(Page.CommandPage):
 
@@ -41,7 +41,7 @@ class DDCommandPage(Page.CommandPage):
         self.add_close()
         
         self.btn_exec = gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: common.view.execute_dd(self))
+        self.btn_exec.connect("clicked", lambda w: self.execute())
         self.btn_exec.modify_bg(gtk.STATE_NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
@@ -67,4 +67,103 @@ class DDCommandPage(Page.CommandPage):
         self.leftbtns.pack_end(self.btn_pause)
 
 
+    def execute(self):
+        """Callback when the EXEC button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        if common.controller.executingP.isSet():
+            # Yep--popup an error message
+            common.view.popup_error("There is already a %s task running!" % (
+                self.queueName))
+            return
+
+        # tag the text so we can manipulate it later
+        cmdObj = DDCommandObject('dd%d', self.queueName,
+                                 self.logger, self)
+
+        # Clear the selection
+        itr = self.buf.get_end_iter()
+        self.buf.move_mark_by_name("insert", itr)         
+        self.buf.move_mark_by_name("selection_bound", itr)
+
+        common.controller.prependQueue(self.queueName, cmdObj)
+        common.controller.resumeQueue(self.queueName)
+
+
+class DDCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, page):
+        self.page = page
+
+        super(DDCommandObject, self).__init__(format, queueName, logger)
+        
+    def get_preview(self):
+        return self.get_cmdstr()
+    
+    def get_cmdstr(self):
+        # Get the entire buffer from the page's text widget
+        buf = self.page.buf
+        start, end = buf.get_bounds()
+        txtbuf = buf.get_text(start, end).strip()
+
+        # remove trailing semicolon, if present
+        cmdstr = txtbuf
+        if cmdstr.endswith(';'):
+            cmdstr = cmdstr[:-1]
+
+        self.cmdstr = cmdstr
+        return cmdstr
+
+    def mark_status(self, txttag):
+        pass
+
+    def execute(self):
+        # Get the command string associated with this kind of page.
+        cmdstr = self.get_cmdstr()
+        
+        try:
+            # Try to execute the command in the TaskManager
+            self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                self.queueName, cmdstr))
+
+            common.controller.executingP.set()
+
+            res = common.controller.tm.execTask(self.queueName,
+                                                cmdstr, '')
+            common.controller.executingP.clear()
+
+            if res == 0:
+                self.feedback_ok(res)
+            else:
+                self.feedback_error('Command terminated with res=%d' % res)
+
+        except Exception, e:
+            common.controller.executingP.clear()
+            self.feedback_error(str(e))
+
+
+    def feedback_ok(self, res):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed successfully.
+        """
+        self.logger.info("Ok [%s] %s" % (
+            self.queueName, self.cmdstr))
+
+        soundfile = common.sound.success_executer
+        common.controller.playSound(soundfile)
+
+           
+    def feedback_error(self, e):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed with failure.
+        """
+        self.logger.error("Error [%s] %s\n:%s" % (
+            self.queueName, self.cmdstr, str(e)))
+        
+        soundfile = common.sound.failure_executer
+        #common.view.gui_do(common.view.popup_error, str(e))
+        #common.view.statusMsg(str(e))
+        common.controller.playSound(soundfile)
+
+        
 #END

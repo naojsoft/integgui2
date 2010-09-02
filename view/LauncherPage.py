@@ -1,18 +1,20 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Aug 13 13:46:11 HST 2010
+#  Last edit: Wed Sep  1 20:19:16 HST 2010
 #]
 
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
 import threading
-import gtk
 import yaml
+
+import gtk, gobject
 
 import Bunch
 import common
 import Page
+import CommandObject
 
 # Default width of the main launcher buttons
 default_width = 150
@@ -173,6 +175,9 @@ class Launcher(object):
         self.execfn(cmdstr, self)
 
     def show_state(self, state):
+        if state == 'scheduled':
+            state = 'normal'
+
         self.btn_exec.modify_bg(gtk.STATE_NORMAL,
                                 common.launcher_colors[state])
 
@@ -453,10 +458,6 @@ class LauncherPage(Page.CommandPage):
     def addFromList(self, llist):
         self.llist.addFromDefs(llist)
 
-    def execute(self, cmdstr, launcher):
-        """This is called when a launcher button is pressed."""
-        common.view.execute_launcher(cmdstr, launcher)
-
     def close(self):
         super(LauncherPage, self).close()
 
@@ -464,5 +465,87 @@ class LauncherPage(Page.CommandPage):
         for launcher in self.llist.getLaunchers():
             launcher.reset()
         self.reset_pause()
+
+    def execute(self, cmdstr, launcher):
+        """This is called when a launcher button is pressed."""
+        self.logger.info(cmdstr)
+
+        # tag the text so we can manipulate it later
+        cmdobj = LauncherCommandObject('ln%d', self.queueName,
+                                       self.logger,
+                                       launcher, cmdstr)
+
+        cmds = [cmdobj]
+        common.controller.appendQueueAndExecute(self.queueName, cmds)
+
+
+class LauncherCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, launcher, cmdstr):
+        self.launcher = launcher
+        self.cmdstr = cmdstr
+        
+        super(LauncherCommandObject, self).__init__(format, queueName,
+                                                    logger)
+
+    def mark_status(self, txttag):
+        gobject.idle_add(self.launcher.show_state, txttag)
+
+    def get_preview(self):
+        return self.get_cmdstr()
+    
+    def get_cmdstr(self):
+        return self.cmdstr
+
+    def execute(self):
+
+        try:
+            self.mark_status('executing')
+
+            cmdstr = self.get_cmdstr()
+        
+            # Try to execute the command in the TaskManager
+            self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                self.queueName, cmdstr))
+
+            res = common.controller.tm.execTask(self.queueName,
+                                                cmdstr, '')
+            if res == 0:
+                self.feedback_ok(res)
+            else:
+                self.feedback_error('Command terminated with res=%d' % res)
+
+        except Exception, e:
+            self.feedback_error(str(e))
+
+
+    def feedback_ok(self, res):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed successfully.
+        """
+        self.logger.info("Ok [%s] %s" % (
+            self.queueName, self.cmdstr))
+
+        # Mark success graphically appropriate to the source
+        self.mark_status('done')
+
+        soundfile = common.sound.success_launcher
+        common.controller.playSound(soundfile)
+
+           
+    def feedback_error(self, e):
+        """This method is indirectly invoked via the controller when
+        there is feedback that a command has completed with failure.
+        """
+        self.logger.error("Error [%s] %s\n:%s" % (
+            self.queueName, self.cmdstr, str(e)))
+        
+        # Mark an error graphically appropriate to the source
+        self.mark_status('error')
+
+        soundfile = common.sound.failure_launcher
+        #common.view.gui_do(common.view.popup_error, str(e))
+        #common.view.statusMsg(str(e))
+        common.controller.playSound(soundfile)
 
 #END

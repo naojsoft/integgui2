@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jul 26 13:26:19 HST 2010
+#  Last edit: Tue Aug 31 13:10:38 HST 2010
 #]
 import gtk
 
@@ -150,6 +150,16 @@ def get_region(txtbuf, tagname):
     if not result:
         raise TagError("Tag not found: '%s'" % tagname)
 
+    return (start, end)
+
+
+def get_region_lines(txtbuf, tagname):
+    start, end = get_region(txtbuf, tagname)
+
+    frow = start.get_line()
+    start.set_line(frow)
+    end.forward_to_line_end()
+    
     return (start, end)
 
 

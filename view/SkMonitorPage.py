@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu May 20 14:15:15 HST 2010
+#  Last edit: Wed Sep  1 20:21:09 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -272,7 +272,7 @@ class SkMonitorPage(Page.Page):
             self.append_error(page, ast_num, '\n ==> ' + vals['task_error'])
             
             # audible warnings
-            common.view.audible_warn(cmd_str, vals)
+            common.controller.audible_warn(cmd_str, vals)
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):

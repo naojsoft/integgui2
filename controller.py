@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jul  9 11:47:22 HST 2010
+#  Last edit: Wed Sep  1 20:58:18 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -11,6 +11,7 @@ import os
 import threading
 
 import view.common as common
+import CommandQueue
 
 # SSD/Gen2 imports
 import Task
@@ -18,9 +19,13 @@ import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
 import Bunch
 from cfg.INS import INSdata
+import cfg.g2soss
 
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
+
+# Regex used to discover/parse log info
+regex_log = re.compile(r'^mon\.log\.(\w+)$')
 
 # These are the status variables pulled from the status system. "%s" is
 # replaced by the 3-letter instrument mnemonic of the currently allocated
@@ -41,15 +46,18 @@ class IntegController(object):
     thread).
     """
     
-    def __init__(self, logger, ev_quit, monitor, view, fits, options):
+    def __init__(self, logger, ev_quit, monitor, view, queues, fits,
+                 soundsink, options):
 
         self.logger = logger
         self.ev_quit = ev_quit
         self.monitor = monitor
         self.gui = view
+        self.queue = queues
         self.fits = fits
         # mutex on this instance
         self.lock = threading.RLock()
+        self.soundsink = soundsink
         self.options = options
 
         self.executingP = threading.Event()
@@ -65,6 +73,7 @@ class IntegController(object):
 
         self.reset_conn()
 
+
     def reset_conn(self):
         self.tm = ro.remoteObjectProxy(self.options.taskmgr)
         self.tm2 = ro.remoteObjectProxy(self.options.taskmgr)
@@ -74,57 +83,60 @@ class IntegController(object):
 
         self.transdict = {}
 
-    def tm_executer(self, bnch):
-        try:
-            # Try to execute the command in the TaskManager
-            with self.lock:
-
-                self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                        bnch.queueName, bnch.cmdstr))
-                tm_tag = self.tm.execTaskNoWait(bnch.queueName, bnch.cmdstr)
-                self.executingP.set()
-                self.put_transaction(tm_tag, bnch)
-
-            self.wait_transaction(bnch)
-            self.executingP.clear()
-
-        except Exception, e:
-            # If there was a problem, let the gui know about it
-            #print "ERROR!"
-            self.gui.command_feedback_error(queueName, bnch, e)
-
-    def tm_executingP(self):
-        return self.executingP.isSet()
-
-    def tm_launcher(self, bnch):
-        try:
-            # Try to execute the command in the TaskManager
-            self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                    bnch.queueName, bnch.cmdstr))
-            with self.lock:
-                tm_tag = self.tm.execTaskNoWait(bnch.queueName, bnch.cmdstr)
-                self.put_transaction(tm_tag, bnch)
-
-        except Exception, e:
-            # If there was a problem, let the gui know about it
-            self.gui.gui_do(self.gui.feedback_error, queueName, bnch, e)
-
-    def tm_exec(self, queueName, bnch):
-        """"Called by the GUI to execute a command."""
-        if queueName == 'executer':
-            t = Task.FuncTask(self.tm_executer, [bnch], {})
-            t.init_and_start(self)
-
-        elif queueName == 'launcher':
-            t = Task.FuncTask(self.tm_launcher, [bnch], {})
-            t.init_and_start(self)
+#############
+###  GUI interface to the controller
             
-        else:
-            self.gui.gui_do(self.gui.popup_error, 
-                            "Queue name '%s' is unknown!" % (queueName))
+    def get_queueLength(self, queueName):
+        return len(self.queue[queueName])
+
+    def clearQueue(self, queueName):
+        queue = self.queue[queueName]
+        queue.flush()
+
+    def prependQueue(self, queueName, cmdObj):
+        queue = self.queue[queueName]
+        queue.prepend(cmdObj)
+
+    def appendQueue(self, queueName, cmdObjs):
+        queue = self.queue[queueName]
+        queue.extend(cmdObjs)
+
+    def replaceQueueAndExecute(self, queueName, cmdObjs):
+        queue = self.queue[queueName]
+        queue.replace(cmdObjs)
+        self.resumeQueue(queueName)
+
+    def appendQueueAndExecute(self, queueName, cmdObjs):
+        self.appendQueue(queueName, cmdObjs)
+        self.resumeQueue(queueName)
+
+    def resumeQueue(self, queueName):
+        """This method is called when the GUI has commands for the
+        controller.
+        """
+        queueObj = self.queue[queueName]
+        
+        try:
+            cmdObj = queueObj.get()
+            self.logger.debug("cmdObj=%s" % str(cmdObj))
+            
+        except CommandQueue.QueueEmpty, e:
+            # TODO: popup error here?
+            #raise e
+            self.gui.gui_do(self.gui.popup_error, str(e))
+
+        try:
+            cmdObj.init_and_start(self)
+
+        except Exception, e:
+            # TODO: popup error here?
+            self.gui.gui_do(self.gui.popup_error, str(e))
+
+            
+#############
 
     def tm_kill(self):
-        self.gui.playSound(common.sound.tm_kill)
+        self.playSound(common.sound.tm_kill)
         
         # reset visually all command executors
         self.gui.gui_do(self.gui.reset)
@@ -283,31 +295,35 @@ class IntegController(object):
             # transactions?
             return self.transdict[path]
 
-    def put_transaction(self, tm_tag, bnch):
+    def put_transaction(self, tm_tag, cmdObj):
         with self.lock:
-            self.transdict[tm_tag] = bnch
-            bnch.tasktag = tm_tag
-            bnch.ev_trans = threading.Event()
+            self.transdict[tm_tag] = cmdObj
+            cmdObj.tasktag = tm_tag
+            cmdObj.ev_trans = threading.Event()
 
-    def wait_transaction(self, bnch):
+            # Graphically signal execution in some way
+            cmdObj.page.mark_status(cmdObj, 'executing')
+
+
+    def wait_transaction(self, cmdObj):
         """Wait for transaction to be finished."""
-        bnch.ev_trans.wait()
+        cmdObj.ev_trans.wait()
 
-    def release_transaction(self, bnch):
+    def release_transaction(self, cmdObj):
         """Signal that transaction is finished."""
-        bnch.ev_trans.set()
+        cmdObj.ev_trans.set()
 
     def release_all_transactions(self):
         with self.lock:
-            bnchs = self.transdict.values()
-        for bnch in bnchs:
-            self.release_transaction(bnch)
+            cmdObjs = self.transdict.values()
+        for cmdObj in cmdObjs:
+            self.release_transaction(cmdObj)
         self.executingP.clear()
 
-    def del_transaction(self, bnch):
+    def del_transaction(self, cmdObj):
         with self.lock:
             try:
-                del self.transdict[bnch.path]
+                del self.transdict[cmdObj.path]
             except:
                 pass
        
@@ -361,12 +377,14 @@ class IntegController(object):
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR
             if res == 0:
-                self.gui.gui_do(self.gui.feedback_ok,
-                                tmtrans.queueName, tmtrans, res)
+##                 self.gui.gui_do(self.gui.feedback_ok,
+##                                 tmtrans.queueName, tmtrans, res)
+                pass
             else:
                 # If there was a problem, let the gui know about it
-                self.gui.gui_do(self.gui.feedback_error,
-                                tmtrans.queueName, tmtrans, str(res))
+##                 self.gui.gui_do(self.gui.feedback_error,
+##                                 tmtrans.queueName, tmtrans, str(res))
+                pass
 
             self.del_transaction(tmtrans)
 
@@ -388,7 +406,25 @@ class IntegController(object):
             self.update_integgui(statusDict)
 
         elif vals.has_key('ready'):
-            self.gui.playSound(common.sound.tm_ready)
+            self.playSound(common.sound.tm_ready)
+            
+        
+    # this one is called if new log data becomes available
+    def arr_loginfo(self, payload, name, channels):
+        #self.logger.debug("received values '%s'" % str(payload))
+        try:
+            bnch = Monitor.unpack_payload(payload)
+
+        except Monitor.MonitorError:
+            self.logger.error("malformed packet '%s': %s" % (
+                str(payload), str(e)))
+            return
+
+        # Find out the log for this information by examining the path
+        match = regex_log.match(bnch.path)
+        if match:
+            logname = match.group(1)
+            self.gui.update_loginfo(logname, bnch.value)
             
         
     # this one is called if new data becomes available about frames
@@ -453,4 +489,42 @@ class IntegController(object):
             #self._session_config(info)
                 
 
+    def audible_warn(self, cmd_str, vals):
+        """Called when we get a failed command and should/could issue an audible
+        error.  cmd_str, if not None, is the device dependent command that caused
+        the error.
+        """
+        self.logger.debug("Audible warning: %s" % cmd_str)
+        if not cmd_str:
+            return
+
+        if not self.audible_errors:
+            return
+
+        cmd_str = cmd_str.lower().strip()
+        match = re.match(r'^exec\s+(\w+)\s+.*', cmd_str)
+        if not match:
+            subsys = 'general'
+        else:
+            subsys = match.group(1)
+
+        #soundfile = 'g2_err_%s.au' % subsys
+        soundfile = 'E_ERR%s.au' % subsys.upper()
+        self.playSound(soundfile)
+
+
+    def playSound(self, soundfile):
+        soundpath = os.path.join(cfg.g2soss.producthome,
+                                 'file/Sounds', soundfile)
+        if os.path.exists(soundpath):
+##             # TODO: use Python soundsink module to do this instead of
+##             # spawning a process
+##             cmd = "OSST_audioplay %s" % (soundpath)
+##             self.logger.debug(cmd)
+##             res = os.system(cmd)
+            self.soundsink.playFile(soundpath)
+            
+        else:
+            self.logger.error("No such audio file: %s" % soundpath)
+        
 #END
