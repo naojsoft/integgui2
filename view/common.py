@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 18:29:12 HST 2010
+#  Last edit: Thu Sep  2 21:13:07 HST 2010
 #]
 import gtk
 

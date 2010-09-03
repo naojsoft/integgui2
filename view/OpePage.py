@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 20:09:45 HST 2010
+#  Last edit: Thu Sep  2 21:48:40 HST 2010
 #]
 
 import os, re
@@ -58,6 +58,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # this is for variable definition popups
         self.tw.set_property("has-tooltip", True)
         self.tw.connect("query-tooltip", self.query_vardef)
+        #self.tw.connect("focus-out-event", self.focus_out)
 
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
@@ -267,10 +268,27 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             for varref, lineno in badtags:
                 addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
             
+            self.btn_tags.modify_bg(gtk.STATE_NORMAL,
+                                    gtk.gdk.color_parse('red1'))
+            self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
+                                    gtk.gdk.color_parse('red1'))
             common.view.popup_error("Undefined variable references: " +
                                     ' '.join(badrefs) + ". See bottom of tags for details.")
+        else:
+            self.btn_tags.modify_bg(gtk.STATE_NORMAL,
+                                    gtk.gdk.color_parse('gray'))
+            self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
+                                    gtk.gdk.color_parse('gray'))
             
-
+            
+    def focus_out(self, w, evt):
+        self.logger.info("lost focus!")
+        try:
+            first, last = self.buf.get_selection_bounds()
+            self.buf.apply_tag_by_name('savedselection', first, last)
+        except ValueError:
+            print "Error getting selection--no selection?"
+        return False
 
     def jump_tag(self, w, evt):
         widget = self.tagtw
@@ -384,7 +402,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def _get_commands_from_selection(self):
 
         # Get the range of text selected
-        first, last = self.buf.get_selection_bounds()
+        try:
+            first, last = self.buf.get_selection_bounds()
+        except ValueError:
+            raise Exception("Error getting selection--no selection?")
+            
         frow = first.get_line()
         lrow = last.get_line()
         if last.starts_line():
@@ -426,6 +448,45 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         return cmds
 
+    def _save_selection(self):
+        """A hack to work around a bug/feature of the textview where it
+        loses the selection when it loses focus.  This method can be used
+        to save the focus.  Call _restore_selection() to restore it.
+        """
+        try:
+            first, last = self.buf.get_selection_bounds()
+            self.sel_first = first
+            self.sel_last = last
+            
+        except ValueError:
+            raise Exception("Error getting selection--no selection?")
+
+        tag = 'savedselection'
+        tt = self.buf.get_tag_table()
+
+        # Create it so priority is highest
+        tt_tag = tt.lookup(tag)
+        if tt_tag:
+            tt.remove(tt_tag)
+        self.buf.create_tag(tag, background='lightpink1')
+        self.buf.apply_tag_by_name(tag, first, last)
+
+
+    def _restore_selection(self):
+        """A hack to work around a bug/feature of the textview where it
+        loses the selection when it loses focus.  This method can be used
+        to restore the focus.  Call _save_selection() to save it.
+        """
+        tag = 'savedselection'
+        first, last = self.buf.get_bounds()
+        try:
+            self.buf.remove_tag_by_name(tag, first, last)
+        except:
+            pass
+
+        self.buf.move_mark_by_name("insert", self.sel_first)
+        self.buf.move_mark_by_name("selection_bound", self.sel_last)
+
 
     def execute(self):
         """Callback when the EXEC button is pressed.
@@ -454,14 +515,21 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return
 
         if num_queued > 0:
+            self._save_selection()
             if not common.view.popup_confirm("Confirm execute",
                                              "Replace %s queued commands with selection?" % (
                 self.queueName)):
+                self._restore_selection()
                 return
+            
+            self._restore_selection()
 
-        cmds = self._get_commands_from_selection()
-
-        common.controller.replaceQueueAndExecute(self.queueName, cmds)
+        try:
+            cmds = self._get_commands_from_selection()
+            
+            common.controller.replaceQueueAndExecute(self.queueName, cmds)
+        except Exception, e:
+            common.view.popup_error(str(e))
 
 
     def schedule(self):
@@ -472,11 +540,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             common.view.popup_error("No mouse selection!")
             return
 
-        # TODO: what if a command is already selected once in queue?
-        cmds = self._get_commands_from_selection()
-        #print len(cmds), "selected!"
+        try:
+            # TODO: what if a command is already selected once in queue?
+            cmds = self._get_commands_from_selection()
+            #print len(cmds), "selected!"
 
-        common.controller.appendQueue(self.queueName, cmds)
+            common.controller.appendQueue(self.queueName, cmds)
+        except Exception, e:
+            common.view.popup_error(str(e))
 
 
 class OpeCommandObject(CommandObject.CommandObject):
