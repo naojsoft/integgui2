@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Aug 31 13:10:38 HST 2010
+#  Last edit: Thu Sep  2 18:29:12 HST 2010
 #]
 import gtk
 
@@ -81,7 +81,12 @@ def set_controller(pcontroller):
     global controller
     controller = pcontroller
 
-
+def gui_do(method, *args, **kwdargs):
+    return view.gui_do(method, *args, **kwdargs)
+    
+def gui_do_res(method, *args, **kwdargs):
+    return view.gui_do_res(method, *args, **kwdargs)
+    
 def update_line(buf, row, text, tags=None):
     """Update a line of the text widget _tw_, defined by _row_,
     with the value _val_.
@@ -207,6 +212,16 @@ def clear_tv(widget):
 
 class TagError(Exception):
     pass
+
+## def threadlock(f):
+##     def wrapper(*args, **kwds):
+##         gtk.gdk.threads_enter()
+##         try:
+##             return f(*args, **kwds)
+##         finally:
+##             gtk.gdk.threads_leave()
+
+##     return wrapper
 
 
 #END

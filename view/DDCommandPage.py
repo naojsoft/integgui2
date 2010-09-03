@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 21:03:27 HST 2010
+#  Last edit: Thu Sep  2 20:14:52 HST 2010
 #]
 
 import gtk
@@ -77,30 +77,11 @@ class DDCommandPage(Page.CommandPage):
                 self.queueName))
             return
 
-        # tag the text so we can manipulate it later
-        cmdObj = DDCommandObject('dd%d', self.queueName,
-                                 self.logger, self)
-
         # Clear the selection
         itr = self.buf.get_end_iter()
         self.buf.move_mark_by_name("insert", itr)         
         self.buf.move_mark_by_name("selection_bound", itr)
 
-        common.controller.prependQueue(self.queueName, cmdObj)
-        common.controller.resumeQueue(self.queueName)
-
-
-class DDCommandObject(CommandObject.CommandObject):
-
-    def __init__(self, format, queueName, logger, page):
-        self.page = page
-
-        super(DDCommandObject, self).__init__(format, queueName, logger)
-        
-    def get_preview(self):
-        return self.get_cmdstr()
-    
-    def get_cmdstr(self):
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         start, end = buf.get_bounds()
@@ -111,15 +92,36 @@ class DDCommandObject(CommandObject.CommandObject):
         if cmdstr.endswith(';'):
             cmdstr = cmdstr[:-1]
 
+        # tag the text so we can manipulate it later
+        cmdObj = DDCommandObject('dd%d', self.queueName,
+                                 self.logger, self, cmdstr)
+
+        common.controller.prependQueue(self.queueName, cmdObj)
+        common.controller.resumeQueue(self.queueName)
+
+
+class DDCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, page, cmdstr):
+        self.page = page
         self.cmdstr = cmdstr
-        return cmdstr
+
+        super(DDCommandObject, self).__init__(format, queueName, logger)
+        
+    def get_preview(self):
+        return self._get_cmdstr()
+    
+    def _get_cmdstr(self):
+        return self.cmdstr
 
     def mark_status(self, txttag):
         pass
 
     def execute(self):
+        common.view.assert_nongui_thread()
+
         # Get the command string associated with this kind of page.
-        cmdstr = self.get_cmdstr()
+        cmdstr = self._get_cmdstr()
         
         try:
             # Try to execute the command in the TaskManager

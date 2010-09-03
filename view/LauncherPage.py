@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 20:19:16 HST 2010
+#  Last edit: Thu Sep  2 20:14:53 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -489,20 +489,22 @@ class LauncherCommandObject(CommandObject.CommandObject):
                                                     logger)
 
     def mark_status(self, txttag):
-        gobject.idle_add(self.launcher.show_state, txttag)
+        # This may be called from a non-gui thread
+        common.gui_do(self.launcher.show_state, txttag)
 
     def get_preview(self):
-        return self.get_cmdstr()
+        return self._get_cmdstr()
     
-    def get_cmdstr(self):
+    def _get_cmdstr(self):
         return self.cmdstr
 
     def execute(self):
-
         try:
+            common.view.assert_nongui_thread()
+
             self.mark_status('executing')
 
-            cmdstr = self.get_cmdstr()
+            cmdstr = self._get_cmdstr()
         
             # Try to execute the command in the TaskManager
             self.logger.debug("Invoking to task manager (%s): '%s'" % (

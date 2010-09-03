@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 20:28:52 HST 2010
+#  Last edit: Thu Sep  2 20:09:45 HST 2010
 #]
 
 import os, re
@@ -391,7 +391,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # Hack to fix problem where selection covers the newline
             # but not the first character of the next line
             lrow -= 1
-        print "selection: %d-%d" % (frow, lrow)
+        #print "selection: %d-%d" % (frow, lrow)
 
         # Clear the selection
         self.buf.move_mark_by_name("insert", first)         
@@ -403,7 +403,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for i in xrange(int(lrow)+1-frow):
 
             row = frow+i
-            print "row: %d" % (row)
+            #print "row: %d" % (row)
 
             first.set_line(row)
             last.set_line(row)
@@ -414,7 +414,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             if cmd.startswith('#') or (len(cmd) == 0):
                 continue
             self.logger.debug("cmd=%s" % (cmd))
-            print cmd
 
             # tag the text so we can manipulate it later
             cmdobj = OpeCommandObject('ope%d', self.queueName,
@@ -475,7 +474,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         # TODO: what if a command is already selected once in queue?
         cmds = self._get_commands_from_selection()
-        print len(cmds), "selected!"
+        #print len(cmds), "selected!"
 
         common.controller.appendQueue(self.queueName, cmds)
 
@@ -487,10 +486,13 @@ class OpeCommandObject(CommandObject.CommandObject):
         
         super(OpeCommandObject, self).__init__(format, queueName, logger)
 
+
     def get_preview(self):
         """This is called to get a preview of the command string that
         should be executed.
         """
+        common.view.assert_gui_thread()
+        
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         # Now get the command from the text widget
@@ -502,44 +504,31 @@ class OpeCommandObject(CommandObject.CommandObject):
         if cmdstr.endswith(';'):
             cmdstr = cmdstr[:-1]
 
-        self.logger.info("preview is '%s'" % (cmdstr))
+        self.logger.debug("preview is '%s'" % (cmdstr))
         return cmdstr
 
-    def get_cmdstr(self):
+    def _get_cmdstr(self):
         """This is called to get the command string that should be executed.
         """
+        common.view.assert_gui_thread()
+
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         start, end = buf.get_bounds()
-        txtbuf = buf.get_text(start, end).strip()
+        txtbuf = buf.get_text(start, end)
 
         # Now get the command from the text widget
         #start, end = common.get_region_lines(buf, self.guitag)
         start, end = common.get_region(buf, self.guitag)
-        cmdstr = buf.get_text(start, end).strip()
+        cmdstr = buf.get_text(start, end)
 
-        # remove trailing semicolon, if present
-        if cmdstr.endswith(';'):
-            cmdstr = cmdstr[:-1]
-
-        # Resolve all variables/macros
-        try:
-            self.logger.debug("Unprocessed command is: %s" % cmdstr)
-            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
-            self.logger.debug("Processed command is: %s" % p_cmdstr)
-
-            self.cmdstr = p_cmdstr
-            return p_cmdstr
-
-        except Exception, e:
-            errstr = "Error parsing command: %s" % (str(e))
-            raise Exception(errstr)
-            
-
+        return (txtbuf, cmdstr)
+    
     def _mark_status(self, txttag):
         """This is called when our command changes status.  _txttag_ should
         be 'scheduled', 'executing', 'done' or 'error'.
         """
+        common.view.assert_gui_thread()
 
         # Get the entire OPE buffer
         buf = self.page.buf
@@ -567,23 +556,53 @@ class OpeCommandObject(CommandObject.CommandObject):
         buf.apply_tag_by_name(txttag, start, end)
 
     def mark_status(self, txttag):
-        gobject.idle_add(self._mark_status, txttag)
-
+        # This may be called from a non-gui thread
+        common.gui_do(self._mark_status, txttag)
+        
     def execute(self):
+        try:
+            common.view.assert_nongui_thread()
+
+            # Get the command string associated with this kind of page.
+            # We are executing in another thread, so use gui_do_res()
+            # to get the text
+            f_res = common.gui_do_res(self._get_cmdstr)
+            txtbuf, cmdstr = f_res.get_value(timeout=10.0)
+
+            txtbuf = txtbuf.strip()
+            cmdstr = cmdstr.strip()
+        
+            # remove trailing semicolon, if present
+            if cmdstr.endswith(';'):
+                cmdstr = cmdstr[:-1]
+
+            # Resolve all variables/macros
+            try:
+                self.logger.debug("Unprocessed command is: %s" % cmdstr)
+                p_cmdstr = ope.getCmd(txtbuf, cmdstr)
+                self.logger.debug("Processed command is: %s" % p_cmdstr)
+
+            except Exception, e:
+                errstr = "Error parsing command: %s" % (str(e))
+                raise Exception(errstr)
+
+            self.cmdstr = p_cmdstr
+
+        except Exception, e:
+            common.gui_do(common.view.popup_error, str(e))
+            return
+
         try:
             self.mark_status('executing')
 
-            # Get the command string associated with this kind of page.
-            cmdstr = self.get_cmdstr()
-        
             # Try to execute the command in the TaskManager
             self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                self.queueName, cmdstr))
+                self.queueName, self.cmdstr))
 
             common.controller.executingP.set()
 
             res = common.controller.tm.execTask(self.queueName,
-                                                cmdstr, '')
+                                                self.cmdstr, '')
             common.controller.executingP.clear()
 
             if res == 0:

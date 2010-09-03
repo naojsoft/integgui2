@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Aug 31 12:09:43 HST 2010
+#  Last edit: Thu Sep  2 20:09:46 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -9,7 +9,7 @@ from __future__ import with_statement
 # Standard library imports
 import sys, os, glob
 import re
-import threading
+import thread, threading, Queue
 
 # Special library imports
 import pygtk
@@ -18,6 +18,7 @@ import gtk, gobject
 
 # SSD/Gen2 imports
 import Bunch
+import Future
 
 # Local integgui2 imports
 import common
@@ -36,10 +37,15 @@ class IntegView(object):
         # Used for tagging commands
         self.cmdcount = 0
 
+        self.gui_queue = Queue.Queue()
+        self.placeholder = '--notdone--'
+        self.gui_thread_id = None
+
         # Create the GUI
         self.w = Bunch.Bunch()
 
         # hack required to use threads with GTK
+        gobject.threads_init()
         gtk.gdk.threads_init()
 
         # Create top-level window
@@ -549,21 +555,21 @@ class IntegView(object):
     # Interface from controller into the view
     #
     # Due to poor thread-handling in gtk, we are forced to spawn
-    # these calls off to the GUI thread using idle_add()
+    # these calls off to the GUI thread using gui_do()
     ############################################################
 
     def update_frame(self, frameinfo):
         if hasattr(self, 'framepage'):
-            gobject.idle_add(self.framepage.update_frame, frameinfo)
+            self.gui_do(self.framepage.update_frame, frameinfo)
 
     def update_frames(self, framelist):
         if hasattr(self, 'framepage'):
-            gobject.idle_add(self.framepage.update_frames, framelist)
+            self.gui_do(self.framepage.update_frames, framelist)
 
     def update_obsinfo(self, infodict):
         self.logger.info("OBSINFO=%s" % str(infodict))
         if hasattr(self, 'obsinfo'):
-            gobject.idle_add(self.obsinfo.update_obsinfo, infodict)
+            self.gui_do(self.obsinfo.update_obsinfo, infodict)
    
     def update_loginfo(self, logname, infodict):
         #self.logger.debug("LOGNAME=%s LOGINFO=%s" % (logname,
@@ -574,7 +580,7 @@ class IntegView(object):
                 #print "Getting page %s" % logname
                 page = self.logpage.getPage(logname)
                 #print "*****", page
-                gobject.idle_add(page.push, logname, infodict)
+                self.gui_do(page.push, logname, infodict)
             except KeyError:
                 # No log page for this log loaded, so silently drop message
                 # TODO: drop into the integgui2 log page?
@@ -582,21 +588,83 @@ class IntegView(object):
    
     def process_ast(self, ast_id, vals):
         if hasattr(self, 'monpage'):
-            gobject.idle_add(self.monpage.process_ast_err, ast_id, vals)
+            self.gui_do(self.monpage.process_ast_err, ast_id, vals)
 
     def process_task(self, path, vals):
         if hasattr(self, 'monpage'):
-            gobject.idle_add(self.monpage.process_task_err, path, vals)
+            self.gui_do(self.monpage.process_task_err, path, vals)
 
     def gui_do(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
         """
-        gobject.idle_add(method, *args, **kwdargs)
-     
+        #gobject.idle_add(method, *args, **kwdargs)
+        self.gui_queue.put((method, args, kwdargs))
    
-    def mainloop(self):
-        gtk.main()
+    def gui_do_res(self, method, *args, **kwdargs):
+        """General method for calling into the GUI.
+        """
+        # Note: I suppose there may be a valid reason for the GUI thread
+        # to create one of these, but better safe than sorry...
+        self.assert_nongui_thread()
+        
+        future = Future.Future()
+        self.gui_queue.put((future, method, args, kwdargs))
+        return future
 
+    def assert_gui_thread(self):
+        my_id = thread.get_ident() 
+        assert my_id == self.gui_thread_id, \
+               Exception("Non-GUI thread (%d) is executing GUI code!" % (
+            my_id))
+        
+    def assert_nongui_thread(self):
+        my_id = thread.get_ident() 
+        assert my_id != self.gui_thread_id, \
+               Exception("GUI thread (%d) is executing non-GUI code!" % (
+            my_id))
+        
+    def mainloop(self):
+        # Mark our thread id
+        self.gui_thread_id = thread.get_ident()
+
+        while not self.ev_quit.isSet():
+            # Process "in-band" GTK events
+            try:
+                tup = self.gui_queue.get(block=True, timeout=0.01)
+                if len(tup) == 4:
+                    (future, method, args, kwdargs) = tup
+                elif len(tup) == 3:
+                    (method, args, kwdargs) = tup
+                    future = None
+                else:
+                    raise Exception("Don't understand contents of queue: %s" % (
+                        str(tup)))
+
+                # Execute the GUI method
+                gtk.gdk.threads_enter()
+                try:
+                    try:
+                        res = method(*args, **kwdargs)
+                    except Exception, e:
+                        res = e
+
+                finally:
+                    gtk.gdk.threads_leave()
+
+                # Store results to future if this was a call to gui_do_res()
+                if future:
+                    future.resolve(res)
+                    
+            except Queue.Empty:
+                pass
+                
+            # Process "out-of-band" GTK events
+            gtk.gdk.threads_enter()
+            try:
+                while gtk.events_pending():
+                    gtk.main_iteration()
+            finally:
+                gtk.gdk.threads_leave()
 
 rc = """
 style "window"

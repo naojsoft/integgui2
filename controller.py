@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 20:58:18 HST 2010
+#  Last edit: Thu Sep  2 18:29:13 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -124,8 +124,11 @@ class IntegController(object):
             # TODO: popup error here?
             #raise e
             self.gui.gui_do(self.gui.popup_error, str(e))
+            return
 
         try:
+            # now the task is spun off into another thread
+            # for the task manager interaction
             cmdObj.init_and_start(self)
 
         except Exception, e:

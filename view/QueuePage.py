@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Aug 31 15:28:56 HST 2010
+#  Last edit: Thu Sep  2 20:14:51 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -121,8 +121,9 @@ class QueuePage(Page.CommandPage):
         # change our tab title to match the queue
         self.setLabel(queueObj.name)
 
-    def redraw(self):
-        # clear text
+    def _redraw(self):
+        common.view.assert_gui_thread()
+        
         common.clear_tv(self.tw)
         with self.lock:
             for cmdObj in self.queueObj.peekAll():
@@ -133,6 +134,9 @@ class QueuePage(Page.CommandPage):
                 loc = self.buf.get_end_iter()
                 self.buf.insert(loc, '\n')
 
+    def redraw(self):
+        common.gui_do(self._redraw)
+        
     def get_cmddef(self, cmdtag):
         try:
             #return self.cmdDict[cmdtag]
@@ -302,7 +306,7 @@ class altQueuePage(Page.CommandPage):
         # change our tab title to match the queue
         self.setLabel(queueObj.name)
 
-    def redraw(self, queueObj):
+    def _redraw(self, queueObj):
         # clear text
         common.clear_tv(self.tw)
         with self.lock:
@@ -314,6 +318,10 @@ class altQueuePage(Page.CommandPage):
                 loc = self.buf.get_end_iter()
                 self.buf.insert(loc, '\n')
 
+    def redraw(self, queueObj):
+        #&common.gui_do(self._redraw, queueObj)
+        pass
+            
     def get_cmddef(self, cmdtag):
         try:
             #return self.cmdDict[cmdtag]
@@ -386,10 +394,10 @@ class altQueuePage(Page.CommandPage):
 
 class BreakCommandObject(CommandObject.CommandObject):
 
-    def __init__(self, format, queueName, page):
+    def __init__(self, format, queueName, logger, page):
         self.page = page
         
-        super(BreakCommandObject, self).__init__(format, queueName)
+        super(BreakCommandObject, self).__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()
