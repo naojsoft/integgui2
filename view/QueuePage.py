@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 20:14:51 HST 2010
+#  Last edit: Sat Sep  4 22:08:07 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -15,8 +15,7 @@ import common
 import Page
 import CommandObject
 
-
-class QueuePage(Page.CommandPage):
+class QueuePage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
@@ -24,8 +23,8 @@ class QueuePage(Page.CommandPage):
 
         self.paused = False
 
-        self.queue = []
         self.queueName = ''
+        self.queueObj = None
         self.cmdDict = {}
 
         # Create the widgets for the text
@@ -48,46 +47,51 @@ class QueuePage(Page.CommandPage):
         self.tw = tw
         self.buf = tw.get_buffer()
 
-        self.buf.create_tag('cmdref', foreground="black")
+        # Stores saved selection
+        self.sel_i = None
+        self.sel_j = None
+
+        self.cursor = 0
+        self.moving_cursor = False
+        
+        # keyboard shortcuts
+        self.tw.connect("key-press-event", self.keypress)
+        self.buf.connect("mark-set", self.show_cursor)
+
+        self.buf.create_tag('selected', background="pink1")
+        self.buf.create_tag('cursor', background="skyblue1")
 
         frame.pack_start(scrolled_window, fill=True, expand=True)
 
         self.add_menu()
         self.add_close()
 
-        #self.tw.connect("button-press-event", self.jump_tag)
-
-        # hack to get auto-scrolling to work
-        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
-                                         False)
-
-        # this is for variable definition popups
-        #self.tw.set_property("has-tooltip", True)
-        #self.tw.connect("query-tooltip", self.query_command)
         # self.tw.drag_source_set(gtk.gdk.BUTTON1_MASK,
         #                       [('text/cmdtag', 0, 555)], gtk.gdk.ACTION_MOVE)
         # self.tw.drag_dest_set(gtk.DEST_DEFAULT_ALL,
         #                       [('text/cmdtag', 0, 555)], gtk.gdk.ACTION_MOVE)
-        self.tw.connect("drag-data-get", self.grabdata)
-        self.tw.connect("drag-drop", self.rearrange)
-
-        # keyboard shortcuts
-        #self.tw.connect("key-press-event", self.keypress)
+        #self.tw.connect("drag-data-get", self.grabdata)
+        #self.tw.connect("drag-drop", self.rearrange)
 
         # add some bottom buttons
-        self.btn_exec = gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: common.view.execute(self))
+        self.btn_exec = gtk.Button("Resume")
+        self.btn_exec.connect("clicked", lambda w: self.resume())
         self.btn_exec.modify_bg(gtk.STATE_NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
-        self.btn_cancel = gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel)
+        self.btn_step = gtk.Button("Step")
+        self.btn_step.connect("clicked", lambda w: self.step())
+        self.btn_step.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['execbtn'])
+        self.btn_step.show()
+        self.leftbtns.pack_end(self.btn_step)
+
+        self.btn_break = gtk.Button("Ins Break")
+        self.btn_break.connect("clicked", lambda w: self.insbreak(line=0))
+        self.btn_break.show()
+        self.leftbtns.pack_end(self.btn_break)
 
         self.btn_kill = gtk.Button("Kill")
         self.btn_kill.connect("clicked", lambda w: self.kill())
@@ -95,11 +99,6 @@ class QueuePage(Page.CommandPage):
                                 common.launcher_colors['killbtn'])
         self.btn_kill.show()
         self.leftbtns.pack_end(self.btn_kill)
-
-        self.btn_pause = gtk.Button("Pause")
-        self.btn_pause.connect("clicked", self.toggle_pause)
-        self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause)
 
         self.btn_refresh = gtk.Button("Refresh")
         self.btn_refresh.connect("clicked", lambda w: self.redraw())
@@ -119,82 +118,275 @@ class QueuePage(Page.CommandPage):
         queueObj.add_view(self)
         
         # change our tab title to match the queue
-        self.setLabel(queueObj.name)
+        self.setLabel(queueObj.name.capitalize())
 
+    def close(self):
+        self.queueObj.del_view(self)
+        super(QueuePage, self).close()
+            
     def _redraw(self):
         common.view.assert_gui_thread()
         
-        common.clear_tv(self.tw)
         with self.lock:
+            #self.moving_cursor = True
+            common.clear_tv(self.tw)
+
+            numlines = 0
             for cmdObj in self.queueObj.peekAll():
                 text = cmdObj.get_preview()
                 # Insert text icon at end of the 
                 loc = self.buf.get_end_iter()
-                self.buf.insert_with_tags_by_name(loc, text, 'cmdref')
+                self.buf.insert(loc, text)
                 loc = self.buf.get_end_iter()
                 self.buf.insert(loc, '\n')
+                numlines += 1
+
+            # Apply color to rows and save selection indexes
+            # TODO: make selection a part of the CommandQueue?
+            if self.has_selection():
+                first, last = self.buf.get_bounds()
+                self.sel_i = min(self.sel_i, numlines)
+                first.set_line(self.sel_i)
+                self.sel_j = min(self.sel_j, numlines)
+                last.set_line(self.sel_j)
+                last.forward_to_line_end()
+                self.buf.apply_tag_by_name('selected', first, last)
+
+            # restore cursor
+            #self.moving_cursor = False
+            self.cursor = min(self.cursor, numlines)
+            #print "2. cursor is %d numlines is %d" % (self.cursor, numlines)
+            loc = self.buf.get_iter_at_line(self.cursor)
+            self.buf.place_cursor(loc)
+
+            # Hacky way to get our cursor on screen
+            insmark = self.buf.get_insert()
+            if insmark != None:
+                ## insiter = self.buf.get_iter_at_mark(insmark)
+                ## insline = insiter.get_line()
+                res = self.tw.scroll_to_mark(insmark, 0, use_align=True)
+                #print "2. scrolling res is %s insline=%d" % (res, insline)
+                
 
     def redraw(self):
         common.gui_do(self._redraw)
         
-    def get_cmddef(self, cmdtag):
+    def set_selection(self):
+        # Clear previous selection, if any
+        first, last = self.buf.get_bounds()
+        self.buf.remove_tag_by_name('selected', first, last)
+
+        # Get the range of text selected
         try:
-            #return self.cmdDict[cmdtag]
-            return cmdtag
-        except KeyError:
-            raise Exception("No definition found for '%s'" % cmdtag)
-        
-    def reset(self):
-        #common.clear_tags(self.buf, ('executing',))
-        self.reset_pause()
+            first, last = self.buf.get_selection_bounds()
 
-    def query_command(self, tw, x, y, kbmode, ttw):
-        # parameters are text widget, x and y coords, boolean for keyboard
-        # mode (?) and the tooltip widget.  Return True if a tooltip should
-        # be displayed
-        #print "tooltip: args are %s" % (str(args))
-        buf_x1, buf_y1 = tw.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
-                                                    x, y)
-        txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
+            # Clear the selection
+            common.clear_selection(self.tw)
 
-        buf = tw.get_buffer()
-        tagtbl = buf.get_tag_table()
-        cmdref = tagtbl.lookup('cmdref')
-        if not cmdref:
-            return False
-        
-        # Check if we are in the middle of a cmdref
-        result = txtiter.has_tag(cmdref)
-        if not result:
-            #print "tooltip: not in word!"
-            return False
+        except ValueError:
+            # If there is no selection, then use position of insertion mark
+            insmark = self.buf.get_insert()
+            if insmark == None:
+                common.view.popup_error("Please make selection or set insertion mark first.")
+                return
 
-        # Get boundaries of the tag.
-        # TODO: there must be a more efficient way to do this!
-        startiter = txtiter.copy()
-        while not startiter.begins_tag(cmdref):
-            startiter.backward_char()
-
-        enditer = txtiter.copy()
-        while not enditer.ends_tag(cmdref):
-            enditer.forward_char()
-
-        # Get the text of the cmdref
-        cmdtag = buf.get_text(startiter, enditer)
-        #cmdtag = cmdtag[1:]
-        try:
-            res = self.get_cmddef(cmdtag)
-            ttw.set_text(res)
-        except Exception, e:
-            ttw.set_text(str(e))
+            first = self.buf.get_iter_at_mark(insmark)
+            last = first.copy()
+            last.forward_to_line_end()
             
-        return True
+        frow = first.get_line()
+        lrow = last.get_line()
+
+        # Adjust to beginning and end of lines
+        if not first.starts_line():
+            first.set_line(frow)
+        if last.starts_line():
+            # Hack to fix problem where selection covers the newline
+            # but not the first character of the next line
+            lrow -= 1
+            last.set_line(lrow)
+        if not last.ends_line():
+            last.forward_to_line_end()
+        #print "selection: %d-%d" % (frow, lrow)
+
+        # Apply color to rows and save selection indexes
+        self.buf.apply_tag_by_name('selected', first, last)
+        self.sel_i = first.get_line()
+        self.sel_j = last.get_line()
+        
+    def clear_selection(self):
+        first, last = self.buf.get_bounds()
+        self.buf.remove_tag_by_name('selected', first, last)
+
+        common.clear_selection(self.tw)
+
+        self.sel_i = None
+        self.sel_j = None
+
+    def has_selection(self):
+        return self.sel_i != None
+    
+    def cut(self):
+        if not self.has_selection():
+            # Try to set a selection if none provided
+            self.set_selection()
+            
+        if self.has_selection():
+            (i, j) = (self.sel_i, self.sel_j)
+            print "i=%d j=%d" % (i, j)
+            self.clear_selection()
+
+            self.queueObj.delete(i, j+1)
+        
+    def paste(self):
+        pass
+        
+    def move(self):
+        if not self.has_selection():
+            common.view.popup_error("Please make a selection with 's' first.")
+            return
+
+        insmark = self.buf.get_insert()
+        if insmark == None:
+            common.view.popup_error("Please set insertion mark first.")
+            return
+        
+        (i, j) = (self.sel_i, self.sel_j)
+        print "i=%d j=%d" % (i, j)
+        self.clear_selection()
+        
+        deleted = self.queueObj.delete(i, j+1)
+        
+        insmark = self.buf.get_insert()
+        if insmark != None:
+            insiter = self.buf.get_iter_at_mark(insmark)
+        else:
+            insiter = self.buf.get_end_iter()
+            
+        k = insiter.get_line()
+
+        self.queueObj.insert(k, deleted)
+
+        
+    def insbreak(self, line=None):
+        if line == None:
+            insmark = self.buf.get_insert()
+            if insmark != None:
+                insiter = self.buf.get_iter_at_mark(insmark)
+                line = insiter.get_line()
+            else:
+                line = 0
+
+        try:
+            cmdobj = BreakCommandObject('brk%d', self.queueName,
+                                    self.logger, self)
+            self.queueObj.insert(line, [cmdobj])
+        except Exception, e:
+            common.view.popup_error(str(e))
+
+    def _resume(self, w_break=False):
+        """Callback when the Resume button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        if common.controller.executingP.isSet():
+            # Yep--popup an error message
+            common.view.popup_error("There is already a %s task running!" % (
+                self.queueName))
+            return
+
+        # Get length of queued items, if any
+        num_queued = common.controller.get_queueLength(self.queueName)
+        
+        if num_queued == 0:
+            common.view.popup_error("No %s queued commands!" % (
+                self.queueName))
+            return
+
+        if w_break:
+            try:
+                cmdobj = BreakCommandObject('brk%d', self.queueName,
+                                            self.logger, self)
+                self.queueObj.insert(1, [cmdobj])
+            except Exception, e:
+                common.view.popup_error(str(e))
+                return
+
+        try:
+            common.controller.resumeQueue(self.queueName)
+        except Exception, e:
+            common.view.popup_error(str(e))
+
+
+    def resume(self):
+        return self._resume()
+
+    def step(self):
+        return self._resume(w_break=True)
 
     def keypress(self, w, event):
         keyname = gtk.gdk.keyval_name(event.keyval)
+        if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
+                       'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
+            # navigation and other
+            return False
+        if keyname in ('Left', 'Right'):
+            # ignore these
+            return True
         print "key pressed --> %s" % keyname
 
-        return False
+        if keyname == 'r':
+            self._redraw()
+            return True
+        elif keyname == 's':
+            self.set_selection()
+            return True
+        elif keyname == 'a':
+            self.clear_selection()
+            return True
+        elif keyname == 'x':
+            self.cut()
+            return True
+        elif keyname == 'v':
+            self.move()
+            return True
+        elif keyname == 'b':
+            self.insbreak()
+            return True
+
+        soundfile = common.sound.bad_keystroke
+        common.controller.playSound(soundfile)
+        return True
+    
+    def show_cursor(self, tbuf, titer, tmark):
+        if self.moving_cursor:
+            return False
+        
+        insmark = tbuf.get_insert()
+        if insmark != tmark:
+            return False
+
+        self.moving_cursor = True
+        try:
+            # Color the new line nwe
+            start, end = tbuf.get_bounds()
+            self.buf.remove_tag_by_name('cursor', start, end)
+
+            line = titer.get_line()
+            self.cursor = line
+            start = tbuf.get_iter_at_line(line)
+            end = start.copy()
+            end.forward_to_line_end()
+            tbuf.apply_tag_by_name('cursor', start, end)
+
+            selmark = tbuf.get_mark('selection_bound')
+            seliter = tbuf.get_iter_at_mark(selmark)
+            if not seliter.starts_line():
+                tbuf.move_mark_by_name('selection_bound', start)
+            tbuf.move_mark(insmark, start)
+
+        finally:
+            self.moving_cursor = False
+        return True
     
     def grabdata(self, tw, context, selection, info, tstamp):
         print "grabbing!"
@@ -211,185 +403,6 @@ class QueuePage(Page.CommandPage):
         context.finish(True, False, tstamp)
         return True
     
-class altQueuePage(Page.CommandPage):
-
-    def __init__(self, frame, name, title):
-
-        super(QueuePage, self).__init__(frame, name, title)
-
-        self.paused = False
-
-        self.queue = None
-        self.cmdDict = {}
-
-        # Create the widgets for the text
-        scrolled_window = gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
-
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
-
-        self.ls = gtk.ListStore(str)
-        tvw = gtk.TreeView(self.ls)
-        scrolled_window.add(tvw)
-        scrolled_window.show()
-        self.tvw = tvw
-
-        targets = [ ('my_tree_model_row', gtk.TARGET_SAME_WIDGET, 0),
-                    ('text/plain', 0, 1),
-                    ('TEXT', 0, 2),
-                    ('STRING', 0, 3)]
-        self.cell = gtk.CellRendererText()
-        self.tvc = gtk.TreeViewColumn('Commands', self.cell, text=0)
-        #self.tvc.set_reorderable(True)
-        self.tvw.append_column(self.tvc)
-        #self.tvc.pack_start(self.cell, True)
-        #self.tvc.add_attribute(self.cell, 'text', 0)
-        self.tvw.set_search_column(0)
-        self.tvw.set_reorderable(True)
-        tvw.show()
-
-        self.tvw.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
-                                          targets,
-                                          gtk.gdk.ACTION_DEFAULT|
-                                          gtk.gdk.ACTION_MOVE)
-        self.tvw.enable_model_drag_dest(targets,
-                                        gtk.gdk.ACTION_DEFAULT)
-        self.tvw.connect('drag_data_get', self.drag_data_get_data)
-        self.tvw.connect('drag_data_received', self.drag_data_received_data)
-        
-        frame.pack_start(scrolled_window, fill=True, expand=True)
-        #frame.show_all()
-
-        self.add_menu()
-        self.add_close()
-
-        # this is for command definition popups
-        self.tvw.set_property("has-tooltip", True)
-        self.tvw.connect("query-tooltip", self.query_command)
-
-        # add some bottom buttons
-        self.btn_exec = gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: common.view.execute(self))
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['execbtn'])
-        self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec)
-
-        self.btn_cancel = gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel)
-
-        self.btn_kill = gtk.Button("Kill")
-        self.btn_kill.connect("clicked", lambda w: self.kill())
-        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['killbtn'])
-        self.btn_kill.show()
-        self.leftbtns.pack_end(self.btn_kill)
-
-        self.btn_pause = gtk.Button("Pause")
-        self.btn_pause.connect("clicked", self.toggle_pause)
-        self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause)
-
-        item = gtk.MenuItem(label="Clear Schedule")
-        self.menu.append(item)
-        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_Scheduled")
-        item.show()
-
-    def set_queue(self, queueObj):
-        self.queueObj = queueObj
-        # change our tab title to match the queue
-        self.setLabel(queueObj.name)
-
-    def _redraw(self, queueObj):
-        # clear text
-        common.clear_tv(self.tw)
-        with self.lock:
-            for bnch in queueObj.peekAll():
-                text = bnch.tag
-                # Insert text icon at end of the 
-                loc = self.buf.get_end_iter()
-                self.buf.insert_with_tags_by_name(loc, text, 'cmdref')
-                loc = self.buf.get_end_iter()
-                self.buf.insert(loc, '\n')
-
-    def redraw(self, queueObj):
-        #&common.gui_do(self._redraw, queueObj)
-        pass
-            
-    def get_cmddef(self, cmdtag):
-        try:
-            #return self.cmdDict[cmdtag]
-            return cmdtag
-        except KeyError:
-            raise Exception("No definition found for '%s'" % cmdtag)
-        
-    def reset(self):
-        common.clear_tags(self.buf, ('executing',))
-        self.reset_pause()
-
-    def query_command(self, tvw, x, y, kbmode, ttw):
-        # parameters are text widget, x and y coords, boolean for keyboard
-        # mode (?) and the tooltip widget.  Return True if a tooltip should
-        # be displayed
-        #print "tooltip: args are %s" % (str(args))
-        model = tvw.get_model()
-        info = tvw.get_path_at_pos(x, y)
-        if not info:
-            return
-        
-        path = info[0]
-        iter = model.get_iter(path)
-
-        # Get the text of the cmdref
-        cmdtag = model.get_value(iter, 0)
-        #cmdtag = cmdtag[1:]
-        try:
-            res = self.get_cmddef(cmdtag)
-            ttw.set_text(res)
-        except Exception, e:
-            ttw.set_text(str(e))
-            
-        return True
-
-    def keypress(self, w, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
-        print "key pressed --> %s" % keyname
-
-        return False
-    
-    def drag_data_get_data(self, treeview, context, selection, target_id,
-                              etime):
-        print "drag data get!"
-        treeselection = treeview.get_selection()
-        model, iter = treeselection.get_selected()
-        data = model.get_value(iter, 0)
-        selection.set(selection.target, 8, data)
-        
-    def drag_data_received_data(self, treeview, context, x, y, selection,
-                                info, etime):
-        print "drag data received!"
-        model = treeview.get_model()
-        data = selection.data
-        drop_info = treeview.get_dest_row_at_pos(x, y)
-        if drop_info:
-            path, position = drop_info
-            iter = model.get_iter(path)
-            if (position == gtk.TREE_VIEW_DROP_BEFORE
-                or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
-                model.insert_before(iter, [data])
-            else:
-                model.insert_after(iter, [data])
-        else:
-            model.append([data])
-        if context.action == gtk.gdk.ACTION_MOVE:
-            context.finish(True, True, etime)
-        return
 
 
 class BreakCommandObject(CommandObject.CommandObject):
@@ -407,5 +420,10 @@ class BreakCommandObject(CommandObject.CommandObject):
 
     def mark_status(self, txttag):
         pass
+
+    def execute(self):
+        self.logger.info("-- Break --")
+        soundfile = common.sound.break_executer
+        common.controller.playSound(soundfile)
 
 #END

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 21:48:40 HST 2010
+#  Last edit: Sat Sep  4 21:06:50 HST 2010
 #]
 
 import os, re
@@ -33,7 +33,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
-
+        scrolled_window.set_size_request(0, -1)
+        
         tw = gtk.TextView()
         scrolled_window.add(tw)
         tw.show()
@@ -51,8 +52,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # hack to get auto-scrolling to work
         self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
                                          False)
+        self.tagmark = self.tagbuf.create_mark('end',
+                                               self.tagbuf.get_end_iter(),
+                                               False)
 
         self.hbox.pack1(scrolled_window, resize=False, shrink=True)
+        self.hbox.show()
         self.hbox.set_position(0)
 
         # this is for variable definition popups
@@ -118,6 +123,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
                              "menu.Clear_Scheduled")
         item.show()
+        self.hbox.set_position(0)
 
 
     def load(self, filepath, buf):
@@ -264,16 +270,29 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             lineno += 1
 
         if len(badrefs) > 0:
+            # Add all undefined refs to the tag table
             addbadtag(1, "UNDEFINED VARIABLE REFS", ['badref'])
             for varref, lineno in badtags:
                 addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
-            
+            # Scroll tag table to end
+            #self.tagtw.scroll_to_iter(end, 0.1)
+            # Hack to get around the fact that the above doesn't work
+            loc = self.tagbuf.get_end_iter()
+            self.tagbuf.move_mark(self.tagmark, loc)
+            res = self.tagtw.scroll_to_mark(self.tagmark, 0, True)
+            #if not res:
+            #res = self.tagtw.scroll_mark_onscreen(self.tagmark)
+
+            # Set the background of the tags button to indicate error
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
                                     gtk.gdk.color_parse('red1'))
             self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
                                     gtk.gdk.color_parse('red1'))
             common.view.popup_error("Undefined variable references: " +
                                     ' '.join(badrefs) + ". See bottom of tags for details.")
+            # open the tag table
+            self.hbox.set_position(250)
+            
         else:
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
                                     gtk.gdk.color_parse('gray'))
@@ -305,7 +324,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         loc.set_line(lineno)
         self.buf.move_mark(self.mark, loc)
         #res = self.tw.scroll_to_iter(loc, 0.5)
-        res = self.tw.scroll_to_mark(self.mark, 0.2)
+        #res = self.tw.scroll_to_mark(self.mark, 0.2)
+        res = self.tw.scroll_to_mark(self.mark, 0, True)
         if not res:
             res = self.tw.scroll_mark_onscreen(self.mark)
         #print "line->%d res=%s" % (lineno, res)
@@ -405,7 +425,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         try:
             first, last = self.buf.get_selection_bounds()
         except ValueError:
-            raise Exception("Error getting selection--no selection?")
+            raise common.SelectionError("Error getting selection--no selection?")
             
         frow = first.get_line()
         lrow = last.get_line()
@@ -416,8 +436,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         #print "selection: %d-%d" % (frow, lrow)
 
         # Clear the selection
-        self.buf.move_mark_by_name("insert", first)         
-        self.buf.move_mark_by_name("selection_bound", first)
+        common.clear_selection(self.tw)
 
         # Break selection into individual lines
         cmds = []
@@ -461,6 +480,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         except ValueError:
             raise Exception("Error getting selection--no selection?")
 
+        first = first.copy()
+        last = last.copy()
+        
         tag = 'savedselection'
         tt = self.buf.get_tag_table()
 
@@ -469,6 +491,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if tt_tag:
             tt.remove(tt_tag)
         self.buf.create_tag(tag, background='lightpink1')
+        # Adjust apparent selection to line start and end
+        if not first.starts_line():
+            first.set_line(first.get_line())
+        if last.starts_line():
+            last.set_line(last.get_line()-1)
+        if not last.ends_line():
+            last.forward_to_line_end()
         self.buf.apply_tag_by_name(tag, first, last)
 
 
@@ -567,8 +596,8 @@ class OpeCommandObject(CommandObject.CommandObject):
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         # Now get the command from the text widget
-        #start, end = common.get_region_lines(buf, self.tag)
-        start, end = common.get_region(buf, self.guitag)
+        start, end = common.get_region_lines(buf, self.guitag)
+        #start, end = common.get_region(buf, self.guitag)
         cmdstr = buf.get_text(start, end).strip()
 
         # remove trailing semicolon, if present
@@ -589,8 +618,8 @@ class OpeCommandObject(CommandObject.CommandObject):
         txtbuf = buf.get_text(start, end)
 
         # Now get the command from the text widget
-        #start, end = common.get_region_lines(buf, self.guitag)
-        start, end = common.get_region(buf, self.guitag)
+        start, end = common.get_region_lines(buf, self.guitag)
+        #start, end = common.get_region(buf, self.guitag)
         cmdstr = buf.get_text(start, end)
 
         return (txtbuf, cmdstr)
@@ -603,8 +632,8 @@ class OpeCommandObject(CommandObject.CommandObject):
 
         # Get the entire OPE buffer
         buf = self.page.buf
-        #start, end = common.get_region_lines(buf, self.tag)
-        start, end = common.get_region(buf, self.guitag)
+        start, end = common.get_region_lines(buf, self.guitag)
+        #start, end = common.get_region(buf, self.guitag)
 
         if txttag == 'normal':
             common.clear_tags_region(buf, ('done', 'error', 'executing',

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 20:09:46 HST 2010
+#  Last edit: Sat Sep  4 13:32:02 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -630,7 +630,7 @@ class IntegView(object):
         while not self.ev_quit.isSet():
             # Process "in-band" GTK events
             try:
-                tup = self.gui_queue.get(block=True, timeout=0.01)
+                tup = self.gui_queue.get(block=True, timeout=0.001)
                 if len(tup) == 4:
                     (future, method, args, kwdargs) = tup
                 elif len(tup) == 3:

@@ -2,7 +2,7 @@
 # command.py -- command object and queue object definitions
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Aug 31 13:02:50 HST 2010
+#  Last edit: Sat Sep  4 17:09:09 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -104,6 +104,29 @@ class CommandQueue(object):
         with self.lock:
             self.flush()
             self.extend(cmdObjs)
+            
+    def insert(self, i, cmdObjs):
+        """Insert command objects before index _i_.
+        Indexing is zero based."""
+        with self.lock:
+            assert len(self.queue) 
+            self.queue = self.queue[:i] + cmdObjs + self.queue[i:]
+            for cmdObj in cmdObjs:
+                cmdObj.mark_status('scheduled')
+                
+            self.redraw()
+            
+    def delete(self, i, j):
+        """Delete command objects from indexes _i_:_j_.
+        Indexing is zero based."""
+        with self.lock:
+            deleted = self.queue[i:j]
+            self.queue = self.queue[:i] + self.queue[j:]
+            for cmdObj in deleted:
+                cmdObj.mark_status('normal')
+                
+            self.redraw()
+            return deleted
             
     def peek(self):
         with self.lock:

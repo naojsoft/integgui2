@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 21:13:07 HST 2010
+#  Last edit: Sat Sep  4 21:26:03 HST 2010
 #]
 import gtk
 
@@ -63,10 +63,12 @@ sound = Bunch.Bunch(success_executer='doorbell.au',
                     tm_ready='tos-computer-03.au',
                     #fail_executer='splat.au',
                     failure_executer='hit-02.au',
-                    failure_launcher='beep-04.au',
+                    failure_launcher='dishes-break-01.au',
+                    break_executer='beep-04.au',
                     #tags_toggle='tos-turboliftdoor.au',
                     tags_toggle='beep-07.au',
                     pause_toggle='beep-05.au',
+                    bad_keystroke='beep-07.au',
                     )
 
 # YUK...MODULE-LEVEL GLOBAL VARIABLES
@@ -161,9 +163,11 @@ def get_region(txtbuf, tagname):
 def get_region_lines(txtbuf, tagname):
     start, end = get_region(txtbuf, tagname)
 
-    frow = start.get_line()
-    start.set_line(frow)
-    end.forward_to_line_end()
+    if not start.starts_line():
+        frow = start.get_line()
+        start.set_line(frow)
+    if not end.ends_line():
+        end.forward_to_line_end()
     
     return (start, end)
 
@@ -209,19 +213,24 @@ def clear_tv(widget):
     enditer = txtbuf.get_end_iter()
     txtbuf.delete(startiter, enditer)
 
+def clear_selection(widget):
+    txtbuf = widget.get_buffer()
+    insmark = txtbuf.get_insert()
+    if insmark != None:
+        insiter = txtbuf.get_iter_at_mark(insmark)
+        txtbuf.select_range(insiter, insiter)
+    else:
+        try:
+            first, last = txtbuf.get_selection_bounds()
+            txtbuf.select_range(first, first)
+        except ValueError:
+            return
+        
 
 class TagError(Exception):
     pass
 
-## def threadlock(f):
-##     def wrapper(*args, **kwds):
-##         gtk.gdk.threads_enter()
-##         try:
-##             return f(*args, **kwds)
-##         finally:
-##             gtk.gdk.threads_leave()
-
-##     return wrapper
-
+class SelectionError(Exception):
+    pass
 
 #END
