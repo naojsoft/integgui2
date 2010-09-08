@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep  4 13:32:02 HST 2010
+#  Last edit: Tue Sep  7 16:59:53 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -73,9 +73,8 @@ class IntegView(object):
         self.framepage = self.ojws.addpage('frames', "Frames", FrameInfoPage)
 
         self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
-        self.executer = self.lws.addpage('executer', "ExecuterQ",
-                                         QueuePage)
-        self.executer.set_queue('executer', self.queue.executer)
+        queuepage = self.lws.addpage('Default', "queue_default", QueuePage)
+        queuepage.set_queue('default', self.queue.default)
 
         self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
         self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)

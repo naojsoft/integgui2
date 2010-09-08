@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 20:14:52 HST 2010
+#  Last edit: Tue Sep  7 17:13:20 HST 2010
 #]
 
 import gtk
@@ -15,7 +15,8 @@ class DDCommandPage(Page.CommandPage):
 
         super(DDCommandPage, self).__init__(frame, name, title)
 
-        self.queueName = 'executer'
+        self.queueName = 'command'
+        self.tm_queueName = 'executer'
         self.paused = False
 
         scrolled_window = gtk.ScrolledWindow()
@@ -38,6 +39,7 @@ class DDCommandPage(Page.CommandPage):
         self.tw = tw
         self.buf = tw.get_buffer()
 
+        self.add_menu()
         self.add_close()
         
         self.btn_exec = gtk.Button("Exec")
@@ -66,26 +68,28 @@ class DDCommandPage(Page.CommandPage):
         self.btn_pause.show()
         self.leftbtns.pack_end(self.btn_pause)
 
+        # Add items to the menu
+        item = gtk.MenuItem(label="Schedule")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.schedule(),
+                             "menu.Schedule")
+        item.show()
 
-    def execute(self):
-        """Callback when the EXEC button is pressed.
-        """
-        # Check whether we are busy executing a command here
-        if common.controller.executingP.isSet():
-            # Yep--popup an error message
-            common.view.popup_error("There is already a %s task running!" % (
-                self.queueName))
-            return
+        item = gtk.MenuItem(label="Exec as launcher")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.execute_as_launcher(),
+                             "menu.Execute_As_Launcher")
+        item.show()
 
+
+    def get_dd_command(self):
         # Clear the selection
         itr = self.buf.get_end_iter()
-        self.buf.move_mark_by_name("insert", itr)         
-        self.buf.move_mark_by_name("selection_bound", itr)
+        self.buf.place_cursor(itr)         
 
         # Get the entire buffer from the page's text widget
-        buf = self.page.buf
-        start, end = buf.get_bounds()
-        txtbuf = buf.get_text(start, end).strip()
+        start, end = self.buf.get_bounds()
+        txtbuf = self.buf.get_text(start, end).strip()
 
         # remove trailing semicolon, if present
         cmdstr = txtbuf
@@ -95,9 +99,45 @@ class DDCommandPage(Page.CommandPage):
         # tag the text so we can manipulate it later
         cmdObj = DDCommandObject('dd%d', self.queueName,
                                  self.logger, self, cmdstr)
+        return cmdObj
 
-        common.controller.prependQueue(self.queueName, cmdObj)
-        common.controller.resumeQueue(self.queueName)
+    def execute(self):
+        """Callback when the 'Exec' button is pressed.
+        """
+        # Check whether we are busy executing a command here
+        if common.controller.executingP.isSet():
+            # Yep--popup an error message
+            common.view.popup_error("There is already a %s task running!" % (
+                self.tm_queueName))
+            return
+
+        try:
+            cmdObj = self.get_dd_command()
+
+            common.controller.replaceQueueAndExecute(self.queueName, [cmdObj],
+                                                     tm_queueName=self.tm_queueName)
+        except Exception, e:
+            common.view.popup_error(str(e))
+
+    def execute_as_launcher(self):
+        """Callback when the 'Exec as launcher' menu item is invoked.
+        """
+        try:
+            cmdObj = self.get_dd_command()
+            common.controller.execOne(cmdObj, 'launcher')
+
+        except Exception, e:
+            common.view.popup_error(str(e))
+
+    def schedule(self, queueName='default'):
+        """Callback when the Schedule button is pressed.
+        """
+        try:
+            cmdObj = self.get_dd_command()
+            common.controller.appendQueue(queueName, [cmdObj])
+
+        except Exception, e:
+            common.view.popup_error(str(e))
 
 
 class DDCommandObject(CommandObject.CommandObject):
@@ -109,63 +149,12 @@ class DDCommandObject(CommandObject.CommandObject):
         super(DDCommandObject, self).__init__(format, queueName, logger)
         
     def get_preview(self):
-        return self._get_cmdstr()
+        return self.get_cmdstr()
     
-    def _get_cmdstr(self):
+    def get_cmdstr(self):
         return self.cmdstr
 
     def mark_status(self, txttag):
         pass
 
-    def execute(self):
-        common.view.assert_nongui_thread()
-
-        # Get the command string associated with this kind of page.
-        cmdstr = self._get_cmdstr()
-        
-        try:
-            # Try to execute the command in the TaskManager
-            self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                self.queueName, cmdstr))
-
-            common.controller.executingP.set()
-
-            res = common.controller.tm.execTask(self.queueName,
-                                                cmdstr, '')
-            common.controller.executingP.clear()
-
-            if res == 0:
-                self.feedback_ok(res)
-            else:
-                self.feedback_error('Command terminated with res=%d' % res)
-
-        except Exception, e:
-            common.controller.executingP.clear()
-            self.feedback_error(str(e))
-
-
-    def feedback_ok(self, res):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed successfully.
-        """
-        self.logger.info("Ok [%s] %s" % (
-            self.queueName, self.cmdstr))
-
-        soundfile = common.sound.success_executer
-        common.controller.playSound(soundfile)
-
-           
-    def feedback_error(self, e):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed with failure.
-        """
-        self.logger.error("Error [%s] %s\n:%s" % (
-            self.queueName, self.cmdstr, str(e)))
-        
-        soundfile = common.sound.failure_executer
-        #common.view.gui_do(common.view.popup_error, str(e))
-        #common.view.statusMsg(str(e))
-        common.controller.playSound(soundfile)
-
-        
 #END

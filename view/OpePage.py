@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep  4 21:06:50 HST 2010
+#  Last edit: Tue Sep  7 17:09:11 HST 2010
 #]
 
 import os, re
@@ -22,7 +22,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         super(OpePage, self).__init__(frame, name, title)
 
-        self.queueName = 'executer'
+        self.queueName = 'default'
+        self.tm_queueName = 'executer'
         self.paused = False
 
         self.varDict = {}
@@ -524,7 +525,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if common.controller.executingP.isSet():
             # Yep--popup an error message
             common.view.popup_error("There is already a %s task running!" % (
-                self.queueName))
+                self.tm_queueName))
             return
 
         # Get length of queued items, if any
@@ -539,7 +540,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 if common.view.popup_confirm("Confirm execute",
                                              "No selection--resume execution of %s queued commands?" % (
                     self.queueName)):
-                    common.controller.resumeQueue(self.queueName)
+                    common.controller.execQueue(self.queueName,
+                                                tm_queueName=self.tm_queueName)
                 
             return
 
@@ -556,7 +558,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         try:
             cmds = self._get_commands_from_selection()
             
-            common.controller.replaceQueueAndExecute(self.queueName, cmds)
+            common.controller.replaceQueueAndExecute(self.queueName, cmds,
+                                                     tm_queueName=self.tm_queueName)
         except Exception, e:
             common.view.popup_error(str(e))
 
@@ -624,6 +627,37 @@ class OpeCommandObject(CommandObject.CommandObject):
 
         return (txtbuf, cmdstr)
     
+    def get_cmdstr(self):
+        common.view.assert_nongui_thread()
+
+        # Get the command string associated with this kind of page.
+        # We are executing in another thread, so use gui_do_res()
+        # to get the text
+        f_res = common.gui_do_res(self._get_cmdstr)
+        txtbuf, cmdstr = f_res.get_value(timeout=10.0)
+
+        txtbuf = txtbuf.strip()
+        cmdstr = cmdstr.strip()
+
+        # remove trailing semicolon, if present
+        if cmdstr.endswith(';'):
+            cmdstr = cmdstr[:-1]
+
+        # Resolve all variables/macros
+        try:
+            self.logger.debug("Unprocessed command is: %s" % cmdstr)
+            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
+            self.logger.debug("Processed command is: %s" % p_cmdstr)
+
+        except Exception, e:
+            errstr = "Error parsing command: %s" % (str(e))
+            raise Exception(errstr)
+
+        self.cmdstr = p_cmdstr
+
+        return self.cmdstr
+
+        
     def _mark_status(self, txttag):
         """This is called when our command changes status.  _txttag_ should
         be 'scheduled', 'executing', 'done' or 'error'.
@@ -656,103 +690,7 @@ class OpeCommandObject(CommandObject.CommandObject):
         buf.apply_tag_by_name(txttag, start, end)
 
     def mark_status(self, txttag):
-        # This may be called from a non-gui thread
+        # This MAY be called from a non-gui thread
         common.gui_do(self._mark_status, txttag)
-        
-    def execute(self):
-        try:
-            common.view.assert_nongui_thread()
-
-            # Get the command string associated with this kind of page.
-            # We are executing in another thread, so use gui_do_res()
-            # to get the text
-            f_res = common.gui_do_res(self._get_cmdstr)
-            txtbuf, cmdstr = f_res.get_value(timeout=10.0)
-
-            txtbuf = txtbuf.strip()
-            cmdstr = cmdstr.strip()
-        
-            # remove trailing semicolon, if present
-            if cmdstr.endswith(';'):
-                cmdstr = cmdstr[:-1]
-
-            # Resolve all variables/macros
-            try:
-                self.logger.debug("Unprocessed command is: %s" % cmdstr)
-                p_cmdstr = ope.getCmd(txtbuf, cmdstr)
-                self.logger.debug("Processed command is: %s" % p_cmdstr)
-
-            except Exception, e:
-                errstr = "Error parsing command: %s" % (str(e))
-                raise Exception(errstr)
-
-            self.cmdstr = p_cmdstr
-
-        except Exception, e:
-            common.gui_do(common.view.popup_error, str(e))
-            return
-
-        try:
-            self.mark_status('executing')
-
-            # Try to execute the command in the TaskManager
-            self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                self.queueName, self.cmdstr))
-
-            common.controller.executingP.set()
-
-            res = common.controller.tm.execTask(self.queueName,
-                                                self.cmdstr, '')
-            common.controller.executingP.clear()
-
-            if res == 0:
-                self.feedback_ok(res)
-            else:
-                self.feedback_error('Command terminated with res=%d' % res)
-
-        except Exception, e:
-            common.controller.executingP.clear()
-            self.feedback_error(str(e))
-
-
-    def feedback_ok(self, res):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed successfully.
-        """
-        self.logger.info("Ok [%s] %s" % (
-            self.queueName, self.cmdstr))
-
-        # Mark success graphically appropriate to the source
-        self.mark_status('done')
-
-        # If queue is empty, play success sound
-        # otherwise issue the next command
-        if common.controller.get_queueLength(self.queueName) == 0:
-            soundfile = common.sound.success_executer
-            common.controller.playSound(soundfile)
-
-        else:
-            # Invoke next item in queue
-            common.controller.resumeQueue(self.queueName)
-
-           
-    def feedback_error(self, e):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed with failure.
-        """
-        self.logger.error("Error [%s] %s\n:%s" % (
-            self.queueName, self.cmdstr, str(e)))
-        
-        # Put object back on the front of the queue
-        common.controller.prependQueue(self.queueName, self)
-
-        # Mark an error graphically appropriate to the source
-        self.mark_status('error')
-
-        soundfile = common.sound.failure_executer
-        #common.view.gui_do(common.view.popup_error, str(e))
-        #common.view.statusMsg(str(e))
-        common.controller.playSound(soundfile)
-
         
 #END

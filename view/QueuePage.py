@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep  4 22:08:07 HST 2010
+#  Last edit: Tue Sep  7 17:15:27 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -25,7 +25,7 @@ class QueuePage(Page.ButtonPage):
 
         self.queueName = ''
         self.queueObj = None
-        self.cmdDict = {}
+        self.tm_queueName = 'executer'
 
         # Create the widgets for the text
         scrolled_window = gtk.ScrolledWindow()
@@ -118,7 +118,8 @@ class QueuePage(Page.ButtonPage):
         queueObj.add_view(self)
         
         # change our tab title to match the queue
-        self.setLabel(queueObj.name.capitalize())
+        tabName = '%s Queue' % (queueObj.name.capitalize())
+        self.setLabel(tabName)
 
     def close(self):
         self.queueObj.del_view(self)
@@ -291,7 +292,7 @@ class QueuePage(Page.ButtonPage):
         if common.controller.executingP.isSet():
             # Yep--popup an error message
             common.view.popup_error("There is already a %s task running!" % (
-                self.queueName))
+                self.tm_queueName))
             return
 
         # Get length of queued items, if any
@@ -312,7 +313,8 @@ class QueuePage(Page.ButtonPage):
                 return
 
         try:
-            common.controller.resumeQueue(self.queueName)
+            common.controller.execQueue(self.queueName,
+                                        tm_queueName=self.tm_queueName)
         except Exception, e:
             common.view.popup_error(str(e))
 
@@ -421,9 +423,5 @@ class BreakCommandObject(CommandObject.CommandObject):
     def mark_status(self, txttag):
         pass
 
-    def execute(self):
-        self.logger.info("-- Break --")
-        soundfile = common.sound.break_executer
-        common.controller.playSound(soundfile)
 
 #END

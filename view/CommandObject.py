@@ -2,7 +2,7 @@
 # CommandObject.py -- command object and queue object definitions
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 19:51:57 HST 2010
+#  Last edit: Tue Sep  7 13:40:05 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -10,9 +10,7 @@ from __future__ import with_statement
 
 import threading
 
-import Task
-
-class CommandObject(Task.Task):
+class CommandObject(object):
 
     # static class vars
     lock = threading.RLock()

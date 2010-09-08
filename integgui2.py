@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 20:58:19 HST 2010
+#  Last edit: Tue Sep  7 16:55:09 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -48,10 +48,12 @@ def main(options, args):
     pub_channels = []
 
     # Create a local monitor
-    mymon = Monitor.Monitor(myMonName, logger, numthreads=20)
+    mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
 
     # command queues
-    queues = Bunch.Bunch(executer=CommandQueue.CommandQueue('executer',
+    queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
+                                                            logger),
+                         command=CommandQueue.CommandQueue('command',
                                                             logger),
                          launcher=CommandQueue.CommandQueue('launcher',
                                                             logger) )
@@ -206,6 +208,9 @@ if __name__ == '__main__':
                       help="Show values for PATH in monitor")
     optprs.add_option("--monport", dest="monport", type="int", default=10017,
                       help="Register monitor using PORT", metavar="PORT")
+    optprs.add_option("--numthreads", dest="numthreads", type="int",
+                      default=50,
+                      help="Start NUM threads in thread pool", metavar="NUM")
     optprs.add_option("--port", dest="port", type="int", default=12050,
                       help="Register using PORT", metavar="PORT")
     optprs.add_option("--profile", dest="profile", action="store_true",

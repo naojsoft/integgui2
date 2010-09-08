@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Aug 12 11:09:29 HST 2010
+#  Last edit: Tue Sep  7 15:10:12 HST 2010
 #]
 #
 import threading
@@ -17,6 +17,7 @@ RIGHT = 'right'
 class Page(object):
 
     def __init__(self, frame, name, title):
+        super(Page, self).__init__()
 
         self.frame = frame
         self.name = name

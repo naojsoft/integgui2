@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 20:14:53 HST 2010
+#  Last edit: Tue Sep  7 17:07:19 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -411,6 +411,7 @@ class LauncherPage(Page.CommandPage):
         super(LauncherPage, self).__init__(frame, name, title)
 
         self.queueName = 'launcher'
+        self.tm_queueName = 'launcher'
         self.paused = False
 
         scrolled_window = gtk.ScrolledWindow()
@@ -440,7 +441,15 @@ class LauncherPage(Page.CommandPage):
         self.btn_pause.show()
         self.leftbtns.pack_start(self.btn_pause)
 
+        self.add_menu(side=Page.LEFT)
         self.add_close(side=Page.LEFT)
+
+        # Add items to the menu
+        item = gtk.MenuItem(label="Reset")
+        self.menu.append(item)
+        item.connect_object ("activate", lambda w: self.reset(),
+                             "menu.Reset")
+        item.show()
 
         scrolled_window.show_all()
 
@@ -471,12 +480,11 @@ class LauncherPage(Page.CommandPage):
         self.logger.info(cmdstr)
 
         # tag the text so we can manipulate it later
-        cmdobj = LauncherCommandObject('ln%d', self.queueName,
+        cmdObj = LauncherCommandObject('ln%d', self.queueName,
                                        self.logger,
                                        launcher, cmdstr)
 
-        cmds = [cmdobj]
-        common.controller.appendQueueAndExecute(self.queueName, cmds)
+        common.controller.execOne(cmdObj, 'launcher')
 
 
 class LauncherCommandObject(CommandObject.CommandObject):
@@ -489,65 +497,14 @@ class LauncherCommandObject(CommandObject.CommandObject):
                                                     logger)
 
     def mark_status(self, txttag):
-        # This may be called from a non-gui thread
+        # This MAY be called from a non-gui thread
         common.gui_do(self.launcher.show_state, txttag)
 
     def get_preview(self):
-        return self._get_cmdstr()
+        return self.get_cmdstr()
     
-    def _get_cmdstr(self):
+    def get_cmdstr(self):
         return self.cmdstr
 
-    def execute(self):
-        try:
-            common.view.assert_nongui_thread()
-
-            self.mark_status('executing')
-
-            cmdstr = self._get_cmdstr()
-        
-            # Try to execute the command in the TaskManager
-            self.logger.debug("Invoking to task manager (%s): '%s'" % (
-                self.queueName, cmdstr))
-
-            res = common.controller.tm.execTask(self.queueName,
-                                                cmdstr, '')
-            if res == 0:
-                self.feedback_ok(res)
-            else:
-                self.feedback_error('Command terminated with res=%d' % res)
-
-        except Exception, e:
-            self.feedback_error(str(e))
-
-
-    def feedback_ok(self, res):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed successfully.
-        """
-        self.logger.info("Ok [%s] %s" % (
-            self.queueName, self.cmdstr))
-
-        # Mark success graphically appropriate to the source
-        self.mark_status('done')
-
-        soundfile = common.sound.success_launcher
-        common.controller.playSound(soundfile)
-
-           
-    def feedback_error(self, e):
-        """This method is indirectly invoked via the controller when
-        there is feedback that a command has completed with failure.
-        """
-        self.logger.error("Error [%s] %s\n:%s" % (
-            self.queueName, self.cmdstr, str(e)))
-        
-        # Mark an error graphically appropriate to the source
-        self.mark_status('error')
-
-        soundfile = common.sound.failure_launcher
-        #common.view.gui_do(common.view.popup_error, str(e))
-        #common.view.statusMsg(str(e))
-        common.controller.playSound(soundfile)
 
 #END

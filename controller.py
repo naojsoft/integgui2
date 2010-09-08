@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  2 18:29:13 HST 2010
+#  Last edit: Tue Sep  7 17:01:52 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -101,35 +101,53 @@ class IntegController(object):
         queue = self.queue[queueName]
         queue.extend(cmdObjs)
 
-    def replaceQueueAndExecute(self, queueName, cmdObjs):
+    def replaceQueueAndExecute(self, queueName, cmdObjs,
+                               tm_queueName='executer'):
         queue = self.queue[queueName]
         queue.replace(cmdObjs)
-        self.resumeQueue(queueName)
+        self.execQueue(queueName, tm_queueName)
 
-    def appendQueueAndExecute(self, queueName, cmdObjs):
+    def appendQueueAndExecute(self, queueName, cmdObjs,
+                              tm_queueName='executer'):
         self.appendQueue(queueName, cmdObjs)
-        self.resumeQueue(queueName)
+        self.execQueue(queueName, tm_queueName)
 
-    def resumeQueue(self, queueName):
+    def execQueue(self, queueName, tm_queueName='executer'):
         """This method is called when the GUI has commands for the
         controller.
         """
-        queueObj = self.queue[queueName]
-        
         try:
-            cmdObj = queueObj.get()
-            self.logger.debug("cmdObj=%s" % str(cmdObj))
-            
-        except CommandQueue.QueueEmpty, e:
-            # TODO: popup error here?
-            #raise e
-            self.gui.gui_do(self.gui.popup_error, str(e))
-            return
+            queueObj = self.queue[queueName]
 
-        try:
+            # ?? TODO: should have a different executingP flag for each queue?
+            t = Task.FuncTask2(self.exec_queue, queueObj, tm_queueName,
+                               self.executingP,
+                               common.sound.success_executer,
+                               common.sound.failure_executer)
+        
             # now the task is spun off into another thread
             # for the task manager interaction
-            cmdObj.init_and_start(self)
+            t.init_and_start(self)
+
+        except Exception, e:
+            # TODO: popup error here?
+            self.gui.gui_do(self.gui.popup_error, str(e))
+
+    def execOne(self, cmdObj, tm_queueName):
+        if tm_queueName == 'launcher':
+            sound_success, sound_failure = (common.sound.success_launcher,
+                                            common.sound.failure_launcher)
+        else:
+            sound_success, sound_failure = (common.sound.success_executer,
+                                            common.sound.failure_executer)
+
+        try:
+            t = Task.FuncTask2(self.exec_one, cmdObj, tm_queueName,
+                               sound_success, sound_failure)
+        
+            # now the task is spun off into another thread
+            # for the task manager interaction
+            t.init_and_start(self)
 
         except Exception, e:
             # TODO: popup error here?
@@ -520,14 +538,119 @@ class IntegController(object):
         soundpath = os.path.join(cfg.g2soss.producthome,
                                  'file/Sounds', soundfile)
         if os.path.exists(soundpath):
-##             # TODO: use Python soundsink module to do this instead of
-##             # spawning a process
-##             cmd = "OSST_audioplay %s" % (soundpath)
-##             self.logger.debug(cmd)
-##             res = os.system(cmd)
             self.soundsink.playFile(soundpath)
             
         else:
             self.logger.error("No such audio file: %s" % soundpath)
+
+
+#############
+#
+    def feedback_ok(self, queueName, cmdstr, cmdObj, res, soundfile):
+        self.logger.info("Ok [%s] %s" % (queueName, cmdstr))
+
+        # Mark success graphically appropriate to the source
+        cmdObj.mark_status('done')
+
+        if soundfile:
+            self.playSound(soundfile)
+
+    def feedback_error(self, queueName, cmdstr, cmdObj, e, soundfile):
+        self.logger.error("Error [%s] %s\n:%s" % (queueName,
+                                                  cmdstr, str(e)))
+
+        # Mark an error graphically appropriate to the source
+        cmdObj.mark_status('error')
+
+        if soundfile:
+            self.playSound(soundfile)
+            
+    def feedback_break(self):
+        self.logger.info("-- Break --")
+        soundfile = common.sound.break_executer
+        self.playSound(soundfile)
+
+
+    def exec_queue(self, queueObj, tm_queueName, executingP,
+                   sound_success, sound_failure):
         
+        while len(queueObj) > 0:
+            try:
+                # pull an item off the front of the queue
+                cmdObj = queueObj.get()
+            
+            except Exception, e:
+                self.gui.gui_do(self.gui.popup_error, str(e))
+                return
+
+            try:
+                # Get the command string associated with this kind of page.
+                cmdstr = cmdObj.get_cmdstr()
+
+                if cmdstr == '== BREAK ==':
+                    self.feedback_break()
+                    return
+                
+            except Exception, e:
+                # Put object back on the front of the queue
+                queueObj.prepend(cmdObj)
+                self.gui.gui_do(self.gui.popup_error, str(e))
+                return
+
+            try:
+                cmdObj.mark_status('executing')
+
+                # Try to execute the command in the TaskManager
+                self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                    tm_queueName, cmdstr))
+
+                executingP.set()
+
+                res = self.tm.execTask(tm_queueName, cmdstr, '')
+
+                executingP.clear()
+
+                if res != 0:
+                    raise Exception('Command terminated with res=%d' % res)
+
+                self.feedback_ok(tm_queueName, cmdstr, cmdObj, res, None)
+
+            except Exception, e:
+                executingP.clear()
+
+                # Put object back on the front of the queue
+                queueObj.prepend(cmdObj)
+
+                self.feedback_error(tm_queueName, cmdstr, cmdObj, str(e),
+                                    sound_failure)
+                return
+
+        # When queue is empty and no errors then play success sound
+        self.playSound(sound_success)
+
+
+    def exec_one(self, cmdObj, tm_queueName, sound_success, sound_failure):
+
+        try:
+            cmdstr = cmdObj.get_cmdstr()
+        
+            cmdObj.mark_status('executing')
+
+            # Try to execute the command in the TaskManager
+            self.logger.debug("Invoking to task manager (%s): '%s'" % (
+                tm_queueName, cmdstr))
+
+            res = common.controller.tm.execTask(tm_queueName,
+                                                cmdstr, '')
+            if res == 0:
+                self.feedback_ok(tm_queueName, cmdstr, cmdObj,
+                                 res, sound_success)
+            else:
+                raise Exception('Command terminated with res=%d' % res)
+
+        except Exception, e:
+            self.feedback_error(tm_queueName, cmdstr, cmdObj,
+                                str(e), sound_failure)
+
+
 #END
