@@ -58,7 +58,11 @@ LABEL "WindScreen"                # label
 
 LABEL "Gen2 Precheck"
     CMD AG_PRECHECK OBE_ID=COMMON OBE_MODE=PRECHECK
-
+<>
+LABEL "M2 Setup"
+        VAL01 FOCI "cs(csopt)","cs(csopt)+adc", "cs(ir)", "nsir(csopt)","nsir(csopt)+imr","nsir(ir)", "nsir(ir)+imr", "nsir(ir+ao)","nsir(nsopt)","nsir(nsopt)+imr", "nsopt(csopt)","nsopt(csopt)+adc","nsopt(csopt)+imr(b)","nsopt(csopt)+imr(b)+adc","nsopt(csopt)+imr(r)","nsopt(csopt)+imr(r)+adc","nsopt(ir)","nsopt(ir)+adc","nsopt(ir)+imr(b)","nsopt(ir)+imr(b)+adc","nsopt(ir)+imr(r)","nsopt(ir)+imr(r)+adc","nsopt(nsopt)","nsopt(nsopt)+adc","nsopt(nsopt)+imr(b)","nsopt(nsopt)+imr(b)+adc","nsopt(nsopt)+imr(r)","nsopt(nsopt)+imr(r)+adc","popt"
+        CMD M2_SETUP OBE_ID=COMMON OBE_MODE=LAUNCHER Foci=$VAL01
+ 
 ####
 #  LABEL \
 #                "TopScreen(Fm, Rm, F/R)" # label
