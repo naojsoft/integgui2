@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep  4 21:26:03 HST 2010
+#  Last edit: Thu Sep  9 15:27:51 HST 2010
 #]
 import gtk
 
@@ -19,10 +19,11 @@ color_bg = 'light grey'
 # Gtk color objects used to set widgets dynamically
 launcher_colors = Bunch.Bunch(error = gtk.gdk.color_parse('salmon'),
                               done = gtk.gdk.color_parse('skyblue'),
-                              normal = gtk.gdk.color_parse('gray'),
+                              normal = gtk.gdk.color_parse('#dcdad5'),
                               executing =  gtk.gdk.color_parse('palegreen'),
 
-                              execbtn = gtk.gdk.color_parse('royalblue'),
+                              #execbtn = gtk.gdk.color_parse('royalblue'),
+                              execbtn = gtk.gdk.color_parse('steelblue1'),
                               cancelbtn = gtk.gdk.color_parse('palevioletred'),
                               killbtn = gtk.gdk.color_parse('salmon'),
                               )

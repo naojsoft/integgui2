@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Aug 26 11:52:39 HST 2010
+#  Last edit: Wed Sep  8 10:33:54 HST 2010
 #]
 
 # meta import for all GUI object classes
@@ -15,6 +15,7 @@ from CodePage import *
 from QueuePage import *
 from InfPage import *
 from DDCommandPage import *
+from HandsetPage import *
 from TerminalPage import *
 from FrameInfoPage import *
 from LauncherPage import *

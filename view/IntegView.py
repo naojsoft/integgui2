@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 16:59:53 HST 2010
+#  Last edit: Wed Sep  8 16:07:15 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -75,6 +75,7 @@ class IntegView(object):
         self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
         queuepage = self.lws.addpage('Default', "queue_default", QueuePage)
         queuepage.set_queue('default', self.queue.default)
+        self.handsets = self.lws.addpage('handset', "Handset", WorkspacePage)
 
         self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
         self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
@@ -139,6 +140,12 @@ class IntegView(object):
                              "file.Load launcher")
         item.show()
 
+        item = gtk.MenuItem(label="handset")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_handset_source(),
+                             "file.Load handset")
+        item.show()
+
         item = gtk.MenuItem(label="inf")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_inf(),
@@ -179,6 +186,12 @@ class IntegView(object):
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_launcher(),
                              "file.Load launcher")
+        item.show()
+
+        item = gtk.MenuItem(label="handset")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_handset(),
+                             "file.Load handset")
         item.show()
 
         item = gtk.MenuItem(label="Config from session")
@@ -423,6 +436,16 @@ class IntegView(object):
                                                               CodePage.CodePage),
                            initialdir=initialdir)
 
+    def gui_load_handset_source(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Handsets')
+        
+        self.filesel.popup("Load handset source",
+                           lambda filepath: self.load_generic(filepath,
+                                                              # ???!!!
+                                                              CodePage.CodePage),
+                           initialdir=initialdir)
+
 
     def open_generic(self, buf, filepath, pageKlass):
         try:
@@ -471,6 +494,33 @@ class IntegView(object):
 
             name = match.group(1).replace('_', ' ')
             page = self.lws.addpage(name, name, LauncherPage)
+            page.load(buf)
+
+        except Exception, e:
+            self.popup_error("Cannot load '%s': %s" % (
+                    filepath, str(e)))
+
+
+    def gui_load_handset(self):
+        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                  'Handsets')
+        
+        self.filesel.popup("Load handset", self.load_handset,
+                           initialdir=initialdir)
+
+
+    def load_handset(self, filepath):
+        try:
+            buf = self.readfile(filepath)
+
+            dirname, filename = os.path.split(filepath)
+
+            match = re.match(r'^(.+)\.yml$', filename)
+            if not match:
+                return
+
+            name = match.group(1).replace('_', ' ')
+            page = self.handsets.addpage(name, name, HandsetPage)
             page.load(buf)
 
         except Exception, e:
