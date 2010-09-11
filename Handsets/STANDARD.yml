@@ -1,0 +1,47 @@
+#
+# default.yml -- Standard handset file 
+#
+# This is a YAML file
+
+tabname: "RA,DEC"
+modes:
+    - 
+        label: "Default"
+        arrows:
+            cmd : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=RELATIVE_ARROW
+            step: 1.0
+            unit: arcsec
+            dec : [ DELTA_DEC, "N", "S" ]
+            ra  : [  DELTA_RA, "E", "W" ]
+        button:
+            cmd : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=RELATIVE
+            dec : [ DELTA_DEC, arcsec, "+N", "-S", 0.0 ]
+            ra  : [  DELTA_RA, arcsec, "+E", "-W", 0.0 ]
+
+    - 
+        label: "Guiding"
+        arrows:
+            cmd : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=RELATIVE_ARROW
+            step: 0.1
+            unit: arcsec
+            dec : [ DELTA_DEC, "N", "S" ]
+            ra  : [  DELTA_RA, "E", "W" ]
+        button:
+            cmd: MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=RELATIVE
+            dec: [ DELTA_DEC, arcsec, "+N", "-S", 0.0 ]
+            ra : [  DELTA_RA, arcsec, "+E", "-W", 0.0 ]
+
+    - 
+        label: "Offset"
+        arrows:
+            cmd : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=OFFSET_ARROW
+            step: 1.0
+            unit: arcsec
+            dec : [ DELTA_DEC, "N", "S" ]
+            ra  : [  DELTA_RA, "E", "W" ]
+        button:
+            cmd : MOVETELESCOPE OBE_ID=COMMON OBE_MODE=HANDSET OFFSET_MODE=OFFSET
+            dec : [ DELTA_DEC, arcsec, "+N", "-S", 0.0 ]
+            ra  : [  DELTA_RA, arcsec, "+E", "-W", 0.0 ]
+
+#END

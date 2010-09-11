@@ -1,6 +1,8 @@
-# 
+#
+# HandsetPage.py -- implements an Integgui2 handset
+#
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  9 15:18:20 HST 2010
+#  Last edit: Fri Sep 10 15:19:05 HST 2010
 #]
 
 import gtk
@@ -49,9 +51,6 @@ class HandsetPage(Page.CommandPage):
 
         self.lw = lw
         
-        self.add_menu()
-        self.add_close()
-        
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
         self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
@@ -66,11 +65,24 @@ class HandsetPage(Page.CommandPage):
         self.btn_kill.show()
         self.leftbtns.pack_end(self.btn_kill)
 
+        ## menu = self.add_menu()
+        ## self.add_close()
+        
+        menu = self.add_pulldownmenu("Page")
+
         # Add items to the menu
         item = gtk.MenuItem(label="Reset")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.reset(),
                              "menu.Reset")
+        item.show()
+
+        #self.add_close(side=Page.LEFT)
+        #self.add_close()
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
         item.show()
 
         self.build_handset()
@@ -112,12 +124,12 @@ class HandsetPage(Page.CommandPage):
         for x, y, name, axis, mult in ((off_xv, off_yh-140, 'up3', 0, 10),
                                        (off_xv, off_yh-100, 'up2', 0, 3),
                                        (off_xv, off_yh-60, 'up1', 0, 1),
-                                       (off_xv-170, off_yh, 'left3', 1, 10),
-                                       (off_xv-130, off_yh, 'left2', 1, 3),
-                                       (off_xv-90, off_yh, 'left1', 1, 1),
-                                       (off_xv+80, off_yh, 'right1', 1, -1),
-                                       (off_xv+120, off_yh, 'right2', 1, -3),
-                                       (off_xv+160, off_yh, 'right3', 1, -10),
+                                       (off_xv-170, off_yh, 'left3', 1, -10),
+                                       (off_xv-130, off_yh, 'left2', 1, -3),
+                                       (off_xv-90, off_yh, 'left1', 1, -1),
+                                       (off_xv+80, off_yh, 'right1', 1, 1),
+                                       (off_xv+120, off_yh, 'right2', 1, 3),
+                                       (off_xv+160, off_yh, 'right3', 1, 10),
                                        (off_xv, off_yh+60, 'down1', 0, -1),
                                        (off_xv, off_yh+100, 'down2', 0, -3),
                                        (off_xv, off_yh+140, 'down3', 0, -10),
@@ -139,14 +151,13 @@ class HandsetPage(Page.CommandPage):
             self.lw.put(ent, x, y)
 
         # Place spin buttons
-        for x, y, width, name in ((20, 250, 10, 'lspin'),
-                                  (120, 250, 10, 'rspin')):
+        for x, y, name in ((20, 250, 'lspin'), (120, 250, 'rspin')):
             ent = gtk.SpinButton()
-            #ent.set_digits(width)
             ent.show()
             ent.set_alignment(1.0)
+            ent.set_update_policy(gtk.UPDATE_ALWAYS)
+            # this seems to force size
             ent.set_range(-1000, 1000)
-            #ent.set_property('editable', True)
             ents[name] = ent
             self.lw.put(ent, x, y)
 
@@ -182,11 +193,6 @@ class HandsetPage(Page.CommandPage):
 
         # Mode drop-down
         cbox = gtk.combo_box_new_text()
-        ## index = 0
-        ## for opt in ('Default', 'Guiding', 'Offset'):
-        ##     cbox.insert_text(index, opt)
-        ##     index += 1
-        ## cbox.set_active(0)
         cbox.show()
         cbox.connect("changed", self.changeMode)
         btns['mode'] = cbox
@@ -227,7 +233,6 @@ class HandsetPage(Page.CommandPage):
             
         cbox.set_active(0)
 
-        #launcher = self.addLauncher(name, name)
 
     def changeMode(self, w):
         # Combobox widget gives us an index
@@ -250,15 +255,29 @@ class HandsetPage(Page.CommandPage):
     ##     ra : [  DELTA_RA, arcsec, "+E", "-W", 0.0 ]
     ##
     def loadMode(self, d):
+        self.reset()
         self.logger.info("Loading handset mode '%s'" % d['label'])
 
         try:
-            for key in ('stepvalue', 'arrows', 'button'):
+            for key in ('arrows', 'button'):
                 assert d.has_key(key), \
                        HandsetError("Malformed handset mode: expected key '%s': %s" % (
                     key, str(d)))
 
-            self.stepval = d['stepvalue']
+            # Process arrow info
+            info = d['arrows']
+            for key in ('cmd', 'dec', 'ra', 'unit', 'step'):
+                assert info.has_key(key), \
+                       HandsetError("Malformed handset mode: expected key '%s': %s" % (
+                    key, str(info)))
+
+            for key in ('dec', 'ra'):
+                tup = info[key]
+                assert isinstance(tup, list) and (len(tup) == 3), \
+                       HandsetError("Malformed handset mode: key '%s': %s" % (
+                    key, str(tup)))
+
+            self.stepval = info['step']
 
             # Set central entry widget to step value
             mainstep = self.widgets['entries']['mainstep']
@@ -279,19 +298,6 @@ class HandsetPage(Page.CommandPage):
             rspin = self.widgets['entries']['rspin']
             rspin.set_digits(numdigits)
             rspin.set_increments(self.stepval, self.stepval*3)
-
-            # Process arrow info
-            info = d['arrows']
-            for key in ('cmd', 'dec', 'ra', 'unit'):
-                assert info.has_key(key), \
-                       HandsetError("Malformed handset mode: expected key '%s': %s" % (
-                    key, str(info)))
-
-            for key in ('dec', 'ra'):
-                tup = info[key]
-                assert isinstance(tup, list) and (len(tup) == 3), \
-                       HandsetError("Malformed handset mode: key '%s': %s" % (
-                    key, str(tup)))
 
             (decvar, n, s) = info['dec']
             (ravar,  e, w) = info['ra']
@@ -362,7 +368,6 @@ class HandsetPage(Page.CommandPage):
         
         cmdstr = "%s %s=%s" % (info.cmd, var, val)
         self.logger.info("Move by arrow: %s" % (cmdstr))
-        cmdstr = "EXEC OBS SLEEP SLEEP_TIME=%d" % (int(val))
                          
         try:
             # tag the text so we can manipulate it later
@@ -387,7 +392,6 @@ class HandsetPage(Page.CommandPage):
         cmdstr = "%s %s=%s %s=%s" % (info.cmd, info.dec_var, decoff,
                                      info.ra_var, raoff)
         self.logger.info("Move by button: %s" % (cmdstr))
-        cmdstr = "EXEC OBS SLEEP SLEEP_TIME=%d" % (int(decoff))
                          
         try:
             # tag the text so we can manipulate it later

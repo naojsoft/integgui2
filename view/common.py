@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep  9 15:27:51 HST 2010
+#  Last edit: Fri Sep 10 16:26:07 HST 2010
 #]
 import gtk
 
@@ -23,9 +23,16 @@ launcher_colors = Bunch.Bunch(error = gtk.gdk.color_parse('salmon'),
                               executing =  gtk.gdk.color_parse('palegreen'),
 
                               #execbtn = gtk.gdk.color_parse('royalblue'),
-                              execbtn = gtk.gdk.color_parse('steelblue1'),
+                              #execbtn = gtk.gdk.color_parse('steelblue1'),
+                              execbtn = gtk.gdk.color_parse('#82a8db'),
                               cancelbtn = gtk.gdk.color_parse('palevioletred'),
                               killbtn = gtk.gdk.color_parse('salmon'),
+
+                              badtags = gtk.gdk.color_parse('red1'))
+
+# Colors for embedded terminals
+terminal_colors = Bunch.Bunch(fg=gtk.gdk.color_parse('black'),
+                              bg=gtk.gdk.color_parse('white'),
                               )
 
 # Colors used in the OpePage
@@ -35,6 +42,12 @@ decorative_tags = [
     ('comment1', Bunch.Bunch(foreground='dark green')),
     ('varref', Bunch.Bunch(foreground='royalblue')),
     ('badref', Bunch.Bunch(foreground='darkorange')),
+    ]
+
+# Colors used in the QueuePage
+queue_tags = [
+    ('selected', Bunch.Bunch(background='pink1')),
+    ('cursor', Bunch.Bunch(background='#bf94e3')),
     ]
 
 execution_tags = [

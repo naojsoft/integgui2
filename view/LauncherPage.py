@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 17:07:19 HST 2010
+#  Last edit: Fri Sep 10 15:19:07 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -441,14 +441,21 @@ class LauncherPage(Page.CommandPage):
         self.btn_pause.show()
         self.leftbtns.pack_start(self.btn_pause)
 
-        self.add_menu(side=Page.LEFT)
-        self.add_close(side=Page.LEFT)
+        menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
         item = gtk.MenuItem(label="Reset")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.reset(),
                              "menu.Reset")
+        item.show()
+
+        #self.add_close(side=Page.LEFT)
+        #self.add_close()
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
         item.show()
 
         scrolled_window.show_all()

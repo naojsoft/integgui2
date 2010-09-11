@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 17:01:52 HST 2010
+#  Last edit: Fri Sep 10 16:08:10 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -243,7 +243,7 @@ class IntegController(object):
 
         for frameid in framelist:
             fitspath = self.insconfig.getFileByFrameId(frameid)
-            self.gui.load_fits(fitspath)
+            self.gui.gui_do(self.gui.load_fits, fitspath)
 
 
     def _session_config(self, info):
@@ -269,19 +269,27 @@ class IntegController(object):
             if name in allocs:
                 allocs_lst.append(name)
         
-        # Load up appropriate launchers
+        # Load up appropriate launchers and handsets
         #self.gui.close_launchers()
 
         launchers = []
+        handsets = []
+
         for name in ['TELESCOPE']:
             launchers.extend(self.gui.get_launcher_paths(name))
+        for name in ['STANDARD']:
+            handsets.extend(self.gui.get_handset_paths(name))
 
         for name in allocs_lst:
             launchers.extend(self.gui.get_launcher_paths(name))
+            handsets.extend(self.gui.get_handset_paths(name))
 
-        self.logger.debug("launchers=%s" % launchers)
+        self.logger.debug("launchers=%s handsets=%s" % (
+            launchers, handsets))
         for filepath in launchers:
-            self.gui.load_launcher(filepath)
+            self.gui.gui_do(self.gui.load_launcher, filepath)
+        for filepath in handsets:
+            self.gui.gui_do(self.gui.load_handset, filepath)
 
         # Load up appropriate log files
         #self.gui.close_logs()
@@ -304,7 +312,7 @@ class IntegController(object):
         logs.sort()
 
         for filepath in logs:
-            self.gui.load_log(filepath)
+            self.gui.gui_do(self.gui.load_log, filepath)
 
                       
     def get_transaction(self, path):

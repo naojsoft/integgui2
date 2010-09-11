@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 13:02:33 HST 2010
+#  Last edit: Fri Sep 10 16:14:55 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -60,20 +60,30 @@ class FrameInfoPage(Page.ButtonPage):
 
         frame.pack_end(btns, fill=False, expand=False, padding=2)
 
-        self.add_menu()
+#        menu = self.add_menu()
 #        self.add_close()
 
+        menu = self.add_pulldownmenu("Page")
+
         item = gtk.MenuItem(label="Save Journal")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.save_journal(),
                              "menu.Save")
         item.show()
 
         # item = gtk.MenuItem(label="Print")
-        # self.menu.append(item)
+        # menu.append(item)
         # item.connect_object ("activate", lambda w: self.print_journal(),
         #                      "menu.Print")
         # item.show()
+
+        item = gtk.MenuItem(label="Close")
+        # currently disabled
+        item.set_sensitive(False)
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
 
 
     def update_frame(self, frameinfo):

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 10:19:46 HST 2010
+#  Last edit: Fri Sep 10 16:16:50 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -76,12 +76,23 @@ class ObsInfoPage(Page.ButtonPage):
 
         frame.pack_start(scrolled_window, fill=True, expand=True)
 
-        self.btn_reset = gtk.Button("Reset")
-        self.btn_reset.connect("clicked", lambda w: self.cancel_timer())
-        self.btn_reset.show()
-        self.rightbtns.pack_start(self.btn_reset)
+        menu = self.add_pulldownmenu("Page")
+
+        # Add items to the menu
+        item = gtk.MenuItem(label="Cancel Timer")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.cancel_timer(),
+                             "menu.Cancel_Timer")
+        item.show()
 
         #self.add_close()
+        item = gtk.MenuItem(label="Close")
+        # currently disabled
+        item.set_sensitive(False)
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
 
     def _draw_blank(self, cr, width, height):
         # Fill the background with white

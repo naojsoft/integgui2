@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  8 10:33:54 HST 2010
+#  Last edit: Fri Sep 10 13:49:58 HST 2010
 #]
 
 # meta import for all GUI object classes

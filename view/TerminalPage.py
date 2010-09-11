@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:36:44 HST 2010
+#  Last edit: Fri Sep 10 15:19:06 HST 2010
 #]
 
 import gtk
@@ -17,6 +17,9 @@ class TerminalPage(Page.CommandPage):
         super(TerminalPage, self).__init__(frame, name, title)
 
         tw = vte.Terminal()
+        #tw.set_color_foreground(common.terminal_colors.fg)
+        #tw.set_color_background(common.terminal_colors.bg)
+        
         tw.connect("child-exited", lambda w: self.close())
         tw.fork_command()
         self.tw = tw
@@ -24,7 +27,15 @@ class TerminalPage(Page.CommandPage):
         tw.show()
         frame.pack_start(tw, expand=True, fill=True)
 
-        self.add_close()
+        #self.add_close()
+        # Add items to the menu
+        menu = self.add_pulldownmenu("Page")
+
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
 
         
 

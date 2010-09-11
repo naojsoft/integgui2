@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:36:46 HST 2010
+#  Last edit: Fri Sep 10 15:55:50 HST 2010
 #]
 
 import re
@@ -46,7 +46,15 @@ class BaseLogPage(Page.ButtonPage):
         self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
                                          False)
 
-        self.add_close()
+        #self.add_close()
+        menu = self.add_pulldownmenu("Page")
+
+        #self.add_close()
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
 
 
 class LogPage(BaseLogPage):

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 17:13:20 HST 2010
+#  Last edit: Fri Sep 10 15:24:45 HST 2010
 #]
 
 import gtk
@@ -39,8 +39,8 @@ class DDCommandPage(Page.CommandPage):
         self.tw = tw
         self.buf = tw.get_buffer()
 
-        self.add_menu()
-        self.add_close()
+        ## self.add_menu()
+        ## self.add_close()
         
         self.btn_exec = gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: self.execute())
@@ -69,16 +69,26 @@ class DDCommandPage(Page.CommandPage):
         self.leftbtns.pack_end(self.btn_pause)
 
         # Add items to the menu
-        item = gtk.MenuItem(label="Schedule")
-        self.menu.append(item)
+        menu = self.add_pulldownmenu("Page")
+
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
+
+        menu = self.add_pulldownmenu("Command")
+
+        item = gtk.MenuItem(label="Add to queue")
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.schedule(),
-                             "menu.Schedule")
+                             "menu.Add_to_queue")
         item.show()
 
         item = gtk.MenuItem(label="Exec as launcher")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.execute_as_launcher(),
-                             "menu.Execute_As_Launcher")
+                             "menu.Execute_as_launcher")
         item.show()
 
 

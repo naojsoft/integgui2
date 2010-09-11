@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 17:15:27 HST 2010
+#  Last edit: Fri Sep 10 16:16:49 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -58,13 +58,32 @@ class QueuePage(Page.ButtonPage):
         self.tw.connect("key-press-event", self.keypress)
         self.buf.connect("mark-set", self.show_cursor)
 
-        self.buf.create_tag('selected', background="pink1")
-        self.buf.create_tag('cursor', background="skyblue1")
+        tagtbl = self.buf.get_tag_table()
+
+        # remove decorative tags
+        for tag, bnch in common.queue_tags:
+            gtktag = tagtbl.lookup(tag)
+            try:
+                if gtktag:
+                    self.buf.remove_tag_by_name(tag, start, end)
+            except:
+                # tag may not exist--that's ok
+                pass
+
+            properties = {}
+            properties.update(bnch)
+            try:
+                self.buf.create_tag(tag, **properties)
+            except:
+                # tag may already exist--that's ok
+                pass
+        #self.buf.create_tag('selected', background="pink1")
+        #self.buf.create_tag('cursor', background="skyblue1")
 
         frame.pack_start(scrolled_window, fill=True, expand=True)
 
-        self.add_menu()
-        self.add_close()
+        ## self.add_menu()
+        ## self.add_close()
 
         # self.tw.drag_source_set(gtk.gdk.BUTTON1_MASK,
         #                       [('text/cmdtag', 0, 555)], gtk.gdk.ACTION_MOVE)
@@ -88,7 +107,7 @@ class QueuePage(Page.ButtonPage):
         self.btn_step.show()
         self.leftbtns.pack_end(self.btn_step)
 
-        self.btn_break = gtk.Button("Ins Break")
+        self.btn_break = gtk.Button("Break")
         self.btn_break.connect("clicked", lambda w: self.insbreak(line=0))
         self.btn_break.show()
         self.leftbtns.pack_end(self.btn_break)
@@ -105,11 +124,24 @@ class QueuePage(Page.ButtonPage):
         self.btn_refresh.show()
         self.leftbtns.pack_end(self.btn_refresh)
 
-        item = gtk.MenuItem(label="Clear Schedule")
-        self.menu.append(item)
-        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_Scheduled")
+        menu = self.add_pulldownmenu("Page")
+
+        item = gtk.MenuItem(label="Close")
+        # currently disabled
+        item.set_sensitive(False)
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
         item.show()
+
+        menu = self.add_pulldownmenu("Queue")
+
+        item = gtk.MenuItem(label="Clear All")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
+                             "menu.Clear_All")
+        item.show()
+
 
     def set_queue(self, queueName, queueObj):
         self.queueName = queueName

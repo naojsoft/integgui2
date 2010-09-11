@@ -1,12 +1,15 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 10:19:45 HST 2010
+#  Last edit: Fri Sep 10 15:13:46 HST 2010
 #]
 
 import Workspace
 import Page
 
 class WorkspacePage(Workspace.Workspace, Page.Page):
+    pass
+
+class ButtonWorkspacePage(Workspace.Workspace, Page.ButtonPage):
     pass
 
 #END

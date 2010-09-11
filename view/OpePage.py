@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 17:09:11 HST 2010
+#  Last edit: Fri Sep 10 16:29:58 HST 2010
 #]
 
 import os, re
@@ -19,7 +19,6 @@ regex_varref = re.compile(r'^(.*?)(\$[\w_]+)(.*)$')
 class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def __init__(self, frame, name, title):
-
         super(OpePage, self).__init__(frame, name, title)
 
         self.queueName = 'default'
@@ -77,7 +76,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
-        self.btn_sched = gtk.Button("Schedule")
+        self.btn_sched = gtk.Button("Add to queue")
         self.btn_sched.connect("clicked", lambda w: self.schedule())
         self.btn_sched.show()
         self.leftbtns.pack_end(self.btn_sched)
@@ -107,23 +106,28 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.leftbtns.pack_end(self.btn_tags)
 
         # Add items to the menu
+        menu = self.add_pulldownmenu("Buffer")
+        
         item = gtk.MenuItem(label="Recolor")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.color(),
                              "menu.Recolor")
         item.show()
 
         item = gtk.MenuItem(label="Current")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.current(),
                              "menu.Current")
         item.show()
 
-        item = gtk.MenuItem(label="Clear Schedule")
-        self.menu.append(item)
+        menu = self.add_pulldownmenu("Queue")
+
+        item = gtk.MenuItem(label="Clear All")
+        menu.append(item)
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_Scheduled")
+                             "menu.Clear_All")
         item.show()
+
         self.hbox.set_position(0)
 
 
@@ -286,9 +290,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             # Set the background of the tags button to indicate error
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                    gtk.gdk.color_parse('red1'))
+                                    common.launcher_colors.badtags)
             self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                    gtk.gdk.color_parse('red1'))
+                                    common.launcher_colors.badtags)
             common.view.popup_error("Undefined variable references: " +
                                     ' '.join(badrefs) + ". See bottom of tags for details.")
             # open the tag table
@@ -296,9 +300,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             
         else:
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                    gtk.gdk.color_parse('gray'))
+                                    common.launcher_colors.normal)
             self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                    gtk.gdk.color_parse('gray'))
+                                    common.launcher_colors.normal)
             
             
     def focus_out(self, w, evt):
@@ -313,7 +317,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def jump_tag(self, w, evt):
         widget = self.tagtw
         win = gtk.TEXT_WINDOW_TEXT
-        buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
+        try:
+            buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
+        except Exception, e:
+            self.logger.error("Error converting coordinates to line: %s" % (
+                str(e)))
+            return False
+        
         (startiter, coord) = widget.get_line_at_y(buf_y1)
         taglineno = startiter.get_line()
         try:
@@ -330,6 +340,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if not res:
             res = self.tw.scroll_mark_onscreen(self.mark)
         #print "line->%d res=%s" % (lineno, res)
+        return True
             
 
     def current(self):

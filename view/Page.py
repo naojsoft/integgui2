@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 15:10:12 HST 2010
+#  Last edit: Fri Sep 10 14:56:32 HST 2010
 #]
 #
 import threading
@@ -45,7 +45,9 @@ class ButtonPage(Page):
 
     def __init__(self, frame, name, title):
         super(ButtonPage, self).__init__(frame, name, title)
-
+        
+        self.add_menubar()
+        
         # bottom buttons
         self.btnframe = gtk.HBox()
         
@@ -54,7 +56,8 @@ class ButtonPage(Page):
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        self.btnframe.pack_start(self.leftbtns, fill=False, expand=False)
+        self.btnframe.pack_start(self.leftbtns, fill=False, expand=False,
+                                 padding=4)
         btns.show()
 
         btns = gtk.HButtonBox()
@@ -62,7 +65,8 @@ class ButtonPage(Page):
         btns.set_spacing(5)
         self.rightbtns = btns
         
-        self.btnframe.pack_end(self.rightbtns, fill=False, expand=False)
+        self.btnframe.pack_end(self.rightbtns, fill=False, expand=False,
+                               padding=4)
         btns.show()
 
         frame.pack_end(self.btnframe, fill=True, expand=False, padding=2)
@@ -81,6 +85,32 @@ class ButtonPage(Page):
         self.btn_close.show()
         w = self._get_side(side)
         w.pack_end(self.btn_close, padding=4)
+
+    def add_menubar(self):
+        self.menubar = gtk.MenuBar()
+        self._menus = {}
+        self.frame.pack_start(self.menubar, fill=True, expand=False, padding=0)
+        self.menubar.show()
+        return self.menubar
+
+    def add_pulldownmenu(self, name):
+        if not self.menubar:
+            self.add_menubar()
+        try:
+            # Look for existing menu with this name
+            menu = self._menus[name]
+            return menu
+        except KeyError:
+            pass
+        # No such menu, so go ahead and create it
+        menu = gtk.Menu()
+        self._menus[name] = menu
+        menu.show()
+        item = gtk.MenuItem(label=name)
+        self.menubar.append(item)
+        item.show()
+        item.set_submenu(menu)
+        return menu
 
     def add_menu(self, side=RIGHT):
         self.btn_menu = gtk.Button("Menu")

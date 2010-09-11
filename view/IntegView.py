@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  8 16:07:15 HST 2010
+#  Last edit: Fri Sep 10 16:10:29 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -86,7 +86,7 @@ class IntegView(object):
 
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
         self.gui_load_terminal()
-        self.exws.addpage('ddcommands', "Commands", DDCommandPage)
+        self.exws.addpage('Commands', "Commands", DDCommandPage)
 
         self.add_statusbar()
 
@@ -164,18 +164,6 @@ class IntegView(object):
         #                      "file.Load fits")
         # item.show()
 
-        item = gtk.MenuItem(label="log")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_log(),
-                             "file.Load log")
-        item.show()
-        
-        item = gtk.MenuItem(label="monlog")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
-                             "file.Load mon log")
-        item.show()
-        
         item = gtk.MenuItem(label="terminal")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_terminal(),
@@ -194,6 +182,24 @@ class IntegView(object):
                              "file.Load handset")
         item.show()
 
+        item = gtk.MenuItem(label="commands")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.load_commands(),
+                             "file.Load commands")
+        item.show()
+
+        item = gtk.MenuItem(label="log")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_log(),
+                             "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="monlog")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
+                             "file.Load mon log")
+        item.show()
+        
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
         item.connect_object ("activate", lambda w: self.reconfig(),
@@ -215,31 +221,7 @@ class IntegView(object):
         option_item.show()
         option_item.set_submenu(optionmenu)
 
-        monitormenu = gtk.Menu()
-        # Option variables
-        self.save_decode_result = False
-        self.show_times = False
-        self.track_elapsed = False
         self.audible_errors = True
-
-        item = gtk.MenuItem(label="Monitor")
-        optionmenu.append(item)
-        item.show()
-        item.set_submenu(monitormenu)
-
-        # Monitor menu
-        w = gtk.CheckMenuItem("Save Decode Result")
-        w.set_active(False)
-        monitormenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
-        w = gtk.CheckMenuItem("Show Times")
-        w.set_active(False)
-        monitormenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
-        w = gtk.CheckMenuItem("Track Elapsed")
-        w.set_active(False)
-        monitormenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
 
         w = gtk.CheckMenuItem("Audible Errors")
         w.set_active(True)
@@ -346,8 +328,8 @@ class IntegView(object):
         try:
             os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
 
-            name = 'shell %f' % time.time()
-            page = self.exws.addpage(name, 'Terminal', TerminalPage)
+            name = 'Terminal'
+            page = self.exws.addpage(name, name, TerminalPage)
 
             # Bring shell tab to front
             #self.exws.select(name)
@@ -382,7 +364,8 @@ class IntegView(object):
             if filesfx.lower() == '.log':
                 filename = filepfx
 
-            page = self.logpage.addpage(filepath, filename, LogPage)
+            name = filename
+            page = self.logpage.addpage(name, name, LogPage)
             page.load(filepath)
 
             # Bring log tab to front
@@ -452,7 +435,8 @@ class IntegView(object):
             dirname, filename = os.path.split(filepath)
             #print pageKlass
 
-            page = self.exws.addpage(filepath, filename, pageKlass)
+            name = filename
+            page = self.exws.addpage(name, name, pageKlass)
             page.load(filepath, buf)
 
         except Exception, e:
@@ -528,21 +512,43 @@ class IntegView(object):
                     filepath, str(e)))
 
 
-    def get_launcher_paths(self, insname):
+    def load_commands(self):
+        try:
+            page = self.exws.addpage('Commands', 'Commands', DDCommandPage)
 
+        except Exception, e:
+            self.popup_error("Cannot load command page: %s" % (
+                    str(e)))
+
+
+    def get_launcher_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
         pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                  'Launchers', filename)
 
         res = glob.glob(pathmatch)
         return res
-
         
     def close_launchers(self):
         for name in self.lws.getNames():
             page = self.lws.getPage(name)
-            page.close()
+            if isinstance(page, LauncherPage):
+                page.close()
 
+    def close_handsets(self):
+        for name in self.handsets.getNames():
+            page = self.handsets.getPage(name)
+            if isinstance(page, HandsetPage):
+                page.close()
+
+    def get_handset_paths(self, insname):
+        filename = '%s*.yml' % insname.upper()
+        pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
+                                 'Handsets', filename)
+
+        res = glob.glob(pathmatch)
+        return res
+        
     def get_log_path(self, insname):
         filename = '%s.log' % insname
         filepath = os.path.join(os.environ['LOGHOME'], filename)
@@ -576,6 +582,7 @@ class IntegView(object):
 
     def reconfig(self):
         self.close_logs()
+        self.close_handsets()
         self.close_launchers()
 
         common.controller.config_from_session('main')
@@ -758,10 +765,14 @@ style "launcher_button" = "button"
   font_name = "Monospace 10"
 }
 
-style "nobevel"
+style "menubar-style"
 {
-GtkMenuBar::shadow-type = 'etched-out'
-GtkStatusbar::shadow-type = 'in'
+GtkMenuBar::shadow_type = none
+}
+
+style "statusbar-style"
+{
+GtkStatusbar::shadow_type = none
 }
 
 style "toggle_button" = "button"
@@ -782,8 +793,8 @@ style "text"
 # The widget types are listed in the class hierarchy, but could probably be
 # just listed in this document for the users reference.
 
-widget_class "GtkMenuBar" style "nobevel"
-widget_class "GtkStatusbar" style "nobevel"
+widget_class "*GtkMenuBar" style "menubar-style"
+widget_class "*GtkStatusbar" style "statusbar-style"
 widget_class "GtkWindow" style "window"
 widget_class "GtkDialog" style "window"
 widget_class "GtkFileSelection" style "window"

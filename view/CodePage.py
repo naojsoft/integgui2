@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:59:16 HST 2010
+#  Last edit: Fri Sep 10 15:28:34 HST 2010
 #]
 import os.path
 
@@ -48,19 +48,25 @@ class CodePage(Page.ButtonPage):
         self.hbox.show()
         frame.pack_start(self.hbox, fill=True, expand=True)
 
-        self.add_menu()
-        self.add_close()
+        menu = self.add_pulldownmenu("Page")
 
         item = gtk.MenuItem(label="Reload")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.reload(),
                              "menu.Reload")
         item.show()
 
         item = gtk.MenuItem(label="Save")
-        self.menu.append(item)
+        menu.append(item)
         item.connect_object ("activate", lambda w: self.save(),
                              "menu.Save")
+        item.show()
+
+        #self.add_close()
+        item = gtk.MenuItem(label="Close")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
         item.show()
 
 

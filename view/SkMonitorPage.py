@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Sep  1 20:21:09 HST 2010
+#  Last edit: Fri Sep 10 16:16:49 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -21,11 +21,19 @@ import common
 import Page
 
 
-class SkMonitorPage(Page.Page):
+class SkMonitorPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
         super(SkMonitorPage, self).__init__(frame, name, title)
+
+        # Holds my pages
+        self.pages = {}
+        self.pagelist = []
+        self.pagelimit = 10
+
+        self.track = {}
+        self.lock = threading.RLock()
 
         self.nb = gtk.Notebook()
         self.nb.set_tab_pos(gtk.POS_TOP)
@@ -38,13 +46,47 @@ class SkMonitorPage(Page.Page):
         frame.pack_start(self.nb, expand=True, fill=True,
                          padding=2)
 
-        # Holds my pages
-        self.pages = {}
-        self.pagelist = []
-        self.pagelimit = 10
+        menu = self.add_pulldownmenu("Page")
 
-        self.track = {}
-        self.lock = threading.RLock()
+        item = gtk.MenuItem(label="Close")
+        # currently disabled
+        item.set_sensitive(False)
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.close(),
+                             "menu.Close")
+        item.show()
+
+        # Options menu
+        menu = self.add_pulldownmenu("Option")
+
+        # Option variables
+        self.save_decode_result = False
+        self.show_times = False
+        self.track_elapsed = False
+
+        w = gtk.CheckMenuItem("Save Decode Result")
+        w.set_active(False)
+        menu.append(w)
+        w.show()
+        w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
+        w = gtk.CheckMenuItem("Show Times")
+        w.set_active(False)
+        menu.append(w)
+        w.show()
+        w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
+
+        w = gtk.CheckMenuItem("Track Elapsed")
+        w.set_active(False)
+        menu.append(w)
+        w.show()
+        w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
+
+
+    def toggle_var(self, widget, key):
+        if widget.active: 
+            self.__dict__[key] = True
+        else:
+            self.__dict__[key] = False
 
 
     def insert_ast(self, tw, text):
@@ -231,7 +273,7 @@ class SkMonitorPage(Page.Page):
 
     def update_time(self, page, tagname, vals, time_s):
 
-        if not common.view.show_times:
+        if not self.show_times:
             return
 
         tagname = str(tagname)
@@ -276,7 +318,7 @@ class SkMonitorPage(Page.Page):
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):
-                if common.view.track_elapsed and bnch.page.has_key('asttime'):
+                if self.track_elapsed and bnch.page.has_key('asttime'):
                     elapsed = vals['task_start'] - bnch.page.asttime
                 else:
                     elapsed = vals['task_end'] - vals['task_start']
@@ -338,8 +380,7 @@ class SkMonitorPage(Page.Page):
                 page.asttime = vals['ast_time']
 
                 # TODO: what if this page has already been deleted?
-                # GLOBAL VAR READ
-                if common.view.save_decode_result:
+                if self.save_decode_result:
                     self.addpage(ast_id + '.decode', title, ast_str)
 
                 self.addpage(ast_id, title, ast_str)
