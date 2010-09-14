@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 13:13:48 HST 2010
+#  Last edit: Tue Sep 14 12:06:33 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -199,11 +199,11 @@ class IntegView(object):
                              "file.Load log")
         item.show()
         
-        item = gtk.MenuItem(label="monlog")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
-                             "file.Load mon log")
-        item.show()
+        ## item = gtk.MenuItem(label="monlog")
+        ## loadmenu.append(item)
+        ## item.connect_object ("activate", lambda w: self.gui_load_monlog(),
+        ##                      "file.Load mon log")
+        ## item.show()
         
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
@@ -243,7 +243,7 @@ class IntegView(object):
         item.show()
         item.set_submenu(queuemenu)
 
-        item = gtk.MenuItem(label="Create queue")
+        item = gtk.MenuItem(label="Create queue ...")
         queuemenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(),
                              "queue.Create queue")
@@ -333,9 +333,7 @@ class IntegView(object):
         w.connect("response", f)
         w.show()
 
-
     def readfile(self, filepath):
-
         in_f = open(filepath, 'r')
         buf = in_f.read()
         in_f.close()
@@ -568,6 +566,20 @@ class IntegView(object):
             if isinstance(page, HandsetPage):
                 page.close()
 
+    def reconfig(self):
+        self.close_logs()
+        self.close_handsets()
+        self.close_launchers()
+
+        common.controller.ctl_do(common.controller.config_from_session,
+                                 'main')
+
+    def raise_queue(self):
+        self.lws.select('queues')
+        
+    def raise_handset(self):
+        self.lws.select('handset')
+        
     def get_handset_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
         pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
@@ -642,14 +654,6 @@ class IntegView(object):
         except Exception, e:
             self.popup_error("Cannot edit command: %s" % (
                     str(e)))
-
-
-    def reconfig(self):
-        self.close_logs()
-        self.close_handsets()
-        self.close_launchers()
-
-        common.controller.config_from_session('main')
 
     def delete_event(self, widget, event, data=None):
         self.ev_quit.set()

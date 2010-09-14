@@ -1,7 +1,8 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 13:28:50 HST 2010
+#  Last edit: Tue Sep 14 13:41:37 HST 2010
 #]
+import sys, traceback
 
 import os, re
 import gobject, gtk
@@ -172,7 +173,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                              "menu.Unlink_my")
         item.show()
 
-        item = gtk.MenuItem(label="Attach to")
+        item = gtk.MenuItem(label="Attach to ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.attach_queue(),
                              "menu.Attach_to")
@@ -448,25 +449,29 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         if len(badrefs) > 0:
             # Add all undefined refs to the tag table
+            loc = self.tagbuf.get_end_iter()
+            startline = loc.get_line()
             addbadtag(1, "UNDEFINED VARIABLE REFS", ['badref'])
             for varref, lineno in badtags:
                 addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
-            # Scroll tag table to end
-            #self.tagtw.scroll_to_iter(end, 0.1)
-            # Hack to get around the fact that the above doesn't work
+
+            # Scroll tag table to errors
             loc = self.tagbuf.get_end_iter()
-            self.tagbuf.move_mark(self.tagmark, loc)
-            res = self.tagtw.scroll_to_mark(self.tagmark, 0, True)
-            #if not res:
-            #res = self.tagtw.scroll_mark_onscreen(self.tagmark)
+            loc.set_line(startline)
+            # HACK: I have to defer the scroll operation until the widget
+            # is rendered or it does not scroll
+            common.view.gui_do(self.tagtw.scroll_to_iter,
+                                loc, 0, True)
 
             # Set the background of the tags button to indicate error
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
                                     common.launcher_colors.badtags)
             self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
                                     common.launcher_colors.badtags)
+
             common.view.popup_error("Undefined variable references: " +
-                                    ' '.join(badrefs) + ". See bottom of tags for details.")
+                                    ' '.join(badrefs) +
+                                    ". See bottom of tags for details.")
             # open the tag table
             self.showtags()
             
@@ -488,9 +493,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def jump_tag(self, w, evt):
         widget = self.tagtw
-        win = gtk.TEXT_WINDOW_TEXT
         try:
-            buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
+            tup = widget.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+                                                 evt.x, evt.y)
+            #print tup
+            buf_x1, buf_y1 = tup
         except Exception, e:
             self.logger.error("Error converting coordinates to line: %s" % (
                 str(e)))
@@ -598,6 +605,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
             elif keyname == 'r':
                 self.color()
+                return True
+        
+            elif keyname == 'q':
+                common.view.raise_queue()
+                return True
+        
+            elif keyname == 'h':
+                common.view.raise_handset()
                 return True
         
         return False
@@ -821,7 +836,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             try:
                 cmds = self._get_commands_from_selection(copytext=copytext)
 
-                queue.insert(0, cmds)
+                queue.replace(cmds)
                 common.controller.execQueue(self.queueName,
                                             tm_queueName=self.tm_queueName)
 
@@ -842,7 +857,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                         _execute_2()
                 #------------------
                 common.view.popup_confirm("Confirm execute",
-                                          "Prepend %s queued commands with selection?" % (
+                                          "Replace %s queued commands with selection?" % (
                     self.queueName),
                                           _execute_3)
 

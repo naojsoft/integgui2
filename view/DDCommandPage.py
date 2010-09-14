@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 12 17:09:27 HST 2010
+#  Last edit: Tue Sep 14 12:05:25 HST 2010
 #]
 
 import gtk
@@ -109,6 +109,12 @@ class DDCommandPage(Page.CommandPage):
                              "menu.Clear_All")
         item.show()
 
+        item = gtk.MenuItem(label="Attach to ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.attach_queue(),
+                             "menu.Attach_to")
+        item.show()
+
     def clear_text(self):
         start, end = self.buf.get_bounds()
         self.buf.delete(start, end)
@@ -119,6 +125,39 @@ class DDCommandPage(Page.CommandPage):
         self.buf.insert(itr, text)
         itr = self.buf.get_end_iter()
         self.buf.place_cursor(itr)         
+
+    # TODO: this is code share with OpePage.  Should be shared.
+    def attach_queue(self):
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   buttons=gtk.BUTTONS_OK_CANCEL,
+                                   message_format="Pick the destination queue:")
+        dialog.set_title("Connect Queue")
+        # Add a combo box to the content area containing the names of the
+        # current queues
+        vbox = dialog.get_content_area()
+        cbox = gtk.combo_box_new_text()
+        index = 0
+        names = []
+        for name in common.controller.queue.keys():
+            cbox.insert_text(index, name.capitalize())
+            names.append(name)
+            index += 1
+        cbox.set_active(0)
+        vbox.add(cbox)
+        cbox.show()
+        dialog.connect("response", self.attach_queue_res, cbox, names)
+        dialog.show()
+
+    def attach_queue_res(self, w, rsp, cbox, names):
+        queueName = names[cbox.get_active()].strip().lower()
+        w.destroy()
+        if rsp == gtk.RESPONSE_OK:
+            if not common.view.queue.has_key(queueName):
+                common.view.popup_error("No queue with that name exists!")
+                return True
+            self.queueName = queueName
+        return True
         
     def get_dd_command(self):
         # Clear the selection

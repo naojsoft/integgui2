@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 14:06:28 HST 2010
+#  Last edit: Tue Sep 14 11:57:52 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -251,7 +251,6 @@ class IntegController(object):
 
     def config_from_session(self, sessionName):
         self.sessionName = sessionName
-
         try:
             info = self.sm.getSessionInfo(self.sessionName)
 
