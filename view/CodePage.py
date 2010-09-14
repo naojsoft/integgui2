@@ -152,6 +152,8 @@ class CodePage(Page.ButtonPage):
             common.view.popup_confirm("Close file", 
                                       "File is modified. Really close?",
                                       _close)
+        else:
+            _close('yes')
 
 
 #END
