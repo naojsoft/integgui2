@@ -107,9 +107,24 @@ launchers:
 
     -
         label: "M2 Setup"
-        cmd  :  M2_SETUP OBE_ID=COMMON OBE_MODE=LAUNCHER Foci=$VAL01
+        cmd  :  M2_SETUP OBE_ID=COMMON OBE_MODE=LAUNCHER FOCI="$VAL01"
         params:
-            - { name: VAL01, type: LIST, values: ["cs(csopt)","cs(csopt)+adc", "cs(ir)", "nsir(csopt)","nsir(csopt)+imr","nsir(ir)", "nsir(ir)+imr", "nsir(ir+ao)","nsir(nsopt)","nsir(nsopt)+imr", "nsopt(csopt)","nsopt(csopt)+adc","nsopt(csopt)+imr(b)","nsopt(csopt)+imr(b)+adc","nsopt(csopt)+imr(r)","nsopt(csopt)+imr(r)+adc","nsopt(ir)","nsopt(ir)+adc","nsopt(ir)+imr(b)","nsopt(ir)+imr(b)+adc","nsopt(ir)+imr(r)","nsopt(ir)+imr(r)+adc","nsopt(nsopt)","nsopt(nsopt)+adc","nsopt(nsopt)+imr(b)","nsopt(nsopt)+imr(b)+adc","nsopt(nsopt)+imr(r)","nsopt(nsopt)+imr(r)+adc","popt"] }
+            - { name: VAL01, type: LIST,  values: ["CS(CSOPT)","CS(CSOPT)+ADC", "CS(IR)", "NSIR(CSOPT)","NSIR(CSOPT)+IMR","NSIR(IR)", "NSIR(IR)+IMR", "NSIR(IR+AO)","NSIR(NSOPT)","NSIR(NSOPT)+IMR", "NSOPT(CSOPT)","NSOPT(CSOPT)+ADC","NSOPT(CSOPT)+IMR(B)","NSOPT(CSOPT)+IMR(B)+ADC","NSOPT(CSOPT)+IMR(R)","NSOPT(CSOPT)+IMR(R)+ADC","NSOPT(IR)","NSOPT(IR)+ADC","NSOPT(IR)+IMR(B)","NSOPT(IR)+IMR(B)+ADC","NSOPT(IR)+IMR(R)","NSOPT(IR)+IMR(R)+ADC","NSOPT(NSOPT)","NSOPT(NSOPT)+ADC","NSOPT(NSOPT)+IMR(B)","NSOPT(NSOPT)+IMR(B)+ADC","NSOPT(NSOPT)+IMR(R)","NSOPT(NSOPT)+IMR(R)+ADC","POPT"] }
+
+    -
+        label: "M2 Setup(manual)"
+        cmd  : M2_SETUP OBE_ID=COMMON OBE_MODE=LAUNCHER X=$VAL01 Y=$VAL02 Z=$VAL03 TX=$VAL04 TY=$VAL05
+        params:
+            - { name: VAL01, type: INPUT, width: 13, value: "!TSCL.PF_OFF_X",
+                label: "X" }
+            - { name: VAL02, type: INPUT, width: 13, value: "!TSCL.PF_OFF_Y",
+                label: "Y" }
+            - { name: VAL03, type: INPUT, width: 13, value: "!TSCL.PF_OFF_Z",
+                label: "Z" }
+            - { name: VAL04, type: INPUT, width: 13, value: "!TSCL.PF_OFF_TX",
+                label: "TX" }
+            - { name: VAL05, type: INPUT, width: 13, value: "!TSCL.PF_OFF_TY",
+                label: "TY" }
 
 
 
