@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:10:29 HST 2010
+#  Last edit: Mon Sep 13 13:13:48 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -73,8 +73,9 @@ class IntegView(object):
         self.framepage = self.ojws.addpage('frames', "Frames", FrameInfoPage)
 
         self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
-        queuepage = self.lws.addpage('Default', "queue_default", QueuePage)
-        queuepage.set_queue('default', self.queue.default)
+        self.queuepage = self.lws.addpage('queues', "Queues", WorkspacePage)
+        defqueue = self.queuepage.addpage('Default', "queue_default", QueuePage)
+        defqueue.set_queue('default', self.queue.default)
         self.handsets = self.lws.addpage('handset', "Handset", WorkspacePage)
 
         self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
@@ -222,11 +223,30 @@ class IntegView(object):
         option_item.set_submenu(optionmenu)
 
         self.audible_errors = True
+        self.suppress_confirm_exec = False
 
         w = gtk.CheckMenuItem("Audible Errors")
         w.set_active(True)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
+
+        w = gtk.CheckMenuItem("Suppress 'Confirm Execute' popups")
+        w.set_active(False)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'suppress_confirm_exec'))
+
+        # create a Queue pulldown menu, and add it to the menu bar
+        queuemenu = gtk.Menu()
+        item = gtk.MenuItem(label="Queue")
+        menubar.append(item)
+        item.show()
+        item.set_submenu(queuemenu)
+
+        item = gtk.MenuItem(label="Create queue")
+        queuemenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_create_queue(),
+                             "queue.Create queue")
+        item.show()
 
 
     def add_dialogs(self):
@@ -295,19 +315,23 @@ class IntegView(object):
         w.show()
 
 
-    def popup_confirm(self, title, qstr):
+    def popup_confirm(self, title, qstr, f_res, *args, **kwdargs):
         w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                               type=gtk.MESSAGE_QUESTION,
                               buttons=gtk.BUTTONS_YES_NO,
                               message_format=qstr)
         w.set_title(title)
-        res = w.run()
-        w.destroy()
 
-        if res == gtk.RESPONSE_YES:
-            return True
+        def f(w, rsp):
+            w.destroy()
+            res = 'no'
+            if rsp == gtk.RESPONSE_YES:
+                res = 'yes'
+            f_res(res, *args, **kwdargs)
+            
+        w.connect("response", f)
+        w.show()
 
-        return False
 
     def readfile(self, filepath):
 
@@ -477,7 +501,8 @@ class IntegView(object):
                 return
 
             name = match.group(1).replace('_', ' ')
-            page = self.lws.addpage(name, name, LauncherPage)
+            page = self.lws.addpage(name, name, LauncherPage,
+                                    adjname=False)
             page.load(buf)
 
         except Exception, e:
@@ -504,7 +529,8 @@ class IntegView(object):
                 return
 
             name = match.group(1).replace('_', ' ')
-            page = self.handsets.addpage(name, name, HandsetPage)
+            page = self.handsets.addpage(name, name, HandsetPage,
+                                         adjname=False)
             page.load(buf)
 
         except Exception, e:
@@ -578,6 +604,43 @@ class IntegView(object):
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+
+    def gui_create_queue(self):
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   message_format="Please enter a name for the new queue:")
+        dialog.set_title("Create Queue")
+        dialog.add_buttons("Ok", 1, "Cancel", 0)
+        vbox = dialog.get_content_area()
+        ent = gtk.Entry()
+        vbox.add(ent)
+        ent.show()
+        dialog.connect("response", self.create_queue_res, ent)
+        dialog.show()
+
+    def create_queue_res(self, w, rsp, went):
+        queueName = went.get_text().strip().lower()
+        w.destroy()
+        if rsp == 1:
+            if self.queue.has_key(queueName):
+                self.popup_error("A queue with that name already exists!")
+                return True
+            queue = common.controller.addQueue(queueName, self.logger)
+            page = self.queuepage.addpage(queueName, queueName.capitalize(),
+                                         QueuePage)
+            page.set_queue(queueName, queue)
+        return True
+        
+    def edit_command(self, cmdstr):
+        try:
+            page = self.exws.getPage('Commands')
+            page.set_text(cmdstr)
+
+            # Bring Commands tab to front
+            self.exws.select('Commands')
+        except Exception, e:
+            self.popup_error("Cannot edit command: %s" % (
+                    str(e)))
 
 
     def reconfig(self):

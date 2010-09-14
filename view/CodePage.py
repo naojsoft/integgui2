@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:28:34 HST 2010
+#  Last edit: Mon Sep 13 13:28:51 HST 2010
 #]
 import os.path
 
@@ -114,39 +114,44 @@ class CodePage(Page.ButtonPage):
 
 
     def save(self):
-        # TODO: make backup?
+        def _save(res):
+            if res != 'yes':
+                return
+
+            # TODO: make backup?
+
+            # get text to save
+            start, end = self.buf.get_bounds()
+            buf = self.buf.get_text(start, end)
+
+            try:
+                out_f = open(self.filepath, 'w')
+                out_f.write(buf)
+                out_f.close()
+                #self.statusMsg("%s saved." % self.filepath)
+            except IOError, e:
+                return common.view.popup_error("Cannot write '%s': %s" % (
+                        self.filepath, str(e)))
+
+            self.buf.set_modified(False)
 
         dirname, filename = os.path.split(self.filepath)
-
-        res = common.view.popup_yesno("Save file", 
-                               'Really save "%s"?' % filename)
-        if not res:
-            return
-
-        # get text to save
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end)
-
-        try:
-            out_f = open(self.filepath, 'w')
-            out_f.write(buf)
-            out_f.close()
-            #self.statusMsg("%s saved." % self.filepath)
-        except IOError, e:
-            return common.view.popup_error("Cannot write '%s': %s" % (
-                    self.filepath, str(e)))
-
-        self.buf.set_modified(False)
+        common.view.popup_confirm("Save file", 
+                                  'Really save "%s"?' % filename,
+                                  _save)
 
         
     def close(self):
-        if self.buf.get_modified():
-            res = common.view.popup_yesno("Close file", 
-                                   "File is modified. Really close?")
-            if not res:
+        def _close(res):
+            if res != 'yes':
                 return
 
-        super(CodePage, self).close()
+            super(CodePage, self).close()
+            
+        if self.buf.get_modified():
+            common.view.popup_confirm("Close file", 
+                                      "File is modified. Really close?",
+                                      _close)
 
 
 #END

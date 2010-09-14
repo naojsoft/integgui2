@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:26:07 HST 2010
+#  Last edit: Sat Sep 11 13:36:28 HST 2010
 #]
 import gtk
 
@@ -47,11 +47,12 @@ decorative_tags = [
 # Colors used in the QueuePage
 queue_tags = [
     ('selected', Bunch.Bunch(background='pink1')),
+    ('badref', Bunch.Bunch(background='red1')),
     ('cursor', Bunch.Bunch(background='#bf94e3')),
     ]
 
 execution_tags = [
-    ('scheduled', Bunch.Bunch(background='lightyellow2')),
+    ('queued', Bunch.Bunch(background='lightyellow2')),
     ('executing', Bunch.Bunch(background='palegreen')),
     ('done',     Bunch.Bunch(foreground='blue2')),
     ('error',   Bunch.Bunch(foreground='red')),

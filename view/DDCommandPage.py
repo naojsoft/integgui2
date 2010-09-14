@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:24:45 HST 2010
+#  Last edit: Sun Sep 12 17:09:27 HST 2010
 #]
 
 import gtk
@@ -15,7 +15,7 @@ class DDCommandPage(Page.CommandPage):
 
         super(DDCommandPage, self).__init__(frame, name, title)
 
-        self.queueName = 'command'
+        self.queueName = 'default'
         self.tm_queueName = 'executer'
         self.paused = False
 
@@ -27,7 +27,7 @@ class DDCommandPage(Page.CommandPage):
 
         tw = gtk.TextView()
         tw.set_editable(True)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_wrap_mode(gtk.WRAP_WORD)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
         scrolled_window.add(tw)
@@ -48,6 +48,16 @@ class DDCommandPage(Page.CommandPage):
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
+
+        self.btn_append = gtk.Button("Append")
+        self.btn_append.connect("clicked", lambda w: self.insert())
+        self.btn_append.show()
+        self.leftbtns.pack_end(self.btn_append)
+
+        self.btn_prepend = gtk.Button("Prepend")
+        self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
+        self.btn_prepend.show()
+        self.leftbtns.pack_end(self.btn_prepend)
 
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
@@ -71,6 +81,12 @@ class DDCommandPage(Page.CommandPage):
         # Add items to the menu
         menu = self.add_pulldownmenu("Page")
 
+        item = gtk.MenuItem(label="Clear text")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.clear_text(),
+                             "menu.Clear")
+        item.show()
+
         item = gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
@@ -79,19 +95,31 @@ class DDCommandPage(Page.CommandPage):
 
         menu = self.add_pulldownmenu("Command")
 
-        item = gtk.MenuItem(label="Add to queue")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.schedule(),
-                             "menu.Add_to_queue")
-        item.show()
-
         item = gtk.MenuItem(label="Exec as launcher")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.execute_as_launcher(),
                              "menu.Execute_as_launcher")
         item.show()
 
+        menu = self.add_pulldownmenu("Queue")
 
+        item = gtk.MenuItem(label="Clear All")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
+                             "menu.Clear_All")
+        item.show()
+
+    def clear_text(self):
+        start, end = self.buf.get_bounds()
+        self.buf.delete(start, end)
+        
+    def set_text(self, text):
+        self.clear_text()
+        itr = self.buf.get_end_iter()
+        self.buf.insert(itr, text)
+        itr = self.buf.get_end_iter()
+        self.buf.place_cursor(itr)         
+        
     def get_dd_command(self):
         # Clear the selection
         itr = self.buf.get_end_iter()
@@ -124,8 +152,7 @@ class DDCommandPage(Page.CommandPage):
         try:
             cmdObj = self.get_dd_command()
 
-            common.controller.replaceQueueAndExecute(self.queueName, [cmdObj],
-                                                     tm_queueName=self.tm_queueName)
+            common.controller.execOne(cmdObj, self.tm_queueName)
         except Exception, e:
             common.view.popup_error(str(e))
 
@@ -139,12 +166,17 @@ class DDCommandPage(Page.CommandPage):
         except Exception, e:
             common.view.popup_error(str(e))
 
-    def schedule(self, queueName='default'):
-        """Callback when the Schedule button is pressed.
+    def insert(self, loc=None, queueName='default'):
+        """Callback when the Append button is pressed.
         """
         try:
             cmdObj = self.get_dd_command()
-            common.controller.appendQueue(queueName, [cmdObj])
+
+            queue = common.controller.queue[self.queueName]
+            if loc == None:
+                queue.append(cmdObj)
+            else:
+                queue.insert(loc, [cmdObj])
 
         except Exception, e:
             common.view.popup_error(str(e))

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:16:49 HST 2010
+#  Last edit: Sun Sep 12 16:54:17 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -50,6 +50,8 @@ class QueuePage(Page.ButtonPage):
         # Stores saved selection
         self.sel_i = None
         self.sel_j = None
+        # Stores cut
+        self.clip = []
 
         self.cursor = 0
         self.moving_cursor = False
@@ -142,6 +144,12 @@ class QueuePage(Page.ButtonPage):
                              "menu.Clear_All")
         item.show()
 
+        item = gtk.MenuItem(label="Pop and edit command")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.editCommand(),
+                             "menu.Edit_command")
+        item.show()
+
 
     def set_queue(self, queueName, queueObj):
         self.queueName = queueName
@@ -150,13 +158,24 @@ class QueuePage(Page.ButtonPage):
         queueObj.add_view(self)
         
         # change our tab title to match the queue
-        tabName = '%s Queue' % (queueObj.name.capitalize())
+        tabName = queueObj.name.capitalize()
         self.setLabel(tabName)
 
     def close(self):
         self.queueObj.del_view(self)
         super(QueuePage, self).close()
-            
+
+    def editCommand(self):
+        try:
+            cmdObj = self.queueObj.peek()
+            self.queueObj.remove(cmdObj)
+
+        except Exception, e:
+            # TODO: popup error here?
+            common.view.gui_do(common.view.popup_error, str(e))
+
+        common.controller.editOne(cmdObj)
+
     def _redraw(self):
         common.view.assert_gui_thread()
         
@@ -166,12 +185,21 @@ class QueuePage(Page.ButtonPage):
 
             numlines = 0
             for cmdObj in self.queueObj.peekAll():
-                text = cmdObj.get_preview()
+                try:
+                    text = cmdObj.get_preview()
+                    cmd_ok = True
+                except Exception, e:
+                    text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
+                    cmd_ok = False
+                    
                 # Insert text icon at end of the 
-                loc = self.buf.get_end_iter()
-                self.buf.insert(loc, text)
-                loc = self.buf.get_end_iter()
-                self.buf.insert(loc, '\n')
+                loc1 = self.buf.get_end_iter()
+                if not cmd_ok:
+                    self.buf.insert_with_tags_by_name(loc1, text, 'badref')
+                else:
+                    self.buf.insert(loc1, text)
+                loc2 = self.buf.get_end_iter()
+                self.buf.insert(loc2, '\n')
                 numlines += 1
 
             # Apply color to rows and save selection indexes
@@ -269,10 +297,41 @@ class QueuePage(Page.ButtonPage):
             print "i=%d j=%d" % (i, j)
             self.clear_selection()
 
-            self.queueObj.delete(i, j+1)
+            self.clip = self.queueObj.delete(i, j+1)
+
+    def copy(self):
+        if not self.has_selection():
+            # Try to set a selection if none provided
+            self.set_selection()
+            
+        if self.has_selection():
+            (i, j) = (self.sel_i, self.sel_j)
+            print "i=%d j=%d" % (i, j)
+            self.clear_selection()
+
+            self.clip = self.queueObj.getslice(i, j+1)
+
+    def set_clip(self, clip):
+        # clip must contain CommandObjects!
+        self.clip = clip
         
-    def paste(self):
-        pass
+    def paste(self, clip=None):
+        if clip == None:
+            clip = self.clip
+        if len(clip) == 0:
+            common.view.popup_error("Please cut the selection first.")
+            return
+        
+        insmark = self.buf.get_insert()
+        if insmark == None:
+            common.view.popup_error("Please set insertion mark first.")
+            return
+
+        insiter = self.buf.get_iter_at_mark(insmark)
+        k = insiter.get_line()
+
+        self.queueObj.insert(k, clip)
+        #self.clip = []
         
     def move(self):
         if not self.has_selection():
@@ -328,7 +387,7 @@ class QueuePage(Page.ButtonPage):
             return
 
         # Get length of queued items, if any
-        num_queued = common.controller.get_queueLength(self.queueName)
+        num_queued = len(self.queueObj)
         
         if num_queued == 0:
             common.view.popup_error("No %s queued commands!" % (
@@ -377,18 +436,23 @@ class QueuePage(Page.ButtonPage):
         elif keyname == 'a':
             self.clear_selection()
             return True
+        elif keyname == 'c':
+            self.copy()
+            return True
         elif keyname == 'x':
             self.cut()
             return True
         elif keyname == 'v':
+            self.paste()
+            return True
+        elif keyname == 'm':
             self.move()
             return True
         elif keyname == 'b':
             self.insbreak()
             return True
 
-        soundfile = common.sound.bad_keystroke
-        common.controller.playSound(soundfile)
+        common.view.setStatus("I don't understand that key: %s", keyname)
         return True
     
     def show_cursor(self, tbuf, titer, tmark):

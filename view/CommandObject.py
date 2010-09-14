@@ -2,7 +2,7 @@
 # CommandObject.py -- command object and queue object definitions
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 13:40:05 HST 2010
+#  Last edit: Sat Sep 11 13:41:49 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -47,9 +47,10 @@ class CommandObject(object):
 
     def mark_status(self, txttag):
         """This is called when our command changes status.  _txttag_ should
-        be 'normal', 'scheduled', 'executing', 'done' or 'error'.
+        be queued, unqueued, normal, executing, done, error
         """
         pass
 
-
+    def __str__(self):
+        return self.guitag
         

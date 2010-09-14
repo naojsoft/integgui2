@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep  7 16:55:09 HST 2010
+#  Last edit: Sun Sep 12 17:09:28 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -53,10 +53,7 @@ def main(options, args):
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
                                                             logger),
-                         command=CommandQueue.CommandQueue('command',
-                                                            logger),
-                         launcher=CommandQueue.CommandQueue('launcher',
-                                                            logger) )
+                         )
 
     # Create view
     gui = igview.IntegView(logger, ev_quit, queues)

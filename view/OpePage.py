@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:29:58 HST 2010
+#  Last edit: Mon Sep 13 13:28:50 HST 2010
 #]
 
 import os, re
@@ -14,6 +14,33 @@ import SOSS.parse.ope as ope
 
 # regex for matching variable references
 regex_varref = re.compile(r'^(.*?)(\$[\w_]+)(.*)$')
+
+warning_close = """
+WARNING:        
+You are attempting to delete text in this buffer that is needed
+by queued commands.
+
+Please choose one of the following options:
+
+1) Don't close page.
+2) Unlink queued commands from this page and close page.
+3) Remove the commands from the queue and close page.
+
+"""
+
+warning_reload = """
+WARNING:        
+You are attempting to replace text in this buffer that is needed
+by queued commands.
+
+Please choose one of the following options:
+
+1) Don't reload page.
+2) Unlink queued commands from this page and reload page.
+3) Remove the commands from the queue and reload page.
+4) Open the OPE file again in a new page.
+
+"""
 
 
 class OpePage(CodePage.CodePage, Page.CommandPage):
@@ -76,10 +103,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec)
 
-        self.btn_sched = gtk.Button("Add to queue")
-        self.btn_sched.connect("clicked", lambda w: self.schedule())
-        self.btn_sched.show()
-        self.leftbtns.pack_end(self.btn_sched)
+        self.btn_append = gtk.Button("Append")
+        self.btn_append.connect("clicked", lambda w: self.insert())
+        self.btn_append.show()
+        self.leftbtns.pack_end(self.btn_append)
+
+        self.btn_prepend = gtk.Button("Prepend")
+        self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
+        self.btn_prepend.show()
+        self.leftbtns.pack_end(self.btn_prepend)
 
         self.btn_cancel = gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
@@ -122,22 +154,162 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = gtk.MenuItem(label="Clear All")
+        item = gtk.MenuItem(label="Clear all")
         menu.append(item)
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_All")
+                             "menu.Clear_all")
         item.show()
 
-        self.hbox.set_position(0)
+        item = gtk.MenuItem(label="Clear my")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.unqueue_my_commands(),
+                             "menu.Clear_my")
+        item.show()
 
+        item = gtk.MenuItem(label="Unlink my")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.unlink_my_commands(),
+                             "menu.Unlink_my")
+        item.show()
+
+        item = gtk.MenuItem(label="Attach to")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.attach_queue(),
+                             "menu.Attach_to")
+        item.show()
+
+        menu = self.add_pulldownmenu("Options")
+
+        item = gtk.CheckMenuItem("Don't link commands to page")
+        item.set_active(False)
+        menu.append(item)
+        item.connect("activate", lambda w: self.toggle_var(w, 'add_frozen'))
+        item.show()
+
+        # option variables
+        self.add_frozen = False
+
+
+    def toggle_var(self, widget, key):
+        if widget.active: 
+            self.__dict__[key] = True
+        else:
+            self.__dict__[key] = False
+
+    def build_dialog(self, title, text, func):
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_WARNING,
+                                   message_format=text)
+        dialog.set_title(title)
+        dialog.connect("response", func)
+        return dialog
 
     def load(self, filepath, buf):
         super(OpePage, self).load(filepath, buf)
         self.cond_color()
 
-    def reload(self):
+    def _reload(self):
         super(OpePage, self).reload()
         self.cond_color()
+
+    def reload(self):
+        if not self.reload_check():
+            return
+        self._reload()
+
+    def reload_check(self):
+        num = len(self.my_queued_commands())
+        if num == 0:
+            return True
+        #common.view.popup_error("%d commands are still queued!" % num)
+        w = self.build_dialog("%d commands are queued" % num,
+                              warning_reload, self.reload_check_res)
+        w.add_button("Cancel", 1)
+        w.add_button("Unlink", 2)
+        w.add_button("Remove", 3)
+        w.add_button("New Page", 4)
+        w.show()
+        return False
+
+    def reload_check_res(self, w, rsp):
+        w.destroy()
+        if rsp == 2:
+            self.unlink_my_commands()
+            self._reload()
+
+        elif rsp == 3:
+            self.unqueue_my_commands()
+            self._reload()
+
+        elif rsp == 4:
+            common.view.load_generic(self.filepath, OpePage)
+
+        return True
+
+    def close_check(self):
+        num = len(self.my_queued_commands())
+        if num == 0:
+            return True
+        #common.view.popup_error("%d commands are still queued!" % num)
+        w = self.build_dialog("%d commands are queued" % num,
+                              warning_close, self.close_check_res)
+        w.add_button("Cancel", 1)
+        w.add_button("Unlink", 2)
+        w.add_button("Remove", 3)
+        w.show()
+        return False
+
+    def close_check_res(self, w, rsp):
+        w.destroy()
+        if rsp == 2:
+            self.unlink_my_commands()
+            self._close()
+            
+        elif rsp == 3:
+            self.unqueue_my_commands()
+            self._close()
+            
+        return True
+
+    def _close(self):
+        super(OpePage, self).close()
+
+    def close(self):
+        if not self.close_check():
+            return
+        self._close()
+
+    def unqueue_my_commands(self):
+        tags = self.my_queued_commands()
+        common.controller.remove_by_tags(tags)
+        
+    def unlink_my_commands(self):
+        tags = self.my_queued_commands()
+        self._convert_linked_commands(tags)
+        return True
+            
+    def my_queued_commands(self):
+        """Return the list of tags from our text buffer that are referenced
+        from active queues."""
+        tags = common.controller.get_all_queued_tags()
+        return self.sift_tags(tags)
+        
+    def remove_commands(self, tags):
+        """Remove from any queues commands corresponding to this
+        list of tags."""
+        common.controller.remove_by_tag(tags)
+        
+    def sift_tags(self, taglist):
+        """From a list of tags (taglist), return the subset that are
+        defined in our buffer."""
+        # TODO: can we improve the efficiency of this?
+        res = []
+        tagtbl = self.buf.get_tag_table()
+        num = 0
+        for tagname in taglist:
+            if tagtbl.lookup(tagname) != None:
+                res.append(tagname)
+        return res
 
     def cond_color(self):
         name, ext = os.path.splitext(self.filepath)
@@ -296,7 +468,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             common.view.popup_error("Undefined variable references: " +
                                     ' '.join(badrefs) + ". See bottom of tags for details.")
             # open the tag table
-            self.hbox.set_position(250)
+            self.showtags()
             
         else:
             self.btn_tags.modify_bg(gtk.STATE_NORMAL,
@@ -304,7 +476,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
                                     common.launcher_colors.normal)
             
-            
+
     def focus_out(self, w, evt):
         self.logger.info("lost focus!")
         try:
@@ -350,7 +522,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         """
         # TODO: might be lots of tags of 'error' and 'done' in the buffer
         # It might be better to scroll to the mark than these tags
-        for tag in ('executing', 'scheduled', 'error', 'done'):
+        for tag in ('executing', 'queued', 'error', 'done'):
             try:
                 start, end = common.get_region(self.buf, tag)
                 
@@ -431,8 +603,79 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         return False
     
 
-    def _get_commands_from_selection(self):
+    def process_cmdstr(self, txtbuf, cmdstr):
+        cmdstr = cmdstr.strip()
 
+        # remove trailing semicolon, if present
+        if cmdstr.endswith(';'):
+            cmdstr = cmdstr[:-1]
+
+        # Resolve all variables/macros
+        try:
+            self.logger.debug("Unprocessed command is: %s" % cmdstr)
+            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
+            self.logger.debug("Processed command is: %s" % p_cmdstr)
+
+            return p_cmdstr
+        
+        except Exception, e:
+            errstr = "Error parsing command: %s" % (str(e))
+            raise Exception(errstr)
+
+
+    def _convert_linked_commands(self, tags):
+        """Takes a set of command tags, as may be found in our text buffer,
+        and converts any queued instance of it to a new CopyCommandObject
+        (which contains the expanded command string) and that is not linked
+        to this page.
+        """
+
+        # Get current value of text buffer
+        start, end = self.buf.get_bounds()
+        txtbuf = self.buf.get_text(start, end)
+
+        # Get all the commands strings referenced by _tags_ and put
+        # them in dict _cmds_
+        cmds = {}
+        for tag in tags:
+            # Now get the command from the text widget
+            start, end = common.get_region_lines(self.buf, tag)
+            cmds[tag] = self.buf.get_text(start, end)
+
+        # Define a mapping 
+        # NOTE: enclosed function captures values of tags, cmds and
+        #   txtbuf
+        def f(cmdObj):
+            tag = str(cmdObj)
+            if not (tag in tags):
+                return cmdObj
+            
+            cmdstr = self.process_cmdstr(txtbuf, cmds[tag])
+            return CopyCommandObject('cp%d', self.queueName, self.logger,
+                                     cmdstr)
+
+        # This function just iterates over all current queues, applying
+        # the mapping function
+        def g():
+            for queueObj in common.controller.queue.values():
+                queueObj.mapFilter(f)
+
+        # Execute this as a thread in the controller
+        common.controller.ctl_do(g)
+
+
+    def _get_commands_from_selection(self, copytext=None):
+
+        if copytext == None:
+            copytext = self.add_frozen
+            
+        if copytext:
+            # If copytext==True then we are not storing a reference
+            # to the command in the page, but the command string
+            # already pre-expanded
+            start, end = self.buf.get_bounds()
+            txtbuf = self.buf.get_text(start, end)
+        
         # Get the range of text selected
         try:
             first, last = self.buf.get_selection_bounds()
@@ -468,12 +711,17 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 continue
             self.logger.debug("cmd=%s" % (cmd))
 
-            # tag the text so we can manipulate it later
-            cmdobj = OpeCommandObject('ope%d', self.queueName,
-                                      self.logger, self)
-            tag = cmdobj.guitag
-            self.buf.create_tag(tag)
-            self.buf.apply_tag_by_name(tag, first, last)
+            if copytext:
+                cmdstr = self.process_cmdstr(txtbuf, cmd)
+                cmdobj = CopyCommandObject('cp%d', self.queueName,
+                                           self.logger, cmdstr)
+            else:
+                # tag the text so we can manipulate it later
+                cmdobj = OpeCommandObject('ope%d', self.queueName,
+                                          self.logger, self)
+                tag = cmdobj.guitag
+                self.buf.create_tag(tag)
+                self.buf.apply_tag_by_name(tag, first, last)
 
             cmds.append(cmdobj)
 
@@ -529,7 +777,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.buf.move_mark_by_name("selection_bound", self.sel_last)
 
 
-    def execute(self):
+    def execute(self, copytext=None):
         """Callback when the EXEC button is pressed.
         """
         # Check whether we are busy executing a command here
@@ -540,7 +788,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return
 
         # Get length of queued items, if any
-        num_queued = common.controller.get_queueLength(self.queueName)
+        queue = common.controller.queue[self.queueName]
+        num_queued = len(queue)
         
         if not self.buf.get_has_selection():
             # No selection.  See if there are previously queued commands
@@ -548,35 +797,61 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 common.view.popup_error("No mouse selection and no %s queued commands!" % (
                     self.queueName))
             else:
-                if common.view.popup_confirm("Confirm execute",
-                                             "No selection--resume execution of %s queued commands?" % (
-                    self.queueName)):
+                #------------------
+                def _execute_1(res):
+                    if res != 'yes':
+                        return
                     common.controller.execQueue(self.queueName,
                                                 tm_queueName=self.tm_queueName)
+                #------------------
+        
+                if common.view.suppress_confirm_exec:
+                    _execute_1('yes')
+                else:
+                    common.view.popup_confirm("Confirm execute",
+                                              "No selection--resume execution of %s queued commands?" % (
+                        self.queueName),
+                                              _execute_1)
                 
             return
 
+        #------------------
+        # Code to do if we are going to override selection
+        def _execute_2():
+            try:
+                cmds = self._get_commands_from_selection(copytext=copytext)
+
+                queue.replace(cmds)
+                common.controller.execQueue(self.queueName,
+                                            tm_queueName=self.tm_queueName)
+
+            except Exception, e:
+                common.view.popup_error(str(e))
+        #------------------
+
+        # <== There is a selection
         if num_queued > 0:
-            self._save_selection()
-            if not common.view.popup_confirm("Confirm execute",
-                                             "Replace %s queued commands with selection?" % (
-                self.queueName)):
-                self._restore_selection()
-                return
-            
-            self._restore_selection()
+            if common.view.suppress_confirm_exec:
+                _execute_2()
+            else:
+                self._save_selection()
+                #------------------
+                def _execute_3(res):
+                    self._restore_selection()
+                    if res == 'yes':
+                        _execute_2()
+                #------------------
+                common.view.popup_confirm("Confirm execute",
+                                          "Replace %s queued commands with selection?" % (
+                    self.queueName),
+                                          _execute_3)
 
-        try:
-            cmds = self._get_commands_from_selection()
-            
-            common.controller.replaceQueueAndExecute(self.queueName, cmds,
-                                                     tm_queueName=self.tm_queueName)
-        except Exception, e:
-            common.view.popup_error(str(e))
+        else:
+            _execute_2()
 
 
-    def schedule(self):
-        """Callback when the SCHEDULE button is pressed.
+    def insert(self, loc=None, copytext=None):
+        """Callback when the APPEND button is pressed.
         """
         if not self.buf.get_has_selection():
             # No selection.
@@ -584,14 +859,49 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return
 
         try:
-            # TODO: what if a command is already selected once in queue?
-            cmds = self._get_commands_from_selection()
+            cmds = self._get_commands_from_selection(copytext=copytext)
             #print len(cmds), "selected!"
 
-            common.controller.appendQueue(self.queueName, cmds)
+            queue = common.controller.queue[self.queueName]
+            if loc == None:
+                queue.extend(cmds)
+            else:
+                queue.insert(loc, cmds)
         except Exception, e:
             common.view.popup_error(str(e))
 
+    def attach_queue(self):
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   buttons=gtk.BUTTONS_OK_CANCEL,
+                                   message_format="Pick the destination queue:")
+        dialog.set_title("Connect Queue")
+        # Add a combo box to the content area containing the names of the
+        # current queues
+        vbox = dialog.get_content_area()
+        cbox = gtk.combo_box_new_text()
+        index = 0
+        names = []
+        for name in common.controller.queue.keys():
+            cbox.insert_text(index, name.capitalize())
+            names.append(name)
+            index += 1
+        cbox.set_active(0)
+        vbox.add(cbox)
+        cbox.show()
+        dialog.connect("response", self.attach_queue_res, cbox, names)
+        dialog.show()
+
+    def attach_queue_res(self, w, rsp, cbox, names):
+        queueName = names[cbox.get_active()].strip().lower()
+        w.destroy()
+        if rsp == gtk.RESPONSE_OK:
+            if not common.view.queue.has_key(queueName):
+                common.view.popup_error("No queue with that name exists!")
+                return True
+            self.queueName = queueName
+        return True
+        
 
 class OpeCommandObject(CommandObject.CommandObject):
 
@@ -606,7 +916,7 @@ class OpeCommandObject(CommandObject.CommandObject):
         should be executed.
         """
         common.view.assert_gui_thread()
-        
+
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         # Now get the command from the text widget
@@ -619,7 +929,7 @@ class OpeCommandObject(CommandObject.CommandObject):
             cmdstr = cmdstr[:-1]
 
         self.logger.debug("preview is '%s'" % (cmdstr))
-        return cmdstr
+        return '>>' + cmdstr
 
     def _get_cmdstr(self):
         """This is called to get the command string that should be executed.
@@ -647,31 +957,13 @@ class OpeCommandObject(CommandObject.CommandObject):
         f_res = common.gui_do_res(self._get_cmdstr)
         txtbuf, cmdstr = f_res.get_value(timeout=10.0)
 
-        txtbuf = txtbuf.strip()
-        cmdstr = cmdstr.strip()
+        cmdstr = self.page.process_cmdstr(txtbuf, cmdstr)
+        return cmdstr
 
-        # remove trailing semicolon, if present
-        if cmdstr.endswith(';'):
-            cmdstr = cmdstr[:-1]
 
-        # Resolve all variables/macros
-        try:
-            self.logger.debug("Unprocessed command is: %s" % cmdstr)
-            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
-            self.logger.debug("Processed command is: %s" % p_cmdstr)
-
-        except Exception, e:
-            errstr = "Error parsing command: %s" % (str(e))
-            raise Exception(errstr)
-
-        self.cmdstr = p_cmdstr
-
-        return self.cmdstr
-
-        
     def _mark_status(self, txttag):
         """This is called when our command changes status.  _txttag_ should
-        be 'scheduled', 'executing', 'done' or 'error'.
+        be one of unqueued, queued, normal, executing, done, error
         """
         common.view.assert_gui_thread()
 
@@ -680,18 +972,18 @@ class OpeCommandObject(CommandObject.CommandObject):
         start, end = common.get_region_lines(buf, self.guitag)
         #start, end = common.get_region(buf, self.guitag)
 
-        if txttag == 'normal':
-            common.clear_tags_region(buf, ('done', 'error', 'executing',
-                                           'scheduled'),
+        if txttag == 'unqueued':
+            common.clear_tags_region(buf, ('queued',),
                                      start, end)
             return
 
-        if txttag == 'scheduled':
+        if txttag == 'normal':
             common.clear_tags_region(buf, ('done', 'error', 'executing'),
                                      start, end)
+            return
 
-        elif txttag == 'executing':
-            common.clear_tags_region(buf, ('done', 'error', 'scheduled'),
+        if txttag == 'executing':
+            common.clear_tags_region(buf, ('done', 'error'),
                                      start, end)
 
         elif txttag in ('done', 'error'):
@@ -704,4 +996,21 @@ class OpeCommandObject(CommandObject.CommandObject):
         # This MAY be called from a non-gui thread
         common.gui_do(self._mark_status, txttag)
         
+
+class CopyCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, cmdstr):
+        self.cmdstr = cmdstr
+
+        super(CopyCommandObject, self).__init__(format, queueName, logger)
+        
+    def get_preview(self):
+        return self.get_cmdstr()
+    
+    def get_cmdstr(self):
+        return self.cmdstr
+
+    def mark_status(self, txttag):
+        pass
+
 #END

@@ -2,7 +2,7 @@
 # HandsetPage.py -- implements an Integgui2 handset
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:19:05 HST 2010
+#  Last edit: Sat Sep 11 13:41:49 HST 2010
 #]
 
 import gtk
@@ -418,7 +418,7 @@ class HandsetCommandObject(CommandObject.CommandObject):
         return self.cmdstr
 
     def _show_state(self, state):
-        if state == 'scheduled':
+        if state == 'queued':
             state = 'normal'
 
         self.widget.modify_bg(gtk.STATE_NORMAL,

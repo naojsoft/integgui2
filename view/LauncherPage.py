@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:19:07 HST 2010
+#  Last edit: Sat Sep 11 13:41:49 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -175,7 +175,7 @@ class Launcher(object):
         self.execfn(cmdstr, self)
 
     def show_state(self, state):
-        if state == 'scheduled':
+        if state == 'queued':
             state = 'normal'
 
         self.btn_exec.modify_bg(gtk.STATE_NORMAL,

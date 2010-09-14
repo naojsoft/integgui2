@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:08:10 HST 2010
+#  Last edit: Mon Sep 13 14:06:28 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -37,6 +37,9 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
               ]
 
+
+class ControllerError(Exception):
+    pass
 
 class IntegController(object):
     """
@@ -86,31 +89,9 @@ class IntegController(object):
 #############
 ###  GUI interface to the controller
             
-    def get_queueLength(self, queueName):
-        return len(self.queue[queueName])
-
     def clearQueue(self, queueName):
         queue = self.queue[queueName]
         queue.flush()
-
-    def prependQueue(self, queueName, cmdObj):
-        queue = self.queue[queueName]
-        queue.prepend(cmdObj)
-
-    def appendQueue(self, queueName, cmdObjs):
-        queue = self.queue[queueName]
-        queue.extend(cmdObjs)
-
-    def replaceQueueAndExecute(self, queueName, cmdObjs,
-                               tm_queueName='executer'):
-        queue = self.queue[queueName]
-        queue.replace(cmdObjs)
-        self.execQueue(queueName, tm_queueName)
-
-    def appendQueueAndExecute(self, queueName, cmdObjs,
-                              tm_queueName='executer'):
-        self.appendQueue(queueName, cmdObjs)
-        self.execQueue(queueName, tm_queueName)
 
     def execQueue(self, queueName, tm_queueName='executer'):
         """This method is called when the GUI has commands for the
@@ -153,7 +134,42 @@ class IntegController(object):
             # TODO: popup error here?
             self.gui.gui_do(self.gui.popup_error, str(e))
 
-            
+    def editOne(self, cmdObj):
+        try:
+            t = Task.FuncTask2(self.edit_one, cmdObj)
+            t.init_and_start(self)
+
+        except Exception, e:
+            # TODO: popup error here?
+            self.gui.gui_do(self.gui.popup_error, str(e))
+
+
+    def get_all_queued_tags(self):
+        # TODO: may need a lock?
+        tags = set([])
+        for queueObj in self.queue.values():
+            tags.update(queueObj.get_tags())
+
+        return tags
+        
+
+    def remove_by_tags(self, tags):
+        # TODO: may need a lock?
+        cmdObjs = set([])
+        for queueObj in self.queue.values():
+            deleted = queueObj.removeFilter(lambda x: not (str(x) in tags))
+            cmdObjs.update(deleted)
+        return cmdObjs
+
+
+    def ctl_do(self, func, *args, **kwdargs):
+        try:
+            t = Task.FuncTask(func, args, kwdargs)
+            t.init_and_start(self)
+
+        except Exception, e:
+            raise ControllerError(e)
+        
 #############
 
     def tm_kill(self):
@@ -187,6 +203,14 @@ class IntegController(object):
     def tm_restart(self):
         t = Task.FuncTask(self.tm_kill, [], {})
         t.init_and_start(self)
+
+    def addQueue(self, queueName, logger):
+        if self.queue.has_key(queueName):
+            raise ControllerError("Queue already exists: '%s'" % queueName)
+        
+        queue = CommandQueue.CommandQueue(queueName, logger)
+        self.queue[queueName] = queue
+        return queue
 
     def set_instrument(self, insname):
         """Called when we notice a change of instrument.
@@ -586,6 +610,7 @@ class IntegController(object):
             try:
                 # pull an item off the front of the queue
                 cmdObj = queueObj.get()
+                cmdObj.mark_status('normal')
             
             except Exception, e:
                 self.gui.gui_do(self.gui.popup_error, str(e))
@@ -638,7 +663,6 @@ class IntegController(object):
 
 
     def exec_one(self, cmdObj, tm_queueName, sound_success, sound_failure):
-
         try:
             cmdstr = cmdObj.get_cmdstr()
         
@@ -648,8 +672,14 @@ class IntegController(object):
             self.logger.debug("Invoking to task manager (%s): '%s'" % (
                 tm_queueName, cmdstr))
 
+            # fix!
+            if tm_queueName == 'executer':
+                self.executingP.set()
             res = common.controller.tm.execTask(tm_queueName,
                                                 cmdstr, '')
+            # fix!
+            if tm_queueName == 'executer':
+                self.executingP.clear()
             if res == 0:
                 self.feedback_ok(tm_queueName, cmdstr, cmdObj,
                                  res, sound_success)
@@ -657,8 +687,22 @@ class IntegController(object):
                 raise Exception('Command terminated with res=%d' % res)
 
         except Exception, e:
+            # fix!
+            if tm_queueName == 'executer':
+                self.executingP.clear()
             self.feedback_error(tm_queueName, cmdstr, cmdObj,
                                 str(e), sound_failure)
 
+
+    def edit_one(self, cmdObj):
+        try:
+            cmdstr = cmdObj.get_cmdstr()
+        
+        except Exception, e:
+            common.view.popup_error("Error editing command: %s" % (
+                    str(e)))
+            return
+                
+        self.gui.gui_do(self.gui.edit_command, cmdstr)
 
 #END

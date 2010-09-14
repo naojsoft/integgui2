@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 14:56:32 HST 2010
+#  Last edit: Mon Sep 13 14:08:54 HST 2010
 #]
 #
 import threading
@@ -138,7 +138,7 @@ class CommandPage(ButtonPage):
     def cancel(self):
         #controller = self.parent.get_controller()
         controller = common.controller
-        controller.tm_cancel(self.queueName)
+        controller.tm_cancel(self.tm_queueName)
         self.reset_pause()
 
     def pause(self):
@@ -146,13 +146,13 @@ class CommandPage(ButtonPage):
         self.paused = True
         #controller = self.parent.get_controller()
         controller = common.controller
-        controller.tm_pause(self.queueName)
+        controller.tm_pause(self.tm_queueName)
 
     def resume(self):
         self.reset_pause()
         #controller = self.parent.get_controller()
         controller = common.controller
-        controller.tm_resume(self.queueName)
+        controller.tm_resume(self.tm_queueName)
 
     def toggle_pause(self, w):
         common.view.playSound(common.sound.pause_toggle)
