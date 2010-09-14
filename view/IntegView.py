@@ -41,6 +41,10 @@ class IntegView(object):
         self.placeholder = '--notdone--'
         self.gui_thread_id = None
 
+        # Options that can be set graphically
+        self.audible_errors = True
+        self.suppress_confirm_exec = True
+
         # Create the GUI
         self.w = Bunch.Bunch()
 
@@ -222,16 +226,13 @@ class IntegView(object):
         option_item.show()
         option_item.set_submenu(optionmenu)
 
-        self.audible_errors = True
-        self.suppress_confirm_exec = False
-
         w = gtk.CheckMenuItem("Audible Errors")
         w.set_active(True)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
 
         w = gtk.CheckMenuItem("Suppress 'Confirm Execute' popups")
-        w.set_active(False)
+        w.set_active(True)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'suppress_confirm_exec'))
 

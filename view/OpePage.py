@@ -816,12 +816,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return
 
         #------------------
-        # Code to do if we are going to override selection
+        # Code to do if we have a selection
         def _execute_2():
             try:
                 cmds = self._get_commands_from_selection(copytext=copytext)
 
-                queue.replace(cmds)
+                queue.insert(0, cmds)
                 common.controller.execQueue(self.queueName,
                                             tm_queueName=self.tm_queueName)
 
@@ -842,7 +842,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                         _execute_2()
                 #------------------
                 common.view.popup_confirm("Confirm execute",
-                                          "Replace %s queued commands with selection?" % (
+                                          "Prepend %s queued commands with selection?" % (
                     self.queueName),
                                           _execute_3)
 
