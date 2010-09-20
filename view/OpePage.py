@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 16:21:30 HST 2010
+#  Last edit: Sun Sep 19 19:23:11 HST 2010
 #]
 import sys, traceback
 
@@ -640,7 +640,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def _convert_linked_commands(self, tags):
         """Takes a set of command tags, as may be found in our text buffer,
-        and converts any queued instance of it to a new CopyCommandObject
+        and converts any queued instance of it to a new SimpleCommandObject
         (which contains the expanded command string) and that is not linked
         to this page.
         """
@@ -666,8 +666,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 return cmdObj
             
             cmdstr = self.process_cmdstr(txtbuf, cmds[tag])
-            return CopyCommandObject('cp%d', self.queueName, self.logger,
-                                     cmdstr)
+            return CommandObject.SimpleCommandObject('cp%d', self.queueName,
+                                                     self.logger,
+                                                     cmdstr)
 
         # This function just iterates over all current queues, applying
         # the mapping function
@@ -722,18 +723,21 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             if last.get_line() > row:
                 # forward_to_line_end() seems to go to the next row
                 # if the line consists of simply a newline
-                continue
-
-            # skip comments and blank lines
-            cmd = self.buf.get_text(first, last).strip()
-            if cmd.startswith('#') or (len(cmd) == 0):
-                continue
+                cmd = ""
+            else:
+                cmd = self.buf.get_text(first, last).strip()
             self.logger.debug("cmd=%s" % (cmd))
+            if (len(cmd) == 0) or cmd.startswith('#'):
+                # TODO: linked comments
+                cmdobj = CommandObject.CommentCommandObject('cm%d',
+                                                            self.queueName,
+                                                            self.logger, cmd)
 
-            if copytext:
+            elif copytext:
                 cmdstr = self.process_cmdstr(txtbuf, cmd)
-                cmdobj = CopyCommandObject('cp%d', self.queueName,
-                                           self.logger, cmdstr)
+                cmdobj = CommandObject.SimpleCommandObject('cp%d',
+                                                           self.queueName,
+                                                           self.logger, cmdstr)
             else:
                 # tag the text so we can manipulate it later
                 cmdobj = OpeCommandObject('ope%d', self.queueName,
@@ -1016,20 +1020,39 @@ class OpeCommandObject(CommandObject.CommandObject):
         common.gui_do(self._mark_status, txttag)
         
 
-class CopyCommandObject(CommandObject.CommandObject):
+class OpeCommentCommandObject(CommandObject.CommandObject):
 
-    def __init__(self, format, queueName, logger, cmdstr):
-        self.cmdstr = cmdstr
-
-        super(CopyCommandObject, self).__init__(format, queueName, logger)
+    def __init__(self, format, queueName, logger, opepage):
+        self.page = opepage
         
+        super(OpeCommentCommandObject, self).__init__(format,
+                                                      queueName, logger)
+
+
     def get_preview(self):
-        return self.get_cmdstr()
+        """This is called to get a preview of the command string that
+        should be executed.
+        """
+        common.view.assert_gui_thread()
+
+        # Get the entire buffer from the page's text widget
+        buf = self.page.buf
+        # Now get the command from the text widget
+        start, end = common.get_region_lines(buf, self.guitag)
+        #start, end = common.get_region(buf, self.guitag)
+        comment = buf.get_text(start, end).strip()
+
+        self.logger.debug("preview is '%s'" % (comment))
+        return '>>' + comment
+
+    def _get_cmdstr(self):
+        return '== NOP =='
     
     def get_cmdstr(self):
-        return self.cmdstr
-
+        return '== NOP =='
+        
     def mark_status(self, txttag):
         pass
+        
 
 #END

@@ -2,7 +2,7 @@
 # CommandObject.py -- command object and queue object definitions
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 11 13:41:49 HST 2010
+#  Last edit: Sun Sep 19 18:31:22 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -54,3 +54,52 @@ class CommandObject(object):
     def __str__(self):
         return self.guitag
         
+
+class SimpleCommandObject(CommandObject):
+
+    def __init__(self, format, queueName, logger, cmdstr):
+        self.cmdstr = cmdstr
+
+        super(SimpleCommandObject, self).__init__(format, queueName, logger)
+        
+    def get_preview(self):
+        return self.get_cmdstr()
+    
+    def get_cmdstr(self):
+        return self.cmdstr
+
+    def mark_status(self, txttag):
+        pass
+
+class BreakCommandObject(CommandObject):
+
+    def __init__(self, format, queueName, logger, page):
+        self.page = page
+        
+        super(BreakCommandObject, self).__init__(format, queueName, logger)
+
+    def get_preview(self):
+        return self.get_cmdstr()
+    
+    def get_cmdstr(self):
+        return '== BREAK =='
+
+    def mark_status(self, txttag):
+        pass
+
+class CommentCommandObject(CommandObject):
+
+    def __init__(self, format, queueName, logger, text):
+        self.text = text
+        
+        super(CommentCommandObject, self).__init__(format, queueName, logger)
+
+    def get_preview(self):
+        return self.text
+    
+    def get_cmdstr(self):
+        return '== NOP =='
+
+    def mark_status(self, txttag):
+        pass
+

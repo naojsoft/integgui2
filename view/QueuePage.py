@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 16:52:53 HST 2010
+#  Last edit: Sun Sep 19 20:09:38 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -185,14 +185,18 @@ class QueuePage(Page.ButtonPage):
 
             numlines = 0
             for cmdObj in self.queueObj.peekAll():
+                tag = 'normal'
                 try:
                     text = cmdObj.get_preview()
-                    tag = str(cmdObj)
-                    cmd_ok = True
+                    if text.startswith('###'):
+                        tag = 'comment3'
+                    elif text.startswith('##'):
+                        tag = 'comment2'
+                    elif text.startswith('#'):
+                        tag = 'comment1'
                 except Exception, e:
                     text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
                     tag = 'badref'
-                    cmd_ok = False
                     
                 # Insert text icon at end of the 
                 loc1 = self.buf.get_end_iter()
@@ -373,12 +377,22 @@ class QueuePage(Page.ButtonPage):
                 line = 0
 
         try:
-            cmdobj = BreakCommandObject('brk%d', self.queueName,
-                                    self.logger, self)
+            cmdobj = CommandObject.BreakCommandObject('brk%d', self.queueName,
+                                                     self.logger, self)
             self.queueObj.insert(line, [cmdobj])
         except Exception, e:
             common.view.popup_error(str(e))
 
+    def _skip_comment(self, line):
+        # TODO: need lock?
+        while line < len(self.queueObj):
+            cmdObj = self.queueObj[line]
+            if isinstance(cmdObj, CommandObject.CommentCommandObject):
+                line += 1
+                continue
+            break
+        return line
+    
     def _resume(self, w_break=False):
         """Callback when the Resume button is pressed.
         """
@@ -399,9 +413,13 @@ class QueuePage(Page.ButtonPage):
 
         if w_break:
             try:
-                cmdobj = BreakCommandObject('brk%d', self.queueName,
-                                            self.logger, self)
-                self.queueObj.insert(1, [cmdobj])
+                cmdobj = CommandObject.BreakCommandObject('brk%d',
+                                                         self.queueName,
+                                                         self.logger, self)
+                i = self._skip_comment(0)
+                if i < num_queued:
+                    i += 1
+                self.queueObj.insert(i, [cmdobj])
             except Exception, e:
                 common.view.popup_error(str(e))
                 return
@@ -509,39 +527,5 @@ class QueuePage(Page.ButtonPage):
         context.finish(True, False, tstamp)
         return True
     
-
-
-class BreakCommandObject(CommandObject.CommandObject):
-
-    def __init__(self, format, queueName, logger, page):
-        self.page = page
-        
-        super(BreakCommandObject, self).__init__(format, queueName, logger)
-
-    def get_preview(self):
-        return self.get_cmdstr()
-    
-    def get_cmdstr(self):
-        return '== BREAK =='
-
-    def mark_status(self, txttag):
-        pass
-
-class CommentCommandObject(CommandObject.CommandObject):
-
-    def __init__(self, format, queueName, logger, text):
-        self.text = text
-        
-        super(CommentCommandObject, self).__init__(format, queueName, logger)
-
-    def get_preview(self):
-        return self.text
-    
-    def get_cmdstr(self):
-        return '== NOP =='
-
-    def mark_status(self, txttag):
-        pass
-
 
 #END

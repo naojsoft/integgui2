@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 16 12:24:21 HST 2010
+#  Last edit: Sun Sep 19 18:29:24 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -676,6 +676,9 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
                 if cmdstr == '== BREAK ==':
                     self.feedback_break()
                     return
+                elif cmdstr == '== NOP ==':
+                    # comment or other non-command item
+                    continue
                 
             except Exception, e:
                 # Put object back on the front of the queue
