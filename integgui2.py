@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 12 17:09:28 HST 2010
+#  Last edit: Thu Sep 16 11:54:59 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -117,7 +117,11 @@ def main(options, args):
 
     # Configure from session, if requested
     if options.session:
-        controller.config_from_session(options.session)
+        try:
+            controller.config_from_session(options.session)
+        except Exception, e:
+            logger.error("Failed to initialize from session '%s': %s" % (
+                options.session, str(e)))
 
 ##     svc = ro.remoteObjectServer(svcname=options.svcname,
 ##                                 obj=notify_obj, logger=logger,

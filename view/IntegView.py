@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 14 12:06:33 HST 2010
+#  Last edit: Thu Sep 16 12:37:59 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -350,6 +350,7 @@ class IntegView(object):
     def gui_load_terminal(self):
         try:
             os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
+            #os.chdir(os.environ['HOME'])
 
             name = 'Terminal'
             page = self.exws.addpage(name, name, TerminalPage)
@@ -571,8 +572,12 @@ class IntegView(object):
         self.close_handsets()
         self.close_launchers()
 
-        common.controller.ctl_do(common.controller.config_from_session,
-                                 'main')
+        try:
+            common.controller.ctl_do(common.controller.config_from_session,
+                                     'main')
+        except Exception, e:
+            self.gui.popup_error("Failed to initialize from session: %s" % (
+                str(e)))
 
     def raise_queue(self):
         self.lws.select('queues')

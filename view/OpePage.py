@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 14 13:41:37 HST 2010
+#  Last edit: Sun Sep 19 16:21:30 HST 2010
 #]
 import sys, traceback
 
@@ -714,11 +714,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for i in xrange(int(lrow)+1-frow):
 
             row = frow+i
-            #print "row: %d" % (row)
+            print "row: %d" % (row)
 
             first.set_line(row)
             last.set_line(row)
             last.forward_to_line_end()
+            if last.get_line() > row:
+                # forward_to_line_end() seems to go to the next row
+                # if the line consists of simply a newline
+                continue
 
             # skip comments and blank lines
             cmd = self.buf.get_text(first, last).strip()

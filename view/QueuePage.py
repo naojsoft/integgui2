@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 12 16:54:17 HST 2010
+#  Last edit: Sun Sep 19 16:52:53 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -187,17 +187,16 @@ class QueuePage(Page.ButtonPage):
             for cmdObj in self.queueObj.peekAll():
                 try:
                     text = cmdObj.get_preview()
+                    tag = str(cmdObj)
                     cmd_ok = True
                 except Exception, e:
                     text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
+                    tag = 'badref'
                     cmd_ok = False
                     
                 # Insert text icon at end of the 
                 loc1 = self.buf.get_end_iter()
-                if not cmd_ok:
-                    self.buf.insert_with_tags_by_name(loc1, text, 'badref')
-                else:
-                    self.buf.insert(loc1, text)
+                self.buf.insert_with_tags_by_name(loc1, text, tag)
                 loc2 = self.buf.get_end_iter()
                 self.buf.insert(loc2, '\n')
                 numlines += 1
@@ -298,6 +297,8 @@ class QueuePage(Page.ButtonPage):
             self.clear_selection()
 
             self.clip = self.queueObj.delete(i, j+1)
+        else:
+            common.view.popup_error("Please make a selection first!")
 
     def copy(self):
         if not self.has_selection():
@@ -310,6 +311,8 @@ class QueuePage(Page.ButtonPage):
             self.clear_selection()
 
             self.clip = self.queueObj.getslice(i, j+1)
+        else:
+            common.view.popup_error("Please make a selection first!")
 
     def set_clip(self, clip):
         # clip must contain CommandObjects!
@@ -319,7 +322,7 @@ class QueuePage(Page.ButtonPage):
         if clip == None:
             clip = self.clip
         if len(clip) == 0:
-            common.view.popup_error("Please cut the selection first.")
+            common.view.popup_error("Please cut/copy the selection first.")
             return
         
         insmark = self.buf.get_insert()
@@ -415,6 +418,11 @@ class QueuePage(Page.ButtonPage):
 
     def step(self):
         return self._resume(w_break=True)
+
+    def kill(self):
+        controller = common.controller
+        controller.tm_restart()
+        self.reset_pause()
 
     def keypress(self, w, event):
         keyname = gtk.gdk.keyval_name(event.keyval)
@@ -515,6 +523,22 @@ class BreakCommandObject(CommandObject.CommandObject):
     
     def get_cmdstr(self):
         return '== BREAK =='
+
+    def mark_status(self, txttag):
+        pass
+
+class CommentCommandObject(CommandObject.CommandObject):
+
+    def __init__(self, format, queueName, logger, text):
+        self.text = text
+        
+        super(CommentCommandObject, self).__init__(format, queueName, logger)
+
+    def get_preview(self):
+        return self.text
+    
+    def get_cmdstr(self):
+        return '== NOP =='
 
     def mark_status(self, txttag):
         pass

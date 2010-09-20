@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:55:50 HST 2010
+#  Last edit: Thu Sep 16 12:47:38 HST 2010
 #]
 
 import re
@@ -92,7 +92,10 @@ class LogPage(BaseLogPage):
             # TODO: mark error and warning lines
 
             loc = self.buf.get_end_iter()
-            self.buf.insert(loc, data)
+            try:
+                self.buf.insert(loc, data)
+            except Exception, e:
+                self.buf.insert(loc, "--BAD LOG DATA COULD NOT BE INSERTED--")
 
             # Remove some old log lines if necessary
             excess_lines = loc.get_line() - self.logsize
