@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 20 15:03:14 HST 2010
+#  Last edit: Mon Sep 20 16:17:15 HST 2010
 #]
 
 import re
@@ -17,7 +17,6 @@ regex_err2 = re.compile(r'^.*(error|exception).*$', re.I)
 class BaseLogPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
-
         super(BaseLogPage, self).__init__(frame, name, title)
 
         self.logsize = 5000
@@ -82,6 +81,12 @@ class BaseLogPage(Page.ButtonPage):
 
 class LogPage(BaseLogPage):
 
+    def __init__(self, frame, name, title):
+        super(LogPage, self).__init__(frame, name, title)
+
+        # interval between checking for log file updates (ms)
+        self.poll_interval = 500
+
     def load(self, filepath):
         self.filepath = filepath
         self.file = open(self.filepath, 'r')
@@ -109,14 +114,17 @@ class LogPage(BaseLogPage):
 
         #self.tw.scroll_mark_onscreen(self.mark)
 
-        if os.path.getsize(self.filepath) > self.size:
+        #if os.path.getsize(self.filepath) > self.size:
+        try:
             data = self.file.read()
             self.size = self.size + len(data)
             # TODO: mark error and warning lines
 
             self.append(data)
+        except IOError, e:
+            pass
             
-        gobject.timeout_add(100, self.poll)
+        gobject.timeout_add(self.poll_interval, self.poll)
 
 
 class MonLogPage(BaseLogPage):
