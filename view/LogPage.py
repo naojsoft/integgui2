@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 16 12:47:38 HST 2010
+#  Last edit: Mon Sep 20 15:03:14 HST 2010
 #]
 
 import re
@@ -57,6 +57,29 @@ class BaseLogPage(Page.ButtonPage):
         item.show()
 
 
+    def append(self, data):
+        loc = self.buf.get_end_iter()
+        try:
+            self.buf.insert(loc, data)
+        except Exception, e:
+            self.buf.insert(loc, "--LOG DATA COULD NOT BE INSERTED--: %s" % (
+                str(e)))
+
+        # Remove some old log lines if necessary
+        excess_lines = loc.get_line() - self.logsize
+        if excess_lines > 0:
+            bitr1 = self.buf.get_start_iter()
+            bitr2 = bitr1.copy()
+            bitr2.set_line(excess_lines)
+            self.buf.delete(bitr1, bitr2)
+
+        loc = self.buf.get_end_iter()
+        self.buf.move_mark(self.mark, loc)
+        #self.tw.scroll_to_iter(loc, 0.0)
+        #self.tw.scroll_mark_onscreen(self.mark)
+        self.tw.scroll_to_mark(self.mark, 0.0)
+
+
 class LogPage(BaseLogPage):
 
     def load(self, filepath):
@@ -91,26 +114,8 @@ class LogPage(BaseLogPage):
             self.size = self.size + len(data)
             # TODO: mark error and warning lines
 
-            loc = self.buf.get_end_iter()
-            try:
-                self.buf.insert(loc, data)
-            except Exception, e:
-                self.buf.insert(loc, "--BAD LOG DATA COULD NOT BE INSERTED--")
-
-            # Remove some old log lines if necessary
-            excess_lines = loc.get_line() - self.logsize
-            if excess_lines > 0:
-                bitr1 = self.buf.get_start_iter()
-                bitr2 = bitr1.copy()
-                bitr2.set_line(excess_lines)
-                self.buf.delete(bitr1, bitr2)
-                    
-            loc = self.buf.get_end_iter()
-            self.buf.move_mark(self.mark, loc)
-            #self.tw.scroll_to_iter(loc, 0.0)
-            #self.tw.scroll_mark_onscreen(self.mark)
-            self.tw.scroll_to_mark(self.mark, 0.0)
-
+            self.append(data)
+            
         gobject.timeout_add(100, self.poll)
 
 

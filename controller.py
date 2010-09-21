@@ -1,13 +1,13 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 18:29:24 HST 2010
+#  Last edit: Mon Sep 20 15:37:34 HST 2010
 #]
 
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
 import re
-import os
+import os, time
 import threading
 
 import view.common as common
@@ -39,6 +39,10 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               ]
 
 opefile_host = 'ana.sum.subaru.nao.ac.jp'
+
+# Formatting string used to format History table
+fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 6.2fs %(result)s %(queue)8.8s  %(cmdstr)s\n"
+
 
 class ControllerError(Exception):
     pass
@@ -631,8 +635,10 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
 
 #############
 #
-    def feedback_ok(self, queueName, cmdstr, cmdObj, res, soundfile):
-        self.logger.info("Ok [%s] %s" % (queueName, cmdstr))
+    def feedback_ok(self, tm_queueName, cmdstr, cmdObj, res, soundfile,
+                    time_start, time_end):
+        self.logger.info("Ok [%s] %s" % (tm_queueName, cmdstr))
+        self.log_history(cmdstr, time_start, time_end, tm_queueName, 'OK')
 
         # Mark success graphically appropriate to the source
         cmdObj.mark_status('done')
@@ -640,9 +646,11 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
         if soundfile:
             self.playSound(soundfile)
 
-    def feedback_error(self, queueName, cmdstr, cmdObj, e, soundfile):
-        self.logger.error("Error [%s] %s\n:%s" % (queueName,
+    def feedback_error(self, tm_queueName, cmdstr, cmdObj, e, soundfile,
+                       time_start, time_end):
+        self.logger.error("Error [%s] %s\n:%s" % (tm_queueName,
                                                   cmdstr, str(e)))
+        self.log_history(cmdstr, time_start, time_end, tm_queueName, 'NG')
 
         # Mark an error graphically appropriate to the source
         cmdObj.mark_status('error')
@@ -656,6 +664,21 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
         self.playSound(soundfile)
 
 
+    def log_history(self, cmdstr, time_start, time_end, tm_queueName,
+                    result):
+        elapsed = time_end - time_start
+        d = {'cmdstr': cmdstr,
+             't_start': time.strftime('%H:%M:%S', time.localtime(time_start)),
+             't_end': time.strftime('%H:%M:%S', time.localtime(time_end)),
+             't_elapsed': elapsed,
+             'queue': tm_queueName.capitalize(),
+             'result': result,
+             }
+        
+        msgstr = fmt_history % d
+        self.gui.update_history(msgstr)
+        
+        
     def exec_queue(self, queueObj, tm_queueName, executingP,
                    sound_success, sound_failure):
         
@@ -694,25 +717,29 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
                     tm_queueName, cmdstr))
 
                 executingP.set()
+                time_start = time.time()
 
                 res = self.tm.execTask(tm_queueName, cmdstr, '')
 
+                time_end = time.time()
                 executingP.clear()
 
                 if res != 0:
                     raise Exception('Command terminated with res=%d' % res)
 
-                self.feedback_ok(tm_queueName, cmdstr, cmdObj, res, None)
-
             except Exception, e:
+                time_end = time.time()
                 executingP.clear()
 
                 # Put object back on the front of the queue
                 queueObj.prepend(cmdObj)
 
                 self.feedback_error(tm_queueName, cmdstr, cmdObj, str(e),
-                                    sound_failure)
+                                    sound_failure, time_start, time_end)
                 return
+
+            self.feedback_ok(tm_queueName, cmdstr, cmdObj, res, None,
+                             time_start, time_end)
 
         # When queue is empty and no errors then play success sound
         self.playSound(sound_success)
@@ -731,23 +758,27 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.set()
+            time_start = time.time()
+
             res = common.controller.tm.execTask(tm_queueName,
                                                 cmdstr, '')
+            time_end = time.time()
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.clear()
             if res == 0:
                 self.feedback_ok(tm_queueName, cmdstr, cmdObj,
-                                 res, sound_success)
+                                 res, sound_success, time_start, time_end)
             else:
                 raise Exception('Command terminated with res=%d' % res)
 
         except Exception, e:
+            time_end = time.time()
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.clear()
             self.feedback_error(tm_queueName, cmdstr, cmdObj,
-                                str(e), sound_failure)
+                                str(e), sound_failure, time_start, time_end)
 
 
     def edit_one(self, cmdObj):

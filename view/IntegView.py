@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 16 12:37:59 HST 2010
+#  Last edit: Mon Sep 20 15:03:13 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -87,6 +87,7 @@ class IntegView(object):
         self.monpage = self.oiws.addpage('moninfo', "Monitor", SkMonitorPage)
         self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
         self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
+        self.history = self.oiws.addpage('history', "History", LogPage)
         self.oiws.select('obsinfo')
 
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
@@ -700,6 +701,10 @@ class IntegView(object):
         if hasattr(self, 'obsinfo'):
             self.gui_do(self.obsinfo.update_obsinfo, infodict)
    
+    def update_history(self, data):
+        if hasattr(self, 'history'):
+            self.gui_do(self.history.append, data)
+   
     def update_loginfo(self, logname, infodict):
         #self.logger.debug("LOGNAME=%s LOGINFO=%s" % (logname,
         #                                             str(infodict)))
@@ -759,7 +764,7 @@ class IntegView(object):
         while not self.ev_quit.isSet():
             # Process "in-band" GTK events
             try:
-                tup = self.gui_queue.get(block=True, timeout=0.001)
+                tup = self.gui_queue.get(block=True, timeout=0.01)
                 if len(tup) == 4:
                     (future, method, args, kwdargs) = tup
                 elif len(tup) == 3:
@@ -786,6 +791,10 @@ class IntegView(object):
                     
             except Queue.Empty:
                 pass
+                
+            except Exception, e:
+                self.logger.error("Main GUI loop error: %s" % str(e))
+                #pass
                 
             # Process "out-of-band" GTK events
             gtk.gdk.threads_enter()
