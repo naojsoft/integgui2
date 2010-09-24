@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 16:16:49 HST 2010
+#  Last edit: Thu Sep 23 13:56:33 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -30,7 +30,7 @@ class SkMonitorPage(Page.ButtonPage):
         # Holds my pages
         self.pages = {}
         self.pagelist = []
-        self.pagelimit = 10
+        self.pagelimit = 100
 
         self.track = {}
         self.lock = threading.RLock()

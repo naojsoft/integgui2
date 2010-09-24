@@ -1,20 +1,22 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 20 16:17:15 HST 2010
+#  Last edit: Thu Sep 23 14:24:14 HST 2010
 #]
 
 import re
+import time
 import gtk
 import gobject
 import os.path
 
+import common
 import Page
 
 
 regex_err1 = re.compile(r'^.*|\sE\s|.*$')
 regex_err2 = re.compile(r'^.*(error|exception).*$', re.I)
 
-class BaseLogPage(Page.ButtonPage):
+class BaseLogPage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
         super(BaseLogPage, self).__init__(frame, name, title)
@@ -48,6 +50,18 @@ class BaseLogPage(Page.ButtonPage):
         #self.add_close()
         menu = self.add_pulldownmenu("Page")
 
+        item = gtk.MenuItem(label="Save as ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_log_as(),
+                             "menu.Save_as")
+        item.show()
+        
+        item = gtk.MenuItem(label="Save selection as ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_log_selection_as(),
+                             "menu.Save_selection_as")
+        item.show()
+        
         #self.add_close()
         item = gtk.MenuItem(label="Close")
         menu.append(item)
@@ -55,6 +69,20 @@ class BaseLogPage(Page.ButtonPage):
                              "menu.Close")
         item.show()
 
+
+    def save_log_as(self):
+        homedir = os.path.join(os.environ['HOME'], 'Procedure')
+        filename = time.strftime("%Y%m%d-%H:%M:%S") + (
+            '-%s.txt' % self.name)
+
+        common.view.popup_save("Save log buffer", self._savefile,
+                               homedir, filename=filename)
+
+    def save_log_selection_as(self):
+        homedir = os.path.join(os.environ['HOME'], 'Procedure')
+        filename = time.strftime("%Y%m%d-%H:%M:%S") + (
+            '-%s.txt' % self.name)
+        return self.save_selection_as(homedir, filename)
 
     def append(self, data):
         loc = self.buf.get_end_iter()

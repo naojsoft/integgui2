@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 13:17:29 HST 2010
+#  Last edit: Thu Sep 23 13:56:34 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -19,7 +19,7 @@ header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Ob
 format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
 
 
-class FrameInfoPage(Page.ButtonPage):
+class FrameInfoPage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
 
@@ -65,10 +65,16 @@ class FrameInfoPage(Page.ButtonPage):
 
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Save Journal")
+        item = gtk.MenuItem(label="Save journal ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_journal(),
-                             "menu.Save")
+                             "menu.Save_Journal")
+        item.show()
+
+        item = gtk.MenuItem(label="Save selection as ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_selection_as(),
+                             "menu.Save_As")
         item.show()
 
         # item = gtk.MenuItem(label="Print")
@@ -188,34 +194,9 @@ class FrameInfoPage(Page.ButtonPage):
         homedir = os.path.join(os.environ['HOME'], 'Procedure')
         filename = time.strftime("%Y%m%d-obs") + '.txt'
 
-        common.view.popup_save("Save frame journal", self.save,
+        common.view.popup_save("Save frame journal", self._savefile,
                                homedir, filename=filename)
 
-    def save(self, filepath):
-        def _save(res):
-            if res != 'yes':
-                return
-
-            # get text to save
-            start, end = self.buf.get_bounds()
-            buf = self.buf.get_text(start, end)
-
-            try:
-                out_f = open(filepath, 'w')
-                out_f.write(buf)
-                out_f.close()
-                #self.statusMsg("%s saved." % self.filepath)
-            except IOError, e:
-                return common.view.popup_error("Cannot write '%s': %s" % (
-                        filepath, str(e)))
-
-        if os.path.exists(filepath):
-            common.view.popup_confirm("File '%s' exists.", 
-                                      'Overwrite ?', _save)
-        else:
-            _save('yes')
-
-        
     def print_journal(self):
         pass
 

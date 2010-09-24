@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 13:28:51 HST 2010
+#  Last edit: Thu Sep 23 13:02:12 HST 2010
 #]
 import os.path
 
@@ -9,7 +9,7 @@ import Page
 
 import gtk
 
-class CodePage(Page.ButtonPage):
+class CodePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
 
@@ -60,6 +60,18 @@ class CodePage(Page.ButtonPage):
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save(),
                              "menu.Save")
+        item.show()
+
+        item = gtk.MenuItem(label="Save as ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_as(),
+                             "menu.Save_As")
+        item.show()
+
+        item = gtk.MenuItem(label="Save selection as ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.save_selection_as(),
+                             "menu.Save_As")
         item.show()
 
         #self.add_close()

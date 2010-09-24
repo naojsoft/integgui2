@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 14 12:05:25 HST 2010
+#  Last edit: Thu Sep 23 11:26:10 HST 2010
 #]
 
 import gtk
@@ -17,7 +17,6 @@ class DDCommandPage(Page.CommandPage):
 
         self.queueName = 'default'
         self.tm_queueName = 'executer'
-        self.paused = False
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)

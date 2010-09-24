@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 19:56:34 HST 2010
+#  Last edit: Thu Sep 23 12:23:26 HST 2010
 #]
 import gtk
 
@@ -228,8 +228,7 @@ def append_tv(widget, text):
 
 def clear_tv(widget):
     txtbuf = widget.get_buffer()
-    startiter = txtbuf.get_start_iter()
-    enditer = txtbuf.get_end_iter()
+    startiter, enditer = txtbuf.get_bounds()
     txtbuf.delete(startiter, enditer)
 
 def clear_selection(widget):

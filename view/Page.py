@@ -1,8 +1,9 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 14:08:54 HST 2010
+#  Last edit: Thu Sep 23 13:00:31 HST 2010
 #]
 #
+import os
 import threading
 
 import gtk
@@ -128,7 +129,15 @@ class ButtonPage(Page):
         
 
 class CommandPage(ButtonPage):
+    """Mixin class adding methods for kill, cancel, pause, etc.
+    """
 
+    def __init__(self, frame, name, title):
+        self.paused = False
+        # *** subclass should define self.tm_queueName ***
+
+        super(CommandPage, self).__init__(frame, name, title)
+        
     def kill(self):
         #controller = self.parent.get_controller()
         controller = common.controller
@@ -155,7 +164,8 @@ class CommandPage(ButtonPage):
         controller.tm_resume(self.tm_queueName)
 
     def toggle_pause(self, w):
-        common.view.playSound(common.sound.pause_toggle)
+        print "toggle pause!"
+        common.controller.playSound(common.sound.pause_toggle)
         if self.paused:
             self.resume()
         else:
@@ -170,5 +180,97 @@ class CommandPage(ButtonPage):
     def reset(self):
         self.reset_pause()
 
+
+class TextPage(Page):
+    """Mixin class adding methods for text manipulation.
+    """
+
+    def __init__(self, frame, name, title):
+        super(TextPage, self).__init__(frame, name, title)
+        
+    def save(self, dirpath=None, filename=None):
+        # If we have a filepath associated with this buffer, try to
+        # use it, otherwise revert to a save_as()
+        if hasattr(self, 'filepath') and self.filepath:
+            return self._savefile(self.filepath)
+
+        return self.save_as(self, dirpath=dirpath,
+                            filename=filename)
+
+
+    def _get_save_directory(self):
+        if hasattr(self, 'filepath') and self.filepath:
+            # Use directory of current file, if one exists
+            dirpath, xx = os.path.split(self.filepath)
+        else:
+            # default directory for saving, if none provided
+            dirpath = os.path.join(os.environ['HOME'], 'Procedure')
+
+        return dirpath
+    
+    def save_as(self, dirpath=None, filename=None):
+        def _save(filepath):
+            self.filepath = filepath
+            return self._savefile(filepath)
+
+        if not dirpath:
+            dirpath = self._get_save_directory()
+            
+        common.view.popup_save("Save buffer as", _save,
+                               dirpath, filename=filename)
+
+    def save_selection_as(self, dirpath=None, filename=None):
+        try:
+            first, last = self.buf.get_selection_bounds()
+        except ValueError:
+            return common.view.popup_error("Please make a selection first!")
+        
+        def _save(filepath):
+            return self._savefile(filepath, (first, last))
+
+        if not dirpath:
+            dirpath = self._get_save_directory()
+
+        common.view.popup_save("Save selection as", _save,
+                               dirpath, filename=filename)
+
+    def _savefile(self, filepath, iterbounds=None):
+        """Save buffer to (filepath).  If the file exists, confirm whether
+        to overwrite it.
+        """
+        def _save(res):
+            if res != 'yes':
+                return
+
+            # get text to save
+            if iterbounds:
+                start, end = iterbounds
+            else:
+                start, end = self.buf.get_bounds()
+
+            buf = self.buf.get_text(start, end)
+
+            try:
+                out_f = open(filepath, 'w')
+                out_f.write(buf)
+                out_f.close()
+                #self.statusMsg("%s saved." % self.filepath)
+            except IOError, e:
+                return common.view.popup_error("Cannot write '%s': %s" % (
+                        filepath, str(e)))
+
+        if os.path.exists(filepath):
+            common.view.popup_confirm("Confirm overwrite",
+                                      "File '%s' exists.\nOK to Overwrite ?" % (
+                filepath), _save)
+        else:
+            _save('yes')
+
+    def select_all(self):
+        start, end = self.buf.get_bounds()
+        self.buf.select_range(start, end)
+
+    def select_clear(self):
+        common.clear_selection(self.tw)
 
 #END

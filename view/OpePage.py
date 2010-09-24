@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 19:23:11 HST 2010
+#  Last edit: Thu Sep 23 13:00:31 HST 2010
 #]
 import sys, traceback
 
@@ -51,7 +51,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.queueName = 'default'
         self.tm_queueName = 'executer'
-        self.paused = False
 
         self.varDict = {}
 

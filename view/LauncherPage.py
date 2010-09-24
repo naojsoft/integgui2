@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 11 13:41:49 HST 2010
+#  Last edit: Thu Sep 23 11:26:11 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -412,7 +412,6 @@ class LauncherPage(Page.CommandPage):
 
         self.queueName = 'launcher'
         self.tm_queueName = 'launcher'
-        self.paused = False
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
