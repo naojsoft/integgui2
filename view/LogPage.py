@@ -1,10 +1,13 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 14:24:14 HST 2010
+#  Last edit: Fri Sep 24 13:04:10 HST 2010
 #]
 
-import re
+# remove once we're certified on python 2.6
+from __future__ import with_statement
+
 import time
+import threading
 import gtk
 import gobject
 import os.path
@@ -13,15 +16,20 @@ import common
 import Page
 
 
-regex_err1 = re.compile(r'^.*|\sE\s|.*$')
-regex_err2 = re.compile(r'^.*(error|exception).*$', re.I)
-
-class BaseLogPage(Page.ButtonPage, Page.TextPage):
+class NotePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
-        super(BaseLogPage, self).__init__(frame, name, title)
+        super(NotePage, self).__init__(frame, name, title)
 
-        self.logsize = 5000
+        # How many lines should we keep in this buffer beyond which
+        # we cull from the top.  A value of 0 disables auto-culling.
+        self.logsize = 0
+
+        # Whether to automatically scroll the text widget when data
+        # is appended to the bottom of the buffer programatically.
+        self.autoscroll = True
+
+        self.lock = threading.RLock()
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
@@ -70,12 +78,65 @@ class BaseLogPage(Page.ButtonPage, Page.TextPage):
         item.show()
 
 
+    def set_editable(self, value):
+        self.tw.set_editable(value)
+        
+    def set_logsize(self, size):
+        """(size) should be an integer value indicating number of
+        lines.  Setting to 0 will disable any culling of old lines.
+        """
+        self.logsize = size
+
+    def set_autoscroll(self, onoff):
+        self.autoscroll = onoff
+
+    def addtag(self, name, **properties):
+        try:
+            self.buf.create_tag(name, **properties)
+        except:
+            # tag may already exist--that's ok
+            pass
+
+    def _cull(self):
+        if self.logsize:
+            end = self.buf.get_end_iter()
+            excess_lines = end.get_line() - self.logsize
+            if excess_lines > 0:
+                bitr1 = self.buf.get_start_iter()
+                bitr2 = bitr1.copy()
+                bitr2.set_line(excess_lines)
+                self.buf.delete(bitr1, bitr2)
+
+    def append(self, data, tags):
+        end = self.buf.get_end_iter()
+        if not tags:
+            tags = ['normal']
+            
+        try:
+            self.buf.insert_with_tags_by_name(end, data, *tags)
+
+        except Exception, e:
+            tags = ['error']
+            data = "--DATA COULD NOT BE INSERTED--: %s" % (str(e))
+            self.buf.insert_with_tags_by_name(end, data, *tags)
+
+        # Remove some old log lines if necessary
+        self._cull()
+
+        # Auto scroll to end of buffer
+        if self.autoscroll:
+            loc = self.buf.get_end_iter()
+            self.buf.move_mark(self.mark, loc)
+            #self.tw.scroll_to_iter(loc, 0.0)
+            #self.tw.scroll_mark_onscreen(self.mark)
+            self.tw.scroll_to_mark(self.mark, 0.0)
+
     def save_log_as(self):
         homedir = os.path.join(os.environ['HOME'], 'Procedure')
         filename = time.strftime("%Y%m%d-%H:%M:%S") + (
             '-%s.txt' % self.name)
 
-        common.view.popup_save("Save log buffer", self._savefile,
+        common.view.popup_save("Save buffer", self._savefile,
                                homedir, filename=filename)
 
     def save_log_selection_as(self):
@@ -84,30 +145,8 @@ class BaseLogPage(Page.ButtonPage, Page.TextPage):
             '-%s.txt' % self.name)
         return self.save_selection_as(homedir, filename)
 
-    def append(self, data):
-        loc = self.buf.get_end_iter()
-        try:
-            self.buf.insert(loc, data)
-        except Exception, e:
-            self.buf.insert(loc, "--LOG DATA COULD NOT BE INSERTED--: %s" % (
-                str(e)))
 
-        # Remove some old log lines if necessary
-        excess_lines = loc.get_line() - self.logsize
-        if excess_lines > 0:
-            bitr1 = self.buf.get_start_iter()
-            bitr2 = bitr1.copy()
-            bitr2.set_line(excess_lines)
-            self.buf.delete(bitr1, bitr2)
-
-        loc = self.buf.get_end_iter()
-        self.buf.move_mark(self.mark, loc)
-        #self.tw.scroll_to_iter(loc, 0.0)
-        #self.tw.scroll_mark_onscreen(self.mark)
-        self.tw.scroll_to_mark(self.mark, 0.0)
-
-
-class LogPage(BaseLogPage):
+class LogPage(NotePage):
 
     def __init__(self, frame, name, title):
         super(LogPage, self).__init__(frame, name, title)
@@ -115,6 +154,28 @@ class LogPage(BaseLogPage):
         # interval between checking for log file updates (ms)
         self.poll_interval = 500
 
+        self.set_logsize(5000)
+
+        # add standard decorative tags
+        for tag, bnch in common.log_tags:
+            properties = {}
+            properties.update(bnch)
+            self.addtag(tag, **properties)
+
+        # This is a table of regex, tag tuples used to do
+        # auto coloring of log entries
+        self.regexes = []
+
+    def clear_regexes(self):
+        self.regexes = []
+        
+    def add_regex(self, regex, tags):
+        self.regexes.append((regex, tags))
+        
+    def add_regexes(self, tuples):
+        for tup in tuples:
+            self.add_regex(*tup)
+        
     def load(self, filepath):
         self.filepath = filepath
         self.file = open(self.filepath, 'r')
@@ -126,7 +187,6 @@ class LogPage(BaseLogPage):
         self.size = self.file.tell()
         self.poll()
 
-
     def close(self):
         try:
             self.file.close()
@@ -134,6 +194,17 @@ class LogPage(BaseLogPage):
             pass
 
         super(LogPage, self).close()
+
+    def push(self, msgstr):
+        line = msgstr + '\n'
+        
+        # set tags according to content of message
+        for (regex, tags) in self.regexes:
+            if regex.match(msgstr):
+                self.append(line, tags)
+                return
+
+        self.append(line, [])
 
 
     def poll(self):
@@ -146,40 +217,28 @@ class LogPage(BaseLogPage):
         try:
             data = self.file.read()
             self.size = self.size + len(data)
-            # TODO: mark error and warning lines
 
-            self.append(data)
+            if len(data) > 0:
+                with self.lock:
+                    for line in data.split('\n'):
+                        self.push(line)
+                    
         except IOError, e:
             pass
             
         gobject.timeout_add(self.poll_interval, self.poll)
 
 
-class MonLogPage(BaseLogPage):
+class MonLogPage(LogPage):
 
     def push(self, logname, logdict):
         #self.tw.scroll_mark_onscreen(self.mark)
 
-        msgstr = logdict['msgstr'] + '\n'
-        level = logdict['level']
-        # TODO: local check on level or other filtering
+        data = logdict['msgstr']
 
-        loc = self.buf.get_end_iter()
-        self.buf.insert(loc, msgstr)
-
-        # Remove some old log lines if necessary
-        excess_lines = loc.get_line() - self.logsize
-        if excess_lines > 0:
-            bitr1 = self.buf.get_start_iter()
-            bitr2 = bitr1.copy()
-            bitr2.set_line(excess_lines)
-            self.buf.delete(bitr1, bitr2)
-
-        loc = self.buf.get_end_iter()
-        self.buf.move_mark(self.mark, loc)
-        #self.tw.scroll_to_iter(loc, 0.0)
-        #self.tw.scroll_mark_onscreen(self.mark)
-        self.tw.scroll_to_mark(self.mark, 0.0)
-
+        if len(data) > 0:
+            with self.lock:
+                for line in data.split('\n'):
+                    self.push(line)
 
 #END

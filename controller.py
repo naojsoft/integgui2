@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 20 15:37:34 HST 2010
+#  Last edit: Fri Sep 24 11:00:10 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -41,7 +41,7 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
 opefile_host = 'ana.sum.subaru.nao.ac.jp'
 
 # Formatting string used to format History table
-fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 6.2fs %(result)s %(queue)8.8s  %(cmdstr)s\n"
+fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 7.2fs %(result)s %(queue)8.8s  %(cmdstr)s\n"
 
 
 class ControllerError(Exception):

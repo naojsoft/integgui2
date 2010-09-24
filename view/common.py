@@ -2,8 +2,9 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 12:23:26 HST 2010
+#  Last edit: Fri Sep 24 12:12:51 HST 2010
 #]
+import re
 import gtk
 
 import Bunch
@@ -55,11 +56,25 @@ queue_tags = [
     ('cursor', Bunch.Bunch(background='#bf94e3')),
     ]
 
+# Colors used in the OpePage for execution
 execution_tags = [
     ('queued', Bunch.Bunch(background='lightyellow2')),
     ('executing', Bunch.Bunch(background='palegreen')),
     ('done',     Bunch.Bunch(foreground='blue2')),
     ('error',   Bunch.Bunch(foreground='red')),
+    ]
+
+# Colors used in the LogPage
+log_tags = [
+    ('error', Bunch.Bunch(foreground='red', background='lightyellow')),
+    ('normal', Bunch.Bunch(foreground='black')),
+    ]
+
+# If a log message matches one of these regexes, then color it.
+# Tags are defined in the log_tags above
+error_regexes = [
+    (re.compile(r'^.*\|\sE\s\|.*$'), ['error']),
+    (re.compile(r'^.*(error|exception).*$', re.I), ['error']),
     ]
 
 # colors used in the SkMonitorPage

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 13:56:34 HST 2010
+#  Last edit: Fri Sep 24 13:25:29 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -9,8 +9,10 @@ from __future__ import with_statement
 import os, time
 import gtk
 
-import Page
+import LogPage
 import common
+
+import Bunch
 
 
 header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
@@ -18,34 +20,20 @@ header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Ob
 # Format string used to pass information to IntegGUI
 format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
 
+frame_tags = [
+    ('A', 'normal', Bunch.Bunch(foreground='black', background='white')),
+    ('X', 'transfer', Bunch.Bunch(background='palegreen')),
+    ('R', 'received', Bunch.Bunch(foreground='dark green', background='white')),
+    ('RS', 'stars', Bunch.Bunch(foreground='blue2', background='white')),
+    ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow')),
+    ]
 
-class FrameInfoPage(Page.ButtonPage, Page.TextPage):
+    
+class FrameInfoPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
 
         super(FrameInfoPage, self).__init__(frame, name, title)
-
-        scrolled_window = gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
-
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
-
-        tw = gtk.TextView()
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
-
-        frame.pack_start(scrolled_window, expand=True, fill=True)
-
-        tw.set_editable(False)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-        #tw.connect("button-press-event", self.select_frame)
-
-        self.tw = tw
-        self.buf = tw.get_buffer()
 
         # bottom buttons
         btns = gtk.HButtonBox()
@@ -65,31 +53,20 @@ class FrameInfoPage(Page.ButtonPage, Page.TextPage):
 
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Save journal ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_journal(),
-                             "menu.Save_Journal")
-        item.show()
-
-        item = gtk.MenuItem(label="Save selection as ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_selection_as(),
-                             "menu.Save_As")
-        item.show()
-
         # item = gtk.MenuItem(label="Print")
         # menu.append(item)
         # item.connect_object ("activate", lambda w: self.print_journal(),
         #                      "menu.Print")
         # item.show()
 
-        item = gtk.MenuItem(label="Close")
-        # currently disabled
-        item.set_sensitive(False)
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        # For line coloring
+        self.colortbl = {}
+        for status, tag, bnch in frame_tags:
+            properties = {}
+            properties.update(bnch)
+            self.addtag(tag, **properties)
+
+            self.colortbl[status] = tag
 
 
     def update_frame(self, frameinfo):
@@ -99,19 +76,24 @@ class FrameInfoPage(Page.ButtonPage, Page.TextPage):
         with self.lock:
             text = format_str % frameinfo
 
-            print frameinfo
+            # set tags according to content of message
+            try:
+                tags = [ self.colortbl[frameinfo.status] ]
+            except Exception, e:
+                print str(e)
+                tags = ['normal']
+
+            print tags, frameinfo
             if hasattr(frameinfo, 'row'):
                 row = frameinfo.row
-                common.update_line(self.buf, row, text)
-                #update_line(self.buf, row, text, tags=[frameid])
+                #common.update_line(self.buf, row, text)
+                common.update_line(self.buf, row, text, tags=tags)
 
             else:
                 end = self.buf.get_end_iter()
-                row = end.get_line()
-                #self.buf.create_tag(frameid, foreground="black")
-                frameinfo.row = row
-                self.buf.insert(end, text + '\n')
-                #self.buf.insert_with_tags_by_name(end, text, [frameid])
+                frameinfo.row = end.get_line()
+                
+                self.append(text+'\n', tags)
 
         
     def update_frames(self, framelist):
@@ -121,7 +103,7 @@ class FrameInfoPage(Page.ButtonPage, Page.TextPage):
         self.buf.delete(start, end)
         
         # Create header
-        self.buf.insert(start, header+'\n')
+        self.append(header+'\n', [])
 
         # add frames
         for frameinfo in framelist:
@@ -185,7 +167,7 @@ class FrameInfoPage(Page.ButtonPage, Page.TextPage):
                 continue
 
             frameno = line.split()[0]
-            frames.append(frameno)
+            frames.append(frameno, [])
 
         #print "Loading frames", frames
         common.controller.load_frames(frames)

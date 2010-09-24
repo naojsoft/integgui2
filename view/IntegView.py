@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 20 15:03:13 HST 2010
+#  Last edit: Fri Sep 24 13:25:28 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -391,6 +391,10 @@ class IntegView(object):
 
             name = filename
             page = self.logpage.addpage(name, name, LogPage)
+
+            # Add standard error regex matching
+            page.add_regexes(common.error_regexes)
+            
             page.load(filepath)
 
             # Bring log tab to front
@@ -548,6 +552,14 @@ class IntegView(object):
                     str(e)))
 
 
+    def load_history(self):
+        try:
+            self.history = self.oiws.addpage('history', "History", LogPage)
+
+        except Exception, e:
+            self.popup_error("Cannot load history page: %s" % (
+                    str(e)))
+        
     def get_launcher_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
         pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
@@ -703,7 +715,7 @@ class IntegView(object):
    
     def update_history(self, data):
         if hasattr(self, 'history'):
-            self.gui_do(self.history.append, data)
+            self.gui_do(self.history.push, data)
    
     def update_loginfo(self, logname, infodict):
         #self.logger.debug("LOGNAME=%s LOGINFO=%s" % (logname,
