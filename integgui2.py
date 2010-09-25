@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 16 11:54:59 HST 2010
+#  Last edit: Fri Sep 24 20:49:54 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -89,7 +89,7 @@ def main(options, args):
 
     if options.geometry:
         gui.setPos(options.geometry)
-    gui.logupdate()
+    #gui.logupdate()
 
     # Subscribe our callback functions to the local monitor
     # Task info

@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 13:00:31 HST 2010
+#  Last edit: Fri Sep 24 20:30:25 HST 2010
 #]
 #
 import os
@@ -138,12 +138,6 @@ class CommandPage(ButtonPage):
 
         super(CommandPage, self).__init__(frame, name, title)
         
-    def kill(self):
-        #controller = self.parent.get_controller()
-        controller = common.controller
-        controller.tm_restart()
-        self.reset_pause()
-
     def cancel(self):
         #controller = self.parent.get_controller()
         controller = common.controller

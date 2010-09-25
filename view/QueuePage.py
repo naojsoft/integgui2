@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 20:09:38 HST 2010
+#  Last edit: Fri Sep 24 20:32:25 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -113,13 +113,6 @@ class QueuePage(Page.ButtonPage):
         self.btn_break.connect("clicked", lambda w: self.insbreak(line=0))
         self.btn_break.show()
         self.leftbtns.pack_end(self.btn_break)
-
-        self.btn_kill = gtk.Button("Kill")
-        self.btn_kill.connect("clicked", lambda w: self.kill())
-        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['killbtn'])
-        self.btn_kill.show()
-        self.leftbtns.pack_end(self.btn_kill)
 
         self.btn_refresh = gtk.Button("Refresh")
         self.btn_refresh.connect("clicked", lambda w: self.redraw())
@@ -436,11 +429,6 @@ class QueuePage(Page.ButtonPage):
 
     def step(self):
         return self._resume(w_break=True)
-
-    def kill(self):
-        controller = common.controller
-        controller.tm_restart()
-        self.reset_pause()
 
     def keypress(self, w, event):
         keyname = gtk.gdk.keyval_name(event.keyval)

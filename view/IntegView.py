@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 13:25:28 HST 2010
+#  Last edit: Fri Sep 24 20:59:06 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -200,11 +200,11 @@ class IntegView(object):
                              "file.Load log")
         item.show()
         
-        ## item = gtk.MenuItem(label="monlog")
-        ## loadmenu.append(item)
-        ## item.connect_object ("activate", lambda w: self.gui_load_monlog(),
-        ##                      "file.Load mon log")
-        ## item.show()
+        item = gtk.MenuItem(label="monlog")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
+                             "file.Load mon log")
+        item.show()
         
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
@@ -254,17 +254,33 @@ class IntegView(object):
     def add_dialogs(self):
         self.filesel = FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
         self.filesave = FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
-    
-    def logupdate(self):
-        pass
-    
+
+
     def add_statusbar(self):
+        hbox = gtk.HBox()
+        btns = gtk.HButtonBox()
+
+        btns.set_layout(gtk.BUTTONBOX_START)
+        btns.set_spacing(5)
+
+        self.btn_kill = gtk.Button("Kill")
+        self.btn_kill.connect("clicked", lambda w: self.kill())
+        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
+                                common.launcher_colors['killbtn'])
+
+        btns.pack_end(self.btn_kill, fill=False, expand=False, padding=4)
+
+        hbox.pack_end(btns, fill=False, expand=False, padding=4)
+        
         self.w.status = gtk.Statusbar()
         self.status_cid = self.w.status.get_context_id("msg")
         self.status_mid = self.w.status.push(self.status_cid, "")
 
-        self.w.mframe.pack_end(self.w.status, expand=False, fill=True,
-                               padding=2)
+        hbox.pack_start(self.w.status, fill=True, expand=False,
+                        padding=4)
+
+        hbox.show_all()
+        self.w.mframe.pack_end(hbox, expand=False, fill=True)
 
 
     def statusMsg(self, format, *args):
@@ -362,12 +378,48 @@ class IntegView(object):
             self.popup_error("Cannot start terminal: %s" % (str(e)))
 
     def gui_load_monlog(self):
-        self.load_monlog('taskmgr0')
+
+        def pick_log(w, rsp, cbox, names):
+            logName = names[cbox.get_active()].strip()
+            w.hide()
+            if rsp == gtk.RESPONSE_OK:
+                self.load_monlog(logName)
+            return True
+            
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   buttons=gtk.BUTTONS_OK_CANCEL,
+                                   message_format="Select a log to view")
+        dialog.set_title("Choose Log")
+        # Add a combo box to the content area containing the names of the
+        # logs
+        vbox = dialog.get_content_area()
+        cbox = gtk.combo_box_new_text()
+        index = 0
+        names = list(common.controller.valid_monlogs)
+        names.sort()
+        for name in names:
+            cbox.insert_text(index, name)
+            index += 1
+        cbox.set_active(0)
+        vbox.add(cbox)
+        cbox.show()
+        dialog.connect("response", pick_log, cbox, names)
+        dialog.show()
+        return True
 
     def load_monlog(self, logname):
         try:
+            try:
+                page = self.logpage.getPage(logname)
+                raise Exception("There is already a log open by that name!")
+            except KeyError:
+                pass
             page = self.logpage.addpage(logname, logname, MonLogPage)
 
+            # Add standard error regex matching
+            page.add_regexes(common.error_regexes)
+            
             # Bring log tab to front
             self.oiws.select('loginfo')
         except Exception, e:
@@ -472,6 +524,12 @@ class IntegView(object):
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
 
+
+    def kill(self):
+        controller = common.controller
+        controller.tm_restart()
+        # TODO!
+        #self.global_reset_pause()
 
     def load_ope(self, filepath):
         return self.load_generic(filepath, OpePage.OpePage)
@@ -718,15 +776,11 @@ class IntegView(object):
             self.gui_do(self.history.push, data)
    
     def update_loginfo(self, logname, infodict):
-        #self.logger.debug("LOGNAME=%s LOGINFO=%s" % (logname,
-        #                                             str(infodict)))
-        #print "=====>", logname, infodict
         if hasattr(self, 'logpage'):
             try:
-                #print "Getting page %s" % logname
                 page = self.logpage.getPage(logname)
-                #print "*****", page
-                self.gui_do(page.push, logname, infodict)
+                #print "%s --> %s" % (logname, str(infodict)) 
+                self.gui_do(page.add2log, infodict)
             except KeyError:
                 # No log page for this log loaded, so silently drop message
                 # TODO: drop into the integgui2 log page?

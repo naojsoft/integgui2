@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 13:04:10 HST 2010
+#  Last edit: Fri Sep 24 17:43:45 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -11,6 +11,7 @@ import threading
 import gtk
 import gobject
 import os.path
+## import subprocess
 
 import common
 import Page
@@ -187,6 +188,21 @@ class LogPage(NotePage):
         self.size = self.file.tell()
         self.poll()
 
+    def g2log(self, svcname):
+        self.filepath = 'g2log(%s)' % svcname
+
+        try:
+            self.proc = subprocess.Popen(['g2log.py', svcname],
+                                         buzsize=1, stdout=subprocess.PIPE)
+        except Exception, e:
+            self.logger.error("Couldn't open tail process: %s" % str(e))
+            return
+        
+        self.file = self.proc.stdout
+        self.size = 0
+        self.poll()
+
+
     def close(self):
         try:
             self.file.close()
@@ -229,9 +245,42 @@ class LogPage(NotePage):
         gobject.timeout_add(self.poll_interval, self.poll)
 
 
+## class TailPage(LogPage):
+
+##     def __init__(self, frame, name, title):
+##         super(TailPage, self).__init__(frame, name, title)
+
+##         # interval between checking for log file updates (ms)
+##         self.poll_interval = 500
+##         self.proc = None
+
+##     def load(self, svcname):
+##         self.filepath = 'g2log(%s)' % svcname
+##         try:
+##             self.proc = subprocess.Popen(['g2log.py', svcname],
+##                                          buzsize=1, stdout=subprocess.PIPE)
+##         except Exception, e:
+##             self.logger.error("Couldn't open tail process: %s" % str(e))
+##             return
+        
+##         self.file = self.proc.stdout
+##         self.size = 0
+##         self.poll()
+
+
+##     def close(self):
+##         if self.proc:
+##             try:
+##                 self.proc.kill()
+##             except:
+##                 pass
+
+##         super(TailPage, self).close()
+
+
 class MonLogPage(LogPage):
 
-    def push(self, logname, logdict):
+    def add2log(self, logdict):
         #self.tw.scroll_mark_onscreen(self.mark)
 
         data = logdict['msgstr']

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 11:00:10 HST 2010
+#  Last edit: Fri Sep 24 20:54:03 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -41,7 +41,19 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
 opefile_host = 'ana.sum.subaru.nao.ac.jp'
 
 # Formatting string used to format History table
-fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 7.2fs %(result)s %(queue)8.8s  %(cmdstr)s\n"
+fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 7.2fs %(result)s %(queue)8.8s  %(cmdstr)s"
+
+valid_monlogs = set(['taskmgr0', 'TSC', 'status', 
+                     'sessions', 'frames',
+                     'STARS', 'archiver', 'gen2base',
+                     'integgui2', 'fitsview', 'fitsview1',
+                     ])
+# add active instrument names
+valid_monlogs.update(INSdata().getNames())
+
+typical_monlogs = set(['taskmgr0', 'TSC', 'status', 
+                       ])
+typical_monlogs.update(INSdata().getNames())
 
 
 class ControllerError(Exception):
@@ -68,6 +80,9 @@ class IntegController(object):
         self.lock = threading.RLock()
         self.soundsink = soundsink
         self.options = options
+
+        # TODO: fix this
+        self.valid_monlogs = valid_monlogs
 
         self.executingP = threading.Event()
 
@@ -327,25 +342,14 @@ class IntegController(object):
         # Load up appropriate log files
         #self.gui.close_logs()
 
-        logs = []
         names = set(allocs)
-        # Some names of interest that won't show up in the allocations
-        names.update(['qdas_stdout', 'integgui2', 'VGW_stdout'])
-        # Remove some that aren't particularly useful
-        for name in ['frames', 'bootmgr', 'monitor']:
-            names.remove(name)
-        names = list(names)
-        names.sort()
-
-        for name in names:
-            filepath = self.gui.get_log_path(name)
-            if os.path.exists(filepath):
-                logs.append(filepath)
-
+        # Remove some that aren't particularly useful--they can be
+        # added manually if desired
+        logs = list(names.intersection(typical_monlogs))
         logs.sort()
 
-        for filepath in logs:
-            self.gui.gui_do(self.gui.load_log, filepath)
+        for name in logs:
+            self.gui.gui_do(self.gui.load_monlog, name)
 
     def mount_procedure_directory(self, propid, host):
 
@@ -521,7 +525,7 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
         
     # this one is called if new log data becomes available
     def arr_loginfo(self, payload, name, channels):
-        #self.logger.debug("received values '%s'" % str(payload))
+        self.logger.debug("received values '%s'" % str(payload))
         try:
             bnch = Monitor.unpack_payload(payload)
 
@@ -608,7 +612,7 @@ If necessary, please use the "Mount ope dir" command from the main menu to provi
         if not cmd_str:
             return
 
-        if not self.audible_errors:
+        if not self.gui.audible_errors:
             return
 
         cmd_str = cmd_str.lower().strip()

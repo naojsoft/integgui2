@@ -2,7 +2,7 @@
 # HandsetPage.py -- implements an Integgui2 handset
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 11 13:41:49 HST 2010
+#  Last edit: Fri Sep 24 20:32:26 HST 2010
 #]
 
 import gtk
@@ -57,13 +57,6 @@ class HandsetPage(Page.CommandPage):
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_end(self.btn_cancel)
-
-        self.btn_kill = gtk.Button("Kill")
-        self.btn_kill.connect("clicked", lambda w: self.kill())
-        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
-                                common.launcher_colors['killbtn'])
-        self.btn_kill.show()
-        self.leftbtns.pack_end(self.btn_kill)
 
         ## menu = self.add_menu()
         ## self.add_close()
