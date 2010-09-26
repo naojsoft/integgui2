@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:54:03 HST 2010
+#  Last edit: Sat Sep 25 14:36:49 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -12,7 +12,6 @@ import threading
 
 import view.common as common
 import CommandQueue
-import mountsshfs
 
 # SSD/Gen2 imports
 import Task
@@ -94,7 +93,6 @@ class IntegController(object):
         # Used for looking up instrument codes, etc.
         self.insconfig = INSdata()
         self.insname = 'SUKA'
-        self.mountpoint = None
 
         self.reset_conn()
 
@@ -282,10 +280,6 @@ class IntegController(object):
 
         self._session_config(info)
 
-        ## self.mount_procedure_directory(info['propid'],
-        ##                                opefile_host)
-
-
     def load_frames(self, framelist):
         # TODO: this should maybe be in IntegView
 
@@ -351,53 +345,13 @@ class IntegController(object):
         for name in logs:
             self.gui.gui_do(self.gui.load_monlog, name)
 
-    def mount_procedure_directory(self, propid, host):
-
-        mountpoint = self.mountpoint
-        errmsg_unmount = """
-Some process is still using directory %s
-
-Please close any OPE files using this directory and "cd" any terminals out of the directory so it can be unmounted.""" % (mountpoint)
-        
-        if mountpoint != None:
-            # Unmount the directory, if mounted
-            try:
-                mountsshfs.unmount_remote(self.logger, mountpoint)
-            except Exception, e:
-                self.logger.error("Error unmounting directory '%s': %s" % (
-                    mountpoint, str(e)))
-                self.gui.gui_do(self.gui.popup_error, errmsg_unmount)
-
-        self.mountpoint = None
-        
-        # Get info necessary to establish new mountpoint
-        username = propid.replace('o', 'u')
-        shorthost = host.split('.')[0]
-        # host directory must exist
-        mountpoint = os.path.join(os.environ['HOME'], 'Procedure',
-                                  shorthost, propid)
-        remotedir = ''
-
-        errmsg_mount = """
-There was an error mounting directory %s on host %s
-
-If necessary, please use the "Mount ope dir" command from the main menu to provide the proper parameters.""" % (mountpoint, host)
-
-        # Now try mounting with new propid info
-        password = mountsshfs.getpass(username)
-
-        try:
-            mountsshfs.mount_remote(self.logger, host,
-                                    username, password,
-                                    mountpoint, remotedir)
-            self.mountpoint = mountpoint
-
-        except Exception, e:
-            errstr = "Error mounting directory '%s': %s" % (
-                mountpoint, str(e))
-            self.logger.error(errstr)
-            # TODO: need better error string
-            self.gui.gui_do(self.gui.popup_error, errmsg_mount)
+        # Set appropriate areas for loading OPE files
+        procdir = os.path.join(os.environ['HOME'], 'Procedure')
+        propiddir = os.path.join(procdir, 'ANA', propid, 'Procedure')
+        if os.path.isdir(propiddir):
+            self.gui.set_procdir(propiddir)
+        else:
+            self.gui.set_procdir(procdir)
             
 
     def get_transaction(self, path):

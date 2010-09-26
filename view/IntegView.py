@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:59:06 HST 2010
+#  Last edit: Sat Sep 25 14:37:58 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -44,6 +44,9 @@ class IntegView(object):
         # Options that can be set graphically
         self.audible_errors = True
         self.suppress_confirm_exec = True
+
+        # This is the home directory for loading all kinds of files
+        self.procdir = os.path.join(os.environ['HOME'], 'Procedure')
 
         # Create the GUI
         self.w = Bunch.Bunch()
@@ -104,6 +107,9 @@ class IntegView(object):
         else:
             self.__dict__[key] = False
 
+    def set_procdir(self, path):
+        self.procdir = path
+        
     def add_menus(self):
 
         menubar = gtk.MenuBar()
@@ -457,7 +463,8 @@ class IntegView(object):
 
 
     def gui_load_ope(self):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        #initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        initialdir = self.procdir
         self.filesel.popup("Load OPE file",
                            lambda filepath: self.load_generic(filepath,
                                                               # ???!!!
