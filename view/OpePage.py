@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:30:26 HST 2010
+#  Last edit: Sat Sep 25 16:07:29 HST 2010
 #]
 import sys, traceback
 
@@ -331,147 +331,151 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             raise Exception("No definition found for '%s'" % varname)
         
     def color(self):
+        try:
+            self.tags = common.decorative_tags + common.execution_tags
 
-        self.tags = common.decorative_tags + common.execution_tags
+            # Remove everything from the tag buffer
+            start, end = self.tagbuf.get_bounds()
+            self.tagbuf.delete(start, end)
 
-        # Remove everything from the tag buffer
-        start, end = self.tagbuf.get_bounds()
-        self.tagbuf.delete(start, end)
+            # Get the text from the code buffer
+            start, end = self.buf.get_bounds()
+            buf = self.buf.get_text(start, end)
 
-        # Get the text from the code buffer
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end)
+            # compute the variable dictionary
+            include_dirs = common.view.include_dirs
+            self.varDict = ope.get_vars_ope(buf, include_dirs)
 
-        # compute the variable dictionary
-        self.varDict = ope.get_vars_ope(buf)
+            badrefs = set([])
+            badtags = []
+            self.tagidx = {}
 
-        badrefs = set([])
-        badtags = []
-        self.tagidx = {}
+            tagtbl = self.buf.get_tag_table()
 
-        tagtbl = self.buf.get_tag_table()
-
-        # remove decorative tags
-        for tag, bnch in common.decorative_tags:
-            gtktag = tagtbl.lookup(tag)
-            try:
-                if gtktag:
-                    self.buf.remove_tag_by_name(tag, start, end)
-            except:
-                # tag may not exist--that's ok
-                pass
-
-        # add tags back in
-        for tag, bnch in self.tags:
-            properties = {}
-            properties.update(bnch)
-            try:
-                self.buf.create_tag(tag, **properties)
-            except:
-                # tag may already exist--that's ok
-                pass
-            try:
-                self.tagbuf.create_tag(tag, **properties)
-            except:
-                # tag may already exist--that's ok
-                pass
-
-        def addbadtag(lineno, line, tags):
-            # Add this line and a tag to the tags buffer
-            tend = self.tagbuf.get_end_iter()
-            taglineno = tend.get_line()
-##             self.tagbuf.insert_with_tags_by_name(tend, line+'\n',
-##                                                  *(tags + [tag]))
-            self.tagbuf.insert_with_tags_by_name(tend, line+'\n', *tags)
-            # make an entry in the tags index
-            self.tagidx[taglineno] = lineno
-
-        def addtags(lineno, line, tags):
-            # apply desired tags to entire line in main text buffer
-            start.set_line(lineno)
-            end.set_line(lineno)
-            end.forward_to_line_end()
-
-            for tag in tags:
-                self.buf.apply_tag_by_name(tag, start, end)
-
-            addbadtag(lineno, line, tags)
-
-        def addvarrefs(lineno, line):
-            # apply desired tags to varrefs in this line in main text buffer
-
-            offset = 0
-            match = regex_varref.match(line)
-            while match:
-                pfx, varref, sfx = match.groups()
-                varref = varref.upper()
-                start.set_line(lineno)
-                offset += len(pfx)
-                start.forward_chars(offset)
-                end.set_line(lineno)
-                offset += len(varref)
-                end.forward_chars(offset)
-
-                self.buf.apply_tag_by_name('varref', start, end)
+            # remove decorative tags
+            for tag, bnch in common.decorative_tags:
+                gtktag = tagtbl.lookup(tag)
                 try:
-                    res = self.get_vardef(varref[1:])
-                except Exception, e:
-                    self.buf.apply_tag_by_name('badref', start, end)
-                    badrefs.add(varref)
-                    badtags.append((varref, lineno))
+                    if gtktag:
+                        self.buf.remove_tag_by_name(tag, start, end)
+                except:
+                    # tag may not exist--that's ok
+                    pass
 
-                match = regex_varref.match(sfx)
-                
-        lineno = 0
-        for line in buf.split('\n'):
-            line = line.strip()
-            if line.startswith('###'):
-                addtags(lineno, line, ['comment3'])
-        
-            elif line.startswith('##'):
-                addtags(lineno, line, ['comment2'])
-        
-            elif line.startswith('#'):
-                addtags(lineno, line, ['comment1'])
+            # add tags back in
+            for tag, bnch in self.tags:
+                properties = {}
+                properties.update(bnch)
+                try:
+                    self.buf.create_tag(tag, **properties)
+                except:
+                    # tag may already exist--that's ok
+                    pass
+                try:
+                    self.tagbuf.create_tag(tag, **properties)
+                except:
+                    # tag may already exist--that's ok
+                    pass
+
+            def addbadtag(lineno, line, tags):
+                # Add this line and a tag to the tags buffer
+                tend = self.tagbuf.get_end_iter()
+                taglineno = tend.get_line()
+    ##             self.tagbuf.insert_with_tags_by_name(tend, line+'\n',
+    ##                                                  *(tags + [tag]))
+                self.tagbuf.insert_with_tags_by_name(tend, line+'\n', *tags)
+                # make an entry in the tags index
+                self.tagidx[taglineno] = lineno
+
+            def addtags(lineno, line, tags):
+                # apply desired tags to entire line in main text buffer
+                start.set_line(lineno)
+                end.set_line(lineno)
+                end.forward_to_line_end()
+
+                for tag in tags:
+                    self.buf.apply_tag_by_name(tag, start, end)
+
+                addbadtag(lineno, line, tags)
+
+            def addvarrefs(lineno, line):
+                # apply desired tags to varrefs in this line in main text buffer
+
+                offset = 0
+                match = regex_varref.match(line)
+                while match:
+                    pfx, varref, sfx = match.groups()
+                    varref = varref.upper()
+                    start.set_line(lineno)
+                    offset += len(pfx)
+                    start.forward_chars(offset)
+                    end.set_line(lineno)
+                    offset += len(varref)
+                    end.forward_chars(offset)
+
+                    self.buf.apply_tag_by_name('varref', start, end)
+                    try:
+                        res = self.get_vardef(varref[1:])
+                    except Exception, e:
+                        self.buf.apply_tag_by_name('badref', start, end)
+                        badrefs.add(varref)
+                        badtags.append((varref, lineno))
+
+                    match = regex_varref.match(sfx)
+
+            lineno = 0
+            for line in buf.split('\n'):
+                line = line.strip()
+                if line.startswith('###'):
+                    addtags(lineno, line, ['comment3'])
+
+                elif line.startswith('##'):
+                    addtags(lineno, line, ['comment2'])
+
+                elif line.startswith('#'):
+                    addtags(lineno, line, ['comment1'])
+
+                else:
+                    addvarrefs(lineno, line)
+
+                lineno += 1
+
+            if len(badrefs) > 0:
+                # Add all undefined refs to the tag table
+                loc = self.tagbuf.get_end_iter()
+                startline = loc.get_line()
+                addbadtag(1, "UNDEFINED VARIABLE REFS", ['badref'])
+                for varref, lineno in badtags:
+                    addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
+
+                # Scroll tag table to errors
+                loc = self.tagbuf.get_end_iter()
+                loc.set_line(startline)
+                # HACK: I have to defer the scroll operation until the widget
+                # is rendered or it does not scroll
+                common.view.gui_do(self.tagtw.scroll_to_iter,
+                                    loc, 0, True)
+
+                # Set the background of the tags button to indicate error
+                self.btn_tags.modify_bg(gtk.STATE_NORMAL,
+                                        common.launcher_colors.badtags)
+                self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
+                                        common.launcher_colors.badtags)
+
+                common.view.popup_error("Undefined variable references: " +
+                                        ' '.join(badrefs) +
+                                        ". See bottom of tags for details.")
+                # open the tag table
+                self.showtags()
 
             else:
-                addvarrefs(lineno, line)
-
-            lineno += 1
-
-        if len(badrefs) > 0:
-            # Add all undefined refs to the tag table
-            loc = self.tagbuf.get_end_iter()
-            startline = loc.get_line()
-            addbadtag(1, "UNDEFINED VARIABLE REFS", ['badref'])
-            for varref, lineno in badtags:
-                addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
-
-            # Scroll tag table to errors
-            loc = self.tagbuf.get_end_iter()
-            loc.set_line(startline)
-            # HACK: I have to defer the scroll operation until the widget
-            # is rendered or it does not scroll
-            common.view.gui_do(self.tagtw.scroll_to_iter,
-                                loc, 0, True)
-
-            # Set the background of the tags button to indicate error
-            self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                    common.launcher_colors.badtags)
-            self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                    common.launcher_colors.badtags)
-
-            common.view.popup_error("Undefined variable references: " +
-                                    ' '.join(badrefs) +
-                                    ". See bottom of tags for details.")
-            # open the tag table
-            self.showtags()
-            
-        else:
-            self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                    common.launcher_colors.normal)
-            self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                    common.launcher_colors.normal)
+                self.btn_tags.modify_bg(gtk.STATE_NORMAL,
+                                        common.launcher_colors.normal)
+                self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
+                                        common.launcher_colors.normal)
+        except Exception, e:
+            common.view.popup_error("Error coloring buffer: %s" % (
+                str(e)))
             
 
     def focus_out(self, w, evt):
@@ -620,7 +624,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Resolve all variables/macros
         try:
             self.logger.debug("Unprocessed command is: %s" % cmdstr)
-            p_cmdstr = ope.getCmd(txtbuf, cmdstr)
+            include_dirs = common.view.include_dirs
+            p_cmdstr = ope.getCmd(txtbuf, cmdstr, include_dirs)
             self.logger.debug("Processed command is: %s" % p_cmdstr)
 
             return p_cmdstr

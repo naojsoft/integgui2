@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 14:36:49 HST 2010
+#  Last edit: Sat Sep 25 15:24:21 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -349,9 +349,9 @@ class IntegController(object):
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
         propiddir = os.path.join(procdir, 'ANA', propid, 'Procedure')
         if os.path.isdir(propiddir):
-            self.gui.set_procdir(propiddir)
+            self.gui.set_procdir(propiddir, inst)
         else:
-            self.gui.set_procdir(procdir)
+            self.gui.set_procdir(procdir, inst)
             
 
     def get_transaction(self, path):

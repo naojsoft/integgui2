@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 14:37:58 HST 2010
+#  Last edit: Sat Sep 25 15:56:23 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -46,8 +46,15 @@ class IntegView(object):
         self.suppress_confirm_exec = True
 
         # This is the home directory for loading all kinds of files
-        self.procdir = os.path.join(os.environ['HOME'], 'Procedure')
+        self.procdir = None
+        # This is the list of directories to search for include
+        # (e.g. PRM) files named by other files
+        self.include_dirs = []
 
+        # Set default location, until changed
+        procdir = os.path.join(os.environ['HOME'], 'Procedure')
+        self.set_procdir(procdir, 'SUKA')
+        
         # Create the GUI
         self.w = Bunch.Bunch()
 
@@ -107,8 +114,26 @@ class IntegView(object):
         else:
             self.__dict__[key] = False
 
-    def set_procdir(self, path):
+    def set_procdir(self, path, inst):
+        topprocdir = common.topprocdir
+        inst = inst.upper()
+
+        if not os.path.isdir(path):
+            path = os.path.join(topprocdir, inst)
+            if not os.path.isdir(path):
+                path = topprocdir
+            
         self.procdir = path
+
+        # Calculate list of include directories for this path
+        # TODO: add a graphical way to modify this
+        self.include_dirs = [
+            path,
+            os.path.join(path, 'COMMON'),
+            os.path.join(topprocdir, inst),
+            os.path.join(topprocdir, inst, 'COMMON'),
+            os.path.join(topprocdir, 'COMMON'),
+            ]
         
     def add_menus(self):
 

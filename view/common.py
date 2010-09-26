@@ -2,12 +2,16 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 12:12:51 HST 2010
+#  Last edit: Sat Sep 25 15:56:24 HST 2010
 #]
+import os.path
 import re
 import gtk
 
 import Bunch
+
+# Top directory to look for stuff
+topprocdir = os.path.join(os.environ['HOME'], 'Procedure')
 
 color_blue = '#cae1ff'     # pale blue
 color_green = '#c1ffc1'     # pale green
