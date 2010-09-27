@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 15:24:21 HST 2010
+#  Last edit: Mon Sep 27 13:08:59 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -636,7 +636,12 @@ class IntegController(object):
         msgstr = fmt_history % d
         self.gui.update_history(msgstr)
         
-        
+
+    def get_sound_failure(self, res, cmdstr, sound_failure):
+        if res == 3:
+            return common.sound.cancel_executer
+        return sound_failure
+            
     def exec_queue(self, queueObj, tm_queueName, executingP,
                    sound_success, sound_failure):
         
@@ -668,6 +673,7 @@ class IntegController(object):
                 return
 
             try:
+                res = 1
                 cmdObj.mark_status('executing')
 
                 # Try to execute the command in the TaskManager
@@ -692,6 +698,10 @@ class IntegController(object):
                 # Put object back on the front of the queue
                 queueObj.prepend(cmdObj)
 
+                # Interpret failure sonically
+                sound_failure = self.get_sound_failure(res, cmdstr,
+                                                       sound_failure)
+                
                 self.feedback_error(tm_queueName, cmdstr, cmdObj, str(e),
                                     sound_failure, time_start, time_end)
                 return
@@ -705,6 +715,7 @@ class IntegController(object):
 
     def exec_one(self, cmdObj, tm_queueName, sound_success, sound_failure):
         try:
+            res = 1
             cmdstr = cmdObj.get_cmdstr()
         
             cmdObj.mark_status('executing')
@@ -735,6 +746,11 @@ class IntegController(object):
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.clear()
+
+            # Interpret failure sonically
+            sound_failure = self.get_sound_failure(res, cmdstr,
+                                                   sound_failure)
+            
             self.feedback_error(tm_queueName, cmdstr, cmdObj,
                                 str(e), sound_failure, time_start, time_end)
 
