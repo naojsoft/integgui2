@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:32:26 HST 2010
+#  Last edit: Sat Sep 25 12:36:37 HST 2010
 #]
 
 import gtk
@@ -165,6 +165,9 @@ class DDCommandPage(Page.CommandPage):
         if cmdstr.endswith(';'):
             cmdstr = cmdstr[:-1]
 
+        if len(cmdstr) == 0:
+            raise Exception("No text in command buffer!")
+            
         # tag the text so we can manipulate it later
         cmdObj = DDCommandObject('dd%d', self.queueName,
                                  self.logger, self, cmdstr)
