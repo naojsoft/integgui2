@@ -206,7 +206,7 @@ class IntegController(object):
 
 
     def tm_cancel(self, queueName):
-        #self.playSound(common.sound.tm_cancel)
+        self.playSound(common.sound.tm_cancel)
 
         #self.tm2.cancel(queueName)
         t = Task.FuncTask(self.tm2.cancel, [queueName], {})
