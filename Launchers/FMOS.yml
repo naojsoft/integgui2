@@ -45,7 +45,7 @@ launchers:
         label: "MOVE FOCUS Z"
         cmd  : FAMMOVE OBE_ID=FMOS OBE_MODE=LAUNCHER POSZ=$VAL01
         params:
-            - [ VAL01, INPUT, 8, "!TSCL.Z", "FocusZ" ]
+            - [ VAL01, INPUT, 8, "4.0", "FocusZ" ]
 
     -
         label: "CHECK BEST Z"
@@ -60,25 +60,40 @@ launchers:
         label: "MOVE Corrector"
         cmd  : CMMMOVE OBE_ID=FMOS OBE_MODE=LAUNCHER POSX=$VAL01 POSY=$VAL02
         params:
-            - [ VAL01, INPUT, 8, "-999", "X" ]
-            - [ VAL02, INPUT, 8, "-999", "Y" ]
+            - [ VAL01, INPUT, 8, "4.0", "X" ]
+            - [ VAL02, INPUT, 8, "-4.8", "Y" ]
+
+    -
+        label: "AGSH PROBE IN"
+        cmd  : AGSHMOVE OBE_ID=FMOS OBE_MODE=LAUNCHER POS=0
+
+    -
+        label: "AGSH PROBE OUT"
+        cmd  : AGSHMOVE OBE_ID=FMOS OBE_MODE=LAUNCHER POS=240
 
     - sep
 
+#   -
+#       label: "ECH FIBER TWEAK"
+#       cmd  : ECHTWEAK OBE_ID=FMOS OBE_MODE=LAUNCHER OBSD=$VAL01 BBLIND=$VAL02
+#       params:
+#           - [ VAL01, INPUT, 8, 0, "OBSD(sec)" ]
+#           - [ VAL02, INPUT, 2, T, "Blind?(T/F)" ]
+#
     -
-        label: "ECH FIBER TWEAK"
-        cmd  : ECHTWEAK OBE_ID=FMOS OBE_MODE=LAUNCHER OBSD=$VAL01 BBLIND=$VAL02
-        params:
-            - [ VAL01, INPUT, 8, 0, "OBSD(sec)" ]
-            - [ VAL02, INPUT, 2, T, "Blind?(T/F)" ]
-
-    -
-        label: "ECH PRISM PARK"
+        label: "ECH PRISM OUT"
         cmd  : ECHPRISM OBE_ID=FMOS OBE_MODE=LAUNCHER PARK=1
 
     -
-        label: "ECH PRISM PRIME"
+        label: "ECH PRISM IN"
         cmd  : ECHPRISM OBE_ID=FMOS OBE_MODE=LAUNCHER PARK=0
+
+    -
+        label: "SET ECH AG2 TIME"
+        cmd  : ECHAG2TIME OBE_ID=FMOS OBE_MODE=LAUNCHER INTERVAL=$VAL01 EXPTIME=$VAL02
+        params:
+            - [ VAL01, INPUT, 10, 1, "Interval(sec)" ]
+            - [ VAL02, INPUT, 10, 5, "Exposure(sec)" ]
 
     -
         label: "ECH AG2 START"
@@ -87,13 +102,6 @@ launchers:
     -
         label: "ECH AG2 STOP"
         cmd  :  ECHAG2STOP OBE_ID=FMOS OBE_MODE=LAUNCHER
-
-    -
-        label: "SET ECH AG2 TIME"
-        cmd  : ECHAG2TIME OBE_ID=FMOS OBE_MODE=LAUNCHER INTERVAL=$VAL01 EXPTIME=$VAL02
-        params:
-            - [ VAL01, INPUT, 10, 15, "Interval(sec)" ]
-            - [ VAL02, INPUT, 10, 10, "Exposure(sec)" ]
 
     -
         label: "TEL AG START"
@@ -125,10 +133,10 @@ launchers:
 
     - sep
 
-    -
-        label: "INIT ECH"
-        cmd  : ECHINIT OBE_ID=FMOS OBE_MODE=LAUNCHER
-
+#   -
+#       label: "INIT ECH"
+#       cmd  : ECHINIT OBE_ID=FMOS OBE_MODE=LAUNCHER
+#
     -
         label: "INIT TAKO"
         cmd  : INITTAKO OBE_ID=FMOS OBE_MODE=LAUNCHER
