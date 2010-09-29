@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 10 15:19:06 HST 2010
+#  Last edit: Tue Sep 28 14:19:45 HST 2010
 #]
 
 import gtk
@@ -10,7 +10,7 @@ import common
 import Page
 
 
-class TerminalPage(Page.CommandPage):
+class TerminalPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 

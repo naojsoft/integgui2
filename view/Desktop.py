@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 10:19:48 HST 2010
+#  Last edit: Tue Sep 28 14:10:58 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -71,6 +71,7 @@ class Desktop(object):
             ws = Workspace.Workspace(frame, name, title)
             # Some attributes we force on our children
             ws.logger = self.logger
+            ws.parent = self
 
             frame.show_all()
 

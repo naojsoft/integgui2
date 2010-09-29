@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 27 13:08:59 HST 2010
+#  Last edit: Tue Sep 28 15:40:16 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -192,38 +192,45 @@ class IntegController(object):
         
 #############
 
-    def tm_kill(self):
-        self.playSound(common.sound.tm_kill)
-        
-        # reset visually all command executors
-        self.gui.gui_do(self.gui.reset)
-
-        # ask Boot Manager to restart the Task Manager
-        self.bm.restart(self.options.taskmgr)
-
-        # Release all pending transactions
-        self.release_all_transactions()
-
-
     def tm_cancel(self, queueName):
-        self.playSound(common.sound.tm_cancel)
+        def cancel():
+            self.playSound(common.sound.tm_cancel)
+            self.tm2.cancel(queueName)
 
         #self.tm2.cancel(queueName)
-        t = Task.FuncTask(self.tm2.cancel, [queueName], {})
+        t = Task.FuncTask2(cancel)
         t.init_and_start(self)
 
     def tm_pause(self, queueName):
-        #self.tm2.pause(queueName)
-        t = Task.FuncTask(self.tm2.pause, [queueName], {})
+        def pause():
+            self.tm2.pause(queueName)
+
+        t = Task.FuncTask2(pause)
         t.init_and_start(self)
 
     def tm_resume(self, queueName):
-        #self.tm2.resume(queueName)
-        t = Task.FuncTask(self.tm2.resume, [queueName], {})
+        def resume():
+            self.tm2.resume(queueName)
+            
+        t = Task.FuncTask2(resume)
         t.init_and_start(self)
 
     def tm_restart(self):
-        t = Task.FuncTask(self.tm_kill, [], {})
+        def kill():
+            self.playSound(common.sound.tm_kill)
+
+            # ask Boot Manager to restart the Task Manager
+            self.bm.restart(self.options.taskmgr)
+
+            self.gui.update_statusMsg("Restarting TaskManager.  Please wait...")
+            
+            # reset visually all command executors
+            self.gui.gui_do(self.gui.reset)
+
+            # Release all pending transactions
+            self.release_all_transactions()
+
+        t = Task.FuncTask2(kill)
         t.init_and_start(self)
 
     def addQueue(self, queueName, logger):
@@ -476,6 +483,8 @@ class IntegController(object):
             self.update_integgui(statusDict)
 
         elif vals.has_key('ready'):
+            self.gui.update_statusMsg("TaskManager is ready.")
+
             self.playSound(common.sound.tm_ready)
             
         
@@ -641,6 +650,7 @@ class IntegController(object):
 
     def get_sound_failure(self, res, cmdstr, sound_failure):
         if res == 3:
+            self.gui.update_statusMsg("Task cancelled!")
             return common.sound.cancel_executer
         return sound_failure
             
@@ -682,6 +692,7 @@ class IntegController(object):
                 self.logger.debug("Invoking to task manager (%s): '%s'" % (
                     tm_queueName, cmdstr))
 
+                self.gui.update_statusMsg("TaskManager is executing...")
                 executingP.set()
                 time_start = time.time()
 
@@ -689,6 +700,7 @@ class IntegController(object):
 
                 time_end = time.time()
                 executingP.clear()
+                self.gui.update_statusMsg("")
 
                 if res != 0:
                     raise Exception('Command terminated with res=%d' % res)
@@ -696,6 +708,7 @@ class IntegController(object):
             except Exception, e:
                 time_end = time.time()
                 executingP.clear()
+                self.gui.update_statusMsg("")
 
                 # Put object back on the front of the queue
                 queueObj.prepend(cmdObj)
@@ -728,6 +741,7 @@ class IntegController(object):
 
             # fix!
             if tm_queueName == 'executer':
+                self.gui.update_statusMsg("TaskManager is executing...")
                 self.executingP.set()
             time_start = time.time()
 
@@ -737,6 +751,7 @@ class IntegController(object):
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.clear()
+                self.gui.update_statusMsg("")
             if res == 0:
                 self.feedback_ok(tm_queueName, cmdstr, cmdObj,
                                  res, sound_success, time_start, time_end)
@@ -748,6 +763,7 @@ class IntegController(object):
             # fix!
             if tm_queueName == 'executer':
                 self.executingP.clear()
+                self.gui.update_statusMsg("")
 
             # Interpret failure sonically
             sound_failure = self.get_sound_failure(res, cmdstr,

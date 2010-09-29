@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 16:07:29 HST 2010
+#  Last edit: Tue Sep 28 13:33:27 HST 2010
 #]
 import sys, traceback
 
@@ -546,7 +546,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def reset(self):
         common.clear_tags(self.buf, ('executing',))
-        self.reset_pause()
+        # this will reset Pause button, etc.
+        super(OpePage, self).reset()
 
     def query_vardef(self, tw, x, y, kbmode, ttw):
         # parameters are text widget, x and y coords, boolean for keyboard

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 15:56:23 HST 2010
+#  Last edit: Tue Sep 28 15:35:30 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -23,6 +23,7 @@ import Future
 # Local integgui2 imports
 import common
 from pages import *
+import Page
 from dialogs import *
 
 
@@ -302,12 +303,11 @@ class IntegView(object):
         btns.pack_end(self.btn_kill, fill=False, expand=False, padding=4)
 
         hbox.pack_end(btns, fill=False, expand=False, padding=4)
-        
-        self.w.status = gtk.Statusbar()
-        self.status_cid = self.w.status.get_context_id("msg")
-        self.status_mid = self.w.status.push(self.status_cid, "")
 
-        hbox.pack_start(self.w.status, fill=True, expand=False,
+        # TODO: should we use a TextWidget so we can use tags?
+        self.w.status = gtk.Label("")
+
+        hbox.pack_start(self.w.status, fill=True, expand=True,
                         padding=4)
 
         hbox.show_all()
@@ -316,13 +316,11 @@ class IntegView(object):
 
     def statusMsg(self, format, *args):
         if not format:
-            s = ''
+            msgstr = ''
         else:
-            s = format % args
+            msgstr = format % args
 
-        self.w.status.remove(self.status_cid, self.status_mid)
-        self.status_mid = self.w.status.push(self.status_cid, s)
-
+        self.w.status.set_text(msgstr)
 
     def setPos(self, geom):
         # TODO: currently does not seem to be honoring size request
@@ -380,6 +378,14 @@ class IntegView(object):
             
         w.connect("response", f)
         w.show()
+
+    def popup_info(self, title, qstr):
+        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              type=gtk.MESSAGE_INFO,
+                              message_format=qstr)
+        w.set_title(title)
+        w.show()
+        return w
 
     def readfile(self, filepath):
         in_f = open(filepath, 'r')
@@ -560,8 +566,6 @@ class IntegView(object):
     def kill(self):
         controller = common.controller
         controller.tm_restart()
-        # TODO!
-        #self.global_reset_pause()
 
     def load_ope(self, filepath):
         return self.load_generic(filepath, OpePage.OpePage)
@@ -775,13 +779,14 @@ class IntegView(object):
         return False
 
     def reset(self):
-        # Perform a global reset across all command-type pages
-        for ws in self.ds.getWorkspaces():
-            for page in ws.getPages():
-                if (isinstance(page, OpePage) or 
-                    isinstance(page, LauncherPage) or
-                    isinstance(page, DDCommandPage)):
-                    page.reset()
+        try:
+            # Perform a global reset across all command-type pages
+            for ws in self.ds.getWorkspaces():
+                for page in ws.getPages():
+                    if isinstance(page, Page.CommandPage):
+                        page.reset()
+        except Exception, e:
+            self.logger.error("Error resetting pages: %s" % str(e))
 
     ############################################################
     # Interface from controller into the view
@@ -826,6 +831,9 @@ class IntegView(object):
         if hasattr(self, 'monpage'):
             self.gui_do(self.monpage.process_task_err, path, vals)
 
+    def update_statusMsg(self, format, *args):
+        self.gui_do(self.statusMsg, format, *args)
+        
     def gui_do(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
         """
