@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 28 15:40:16 HST 2010
+#  Last edit: Thu Sep 30 10:48:02 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -338,9 +338,11 @@ class IntegController(object):
         self.logger.debug("launchers=%s handsets=%s" % (
             launchers, handsets))
         for filepath in launchers:
-            self.gui.gui_do(self.gui.load_launcher, filepath)
+            # TODO: remove references to gui instance vars
+            self.gui.gui_do(self.gui.load_launcher, self.gui.lws, filepath)
         for filepath in handsets:
-            self.gui.gui_do(self.gui.load_handset, filepath)
+            # TODO: remove references to gui instance vars
+            self.gui.gui_do(self.gui.load_handset, self.gui.handsets, filepath)
 
         # Load up appropriate log files
         #self.gui.close_logs()
@@ -352,7 +354,7 @@ class IntegController(object):
         logs.sort()
 
         for name in logs:
-            self.gui.gui_do(self.gui.load_monlog, name)
+            self.gui.gui_do(self.gui.load_monlog, self.gui.logpage, name)
 
         # Set appropriate areas for loading OPE files
         procdir = os.path.join(os.environ['HOME'], 'Procedure')

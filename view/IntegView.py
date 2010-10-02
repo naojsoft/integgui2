@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 28 15:35:30 HST 2010
+#  Last edit: Fri Oct  1 13:31:20 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -80,30 +80,36 @@ class IntegView(object):
         self.add_menus()
         self.add_dialogs()
 
+        # Create a "desktop" the holder for workspaces
         self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
         # Some attributes we force on our children
         self.ds.logger = logger
 
+        # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Observation Journal")
-        self.framepage = self.ojws.addpage('frames', "Frames", FrameInfoPage)
+        self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
+        self.lws  = self.ds.addws('ll', 'launchers', "Command Launchers")
+        self.exws = self.ds.addws('lr', 'executor', "Command Executers")
 
-        self.lws = self.ds.addws('ll', 'launchers', "Command Launchers")
+        # Populate "Observation Journal" ws
+        self.add_frameinfo(self.ojws)
+
+        # Populate "Command Launchers" ws
         self.queuepage = self.lws.addpage('queues', "Queues", WorkspacePage)
-        defqueue = self.queuepage.addpage('Default', "queue_default", QueuePage)
-        defqueue.set_queue('default', self.queue.default)
+        self.add_queue(self.queuepage, 'default', create=False)
         self.handsets = self.lws.addpage('handset', "Handset", WorkspacePage)
 
-        self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
-        self.obsinfo = self.oiws.addpage('obsinfo', "Obsinfo", ObsInfoPage)
-        self.monpage = self.oiws.addpage('moninfo', "Monitor", SkMonitorPage)
+        # Populate "Observation Info" ws
+        self.add_obsinfo(self.oiws)
+        self.add_monitor(self.oiws)
         self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
         self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
-        self.history = self.oiws.addpage('history', "History", LogPage)
+        self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
-        self.exws = self.ds.addws('lr', 'executor', "Command Executers")
-        self.gui_load_terminal()
-        self.exws.addpage('Commands', "Commands", DDCommandPage)
+        # Populate "Command Executors" ws
+        self.load_terminal(self.exws)
+        self.add_commands(self.exws)
 
         self.add_statusbar()
 
@@ -156,37 +162,37 @@ class IntegView(object):
 
         item = gtk.MenuItem(label="ope")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_ope(),
+        item.connect_object ("activate", lambda w: self.gui_load_ope(self.exws),
                              "file.Load ope")
         item.show()
 
         item = gtk.MenuItem(label="sk")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_sk(),
+        item.connect_object ("activate", lambda w: self.gui_load_sk(self.exws),
                              "file.Load sk")
         item.show()
 
         item = gtk.MenuItem(label="task")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_task(),
+        item.connect_object ("activate", lambda w: self.gui_load_task(self.exws),
                              "file.Load task")
         item.show()
 
         item = gtk.MenuItem(label="launcher")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(),
+        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(self.exws),
                              "file.Load launcher")
         item.show()
 
         item = gtk.MenuItem(label="handset")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset_source(),
+        item.connect_object ("activate", lambda w: self.gui_load_handset_source(self.exws),
                              "file.Load handset")
         item.show()
 
         item = gtk.MenuItem(label="inf")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_inf(),
+        item.connect_object ("activate", lambda w: self.gui_load_inf(self.exws),
                              "file.Load inf")
         item.show()
 
@@ -198,43 +204,43 @@ class IntegView(object):
 
         # item = gtk.MenuItem(label="fits")
         # loadmenu.append(item)
-        # item.connect_object ("activate", lambda w: self.gui_load_fits(),
+        # item.connect_object ("activate", lambda w: self.gui_load_fits(self.fitspage),
         #                      "file.Load fits")
         # item.show()
 
         item = gtk.MenuItem(label="terminal")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_terminal(),
+        item.connect_object ("activate", lambda w: self.load_terminal(self.exws),
                              "file.Load terminal")
         item.show()
         
         item = gtk.MenuItem(label="launcher")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher(),
+        item.connect_object ("activate", lambda w: self.gui_load_launcher(self.lws),
                              "file.Load launcher")
         item.show()
 
         item = gtk.MenuItem(label="handset")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset(),
+        item.connect_object ("activate", lambda w: self.gui_load_handset(self.handsets),
                              "file.Load handset")
         item.show()
 
         item = gtk.MenuItem(label="commands")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.load_commands(),
+        item.connect_object ("activate", lambda w: self.load_commands(self.exws),
                              "file.Load commands")
         item.show()
 
         item = gtk.MenuItem(label="log")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_log(),
+        item.connect_object ("activate", lambda w: self.gui_load_log(self.logpage),
                              "file.Load log")
         item.show()
         
         item = gtk.MenuItem(label="monlog")
         loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_monlog(),
+        item.connect_object ("activate", lambda w: self.gui_load_monlog(self.logpage),
                              "file.Load mon log")
         item.show()
         
@@ -401,26 +407,29 @@ class IntegView(object):
         self.filesave.popup(title, execfn, initialdir=filedir,
                             filename=filename)
 
-    def gui_load_terminal(self):
+    def load_terminal(self, workspace):
         try:
             os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
             #os.chdir(os.environ['HOME'])
 
             name = 'Terminal'
-            page = self.exws.addpage(name, name, TerminalPage)
+            page = workspace.addpage(name, name, TerminalPage)
 
             # Bring shell tab to front
-            #self.exws.select(name)
+            workspace.select(page.name)
+            return page
+
         except Exception, e:
             self.popup_error("Cannot start terminal: %s" % (str(e)))
+            return None
 
-    def gui_load_monlog(self):
+    def gui_load_monlog(self, workspace):
 
         def pick_log(w, rsp, cbox, names):
             logName = names[cbox.get_active()].strip()
             w.hide()
             if rsp == gtk.RESPONSE_OK:
-                self.load_monlog(logName)
+                self.load_monlog(workspace, logName)
             return True
             
         dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -445,32 +454,36 @@ class IntegView(object):
         dialog.show()
         return True
 
-    def load_monlog(self, logname):
+    def load_monlog(self, workspace, logname):
         try:
             try:
-                page = self.logpage.getPage(logname)
+                page = workspace.getPage(logname)
                 raise Exception("There is already a log open by that name!")
             except KeyError:
                 pass
-            page = self.logpage.addpage(logname, logname, MonLogPage)
+            page = workspace.addpage(logname, logname, MonLogPage)
 
             # Add standard error regex matching
             page.add_regexes(common.error_regexes)
             
             # Bring log tab to front
-            self.oiws.select('loginfo')
+            workspace.select(page.name)
+            return page
+
         except Exception, e:
             self.popup_error("Cannot load log '%s': %s" % (
                     logname, str(e)))
+            return None
 
 
-    def gui_load_log(self):
+    def gui_load_log(self, workspace):
         initialdir = os.path.abspath(os.environ['LOGHOME'])
         
-        self.filesel.popup("Follow log", self.load_log,
+        self.filesel.popup("Follow log",
+                           lambda filepath: self.load_log(workspace, filepath),
                            initialdir=initialdir)
 
-    def load_log(self, filepath):
+    def load_log(self, workspace, filepath):
         try:
             dirname, filename = os.path.split(filepath)
             # Drop ".log" from tab names
@@ -479,7 +492,7 @@ class IntegView(object):
                 filename = filepfx
 
             name = filename
-            page = self.logpage.addpage(name, name, LogPage)
+            page = workspace.addpage(name, name, LogPage)
 
             # Add standard error regex matching
             page.add_regexes(common.error_regexes)
@@ -487,80 +500,93 @@ class IntegView(object):
             page.load(filepath)
 
             # Bring log tab to front
-            self.oiws.select('loginfo')
+            workspace.select(page.name)
+            return page
+
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+            return None
 
 
-    def gui_load_ope(self):
+    def gui_load_ope(self, workspace):
         #initialdir = os.path.join(os.environ['HOME'], 'Procedure')
         initialdir = self.procdir
         self.filesel.popup("Load OPE file",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               # ???!!!
                                                               OpePage.OpePage),
                            initialdir=initialdir)
 
-    def gui_load_sk(self):
+    def gui_load_sk(self, workspace):
         initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
                                   'SkPara', 'sk')
         
         self.filesel.popup("Load skeleton file",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               SkPage),
                            initialdir=initialdir)
 
-    def gui_load_task(self):
+    def gui_load_task(self, workspace):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
         
         self.filesel.popup("Load python task",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               TaskPage),
                            initialdir=initialdir)
 
-    def gui_load_inf(self):
+    def gui_load_inf(self, workspace):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure',
                                   'COMICS')
         
         self.filesel.popup("Load inf file",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               InfPage),
                            initialdir=initialdir)
 
-    def gui_load_launcher_source(self):
+    def gui_load_launcher_source(self, workspace):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Launchers')
         
         self.filesel.popup("Load launcher source",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               # ???!!!
                                                               CodePage.CodePage),
                            initialdir=initialdir)
 
-    def gui_load_handset_source(self):
+    def gui_load_handset_source(self, workspace):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Handsets')
         
         self.filesel.popup("Load handset source",
-                           lambda filepath: self.load_generic(filepath,
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
                                                               # ???!!!
                                                               CodePage.CodePage),
                            initialdir=initialdir)
 
 
-    def open_generic(self, buf, filepath, pageKlass):
+    def open_generic(self, workspace, buf, filepath, pageKlass):
         try:
             dirname, filename = os.path.split(filepath)
             #print pageKlass
 
             name = filename
-            page = self.exws.addpage(name, name, pageKlass)
+            page = workspace.addpage(name, name, pageKlass)
             page.load(filepath, buf)
+
+            workspace.select(page.name)
+            return page
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+            return None
 
 
     def kill(self):
@@ -568,28 +594,30 @@ class IntegView(object):
         controller.tm_restart()
 
     def load_ope(self, filepath):
-        return self.load_generic(filepath, OpePage.OpePage)
+        return self.load_generic(self.exws, filepath, OpePage.OpePage)
 
-    def load_generic(self, filepath, pageKlass):
+    def load_generic(self, workspace, filepath, pageKlass):
         try:
             buf = self.readfile(filepath)
 
-            return self.open_generic(buf, filepath, pageKlass)
+            return self.open_generic(workspace, buf, filepath, pageKlass)
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
 
 
-    def gui_load_launcher(self):
+    def gui_load_launcher(self, workspace):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Launchers')
         
-        self.filesel.popup("Load launcher", self.load_launcher,
+        self.filesel.popup("Load launcher",
+                           lambda filepath: self.load_launcher(workspace,
+                                                               filepath),
                            initialdir=initialdir)
 
 
-    def load_launcher(self, filepath):
+    def load_launcher(self, workspace, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -600,24 +628,29 @@ class IntegView(object):
                 return
 
             name = match.group(1).replace('_', ' ')
-            page = self.lws.addpage(name, name, LauncherPage,
-                                    adjname=False)
+            page = workspace.addpage(name, name, LauncherPage,
+                                     adjname=False)
             page.load(buf)
+            workspace.select(page.name)
+            return page
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+            return None
 
 
-    def gui_load_handset(self):
+    def gui_load_handset(self, workspace):
         initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
                                   'Handsets')
         
-        self.filesel.popup("Load handset", self.load_handset,
+        self.filesel.popup("Load handset",
+                           lambda filepath: self.load_handset(workspace,
+                                                              filepath),
                            initialdir=initialdir)
 
 
-    def load_handset(self, filepath):
+    def load_handset(self, workspace, filepath):
         try:
             buf = self.readfile(filepath)
 
@@ -625,34 +658,94 @@ class IntegView(object):
 
             match = re.match(r'^(.+)\.yml$', filename)
             if not match:
-                return
+                return None
 
             name = match.group(1).replace('_', ' ')
-            page = self.handsets.addpage(name, name, HandsetPage,
-                                         adjname=False)
+            page = workspace.addpage(name, name, HandsetPage,
+                                     adjname=False)
             page.load(buf)
+            workspace.select(page.name)
+            return page
 
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+            return None
 
 
-    def load_commands(self):
+    def add_commands(self, workspace):
         try:
-            page = self.exws.addpage('Commands', 'Commands', DDCommandPage)
+            page = workspace.addpage('Commands', 'Commands', DDCommandPage)
+            workspace.select(page.name)
+            return page
 
         except Exception, e:
             self.popup_error("Cannot load command page: %s" % (
                     str(e)))
+            return None
 
-
-    def load_history(self):
+    def add_history(self, workspace):
         try:
-            self.history = self.oiws.addpage('history', "History", LogPage)
+            page = workspace.addpage('history', "History", LogPage)
+
+            # mark command errors
+            regexes = [
+                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
+                 ['error']),
+                ]
+            page.add_regexes(regexes)
+
+            # Global side effect--for now we can only have one history page
+            self.history = page
+            workspace.select(page.name)
+            return page
 
         except Exception, e:
             self.popup_error("Cannot load history page: %s" % (
                     str(e)))
+            return None
+        
+    def add_frameinfo(self, workspace):
+        try:
+            page = workspace.addpage('frames', "Frames", FrameInfoPage)
+
+            # Global side effect--for now we can only have one frame info page
+            self.framepage = page
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load frame info page: %s" % (
+                    str(e)))
+            return None
+        
+    def add_obsinfo(self, workspace):
+        try:
+            page = workspace.addpage('obsinfo', "Obsinfo", ObsInfoPage)
+
+            # Global side effect--for now we can only have one obs info page
+            self.obsinfo = page
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load obs info page: %s" % (
+                    str(e)))
+            return None
+        
+    def add_monitor(self, workspace):
+        try:
+            page = workspace.addpage('moninfo', "Monitor", SkMonitorPage)
+
+            # Global side effect--for now we can only have one monitor page
+            self.monpage = page
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load monitor page: %s" % (
+                    str(e)))
+            return None
         
     def get_launcher_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
@@ -662,17 +755,35 @@ class IntegView(object):
         res = glob.glob(pathmatch)
         return res
         
+    def close_pages_workspace(self, workspace, pageKlass, exclude=[]):
+        try:
+            for page in workspace.getPages():
+                if isinstance(page, pageKlass) and \
+                       (not page.name in exclude):
+                    page.close()
+
+                elif isinstance(page, WorkspacePage):
+                    # Recurse into workspace pages
+                    self.close_pages_ws(page, pageKlass, exclude=exclude)
+
+        except Exception, e:
+            self.logger.error("Error closing pages: %s" % str(e))
+            
+    def close_pages_desktop(self, desktop, pageKlass, exclude=[]):
+        for ws in desktop.getWorkspaces():
+            self.close_pages_workspace(ws, pageKlass, exclude=exclude)
+
+    def close_pages(self, pageKlass, exclude=[]):
+        self.close_pages_desktop(self.ds)
+            
     def close_launchers(self):
-        for name in self.lws.getNames():
-            page = self.lws.getPage(name)
-            if isinstance(page, LauncherPage):
-                page.close()
+        return self.close_pages(LauncherPage)
 
     def close_handsets(self):
-        for name in self.handsets.getNames():
-            page = self.handsets.getPage(name)
-            if isinstance(page, HandsetPage):
-                page.close()
+        return self.close_pages(HandsetPage)
+
+    def close_logs(self):
+        return self.close_pages(MonLogPage)
 
     def reconfig(self):
         self.close_logs()
@@ -705,32 +816,38 @@ class IntegView(object):
         filepath = os.path.join(os.environ['LOGHOME'], filename)
         return filepath
 
-    def close_logs(self):
-        for name in self.logpage.getNames():
-            page = self.logpage.getPage(name)
-            page.close()
-
     def gui_load_fits(self):
         initialdir = os.environ['DATAHOME']
         
         self.filesel.popup("Load FITS file", self.load_fits,
                            initialdir=initialdir)
         
-    def load_fits(self, filepath):
+    def load_fits(self, workspace, filepath):
             
         (filedir, filename) = os.path.split(filepath)
         (filepfx, fileext) = os.path.splitext(filename)
         try:
-            page = self.fitspage.addpage(filepath, filepfx, FitsViewerPage)
+            page = workspace.addpage(filepath, filepfx, FitsViewerPage)
             page.load(filepath)
 
             # Bring FITS tab to front
-            self.oiws.select('fitsview')
+            workspace.select(page.name)
+            return page
+        
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+            return None
 
-    def gui_create_queue(self):
+    def gui_create_queue(self, workspace):
+        
+        def create_queue_res(w, rsp, went):
+            queueName = went.get_text()
+            w.destroy()
+            if rsp == 1:
+                self.add_queue(workspace, queueName)
+            return True
+
         dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                                    type=gtk.MESSAGE_QUESTION,
                                    message_format="Please enter a name for the new queue:")
@@ -740,22 +857,31 @@ class IntegView(object):
         ent = gtk.Entry()
         vbox.add(ent)
         ent.show()
-        dialog.connect("response", self.create_queue_res, ent)
+        dialog.connect("response", create_queue_res, ent)
         dialog.show()
 
-    def create_queue_res(self, w, rsp, went):
-        queueName = went.get_text().strip().lower()
-        w.destroy()
-        if rsp == 1:
-            if self.queue.has_key(queueName):
-                self.popup_error("A queue with that name already exists!")
-                return True
-            queue = common.controller.addQueue(queueName, self.logger)
-            page = self.queuepage.addpage(queueName, queueName.capitalize(),
-                                         QueuePage)
+    def add_queue(self, workspace, name, create=True):
+        queueName = name.strip().lower()
+        try:
+            if create:
+                if self.queue.has_key(queueName):
+                    raise Exception("A queue with that name already exists!")
+                queue = common.controller.addQueue(queueName, self.logger)
+            else:
+                queue = self.queue[queueName]
+
+            page = workspace.addpage(queueName, queueName.capitalize(),
+                                     QueuePage)
             page.set_queue(queueName, queue)
-        return True
+
+            workspace.select(page.name)
+            return page
         
+        except Exception, e:
+            self.popup_error("Cannot add queue page '%s': %s" % (
+                    name, str(e)))
+            return None
+
     def edit_command(self, cmdstr):
         try:
             page = self.exws.getPage('Commands')
@@ -906,7 +1032,7 @@ class IntegView(object):
             gtk.gdk.threads_enter()
             try:
                 while gtk.events_pending():
-                    gtk.main_iteration()
+                    gtk.main_iteration(False)
             finally:
                 gtk.gdk.threads_leave()
 

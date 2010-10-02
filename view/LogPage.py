@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 17:43:45 HST 2010
+#  Last edit: Thu Sep 30 11:36:27 HST 2010
 #]
 
 # remove once we're certified on python 2.6
