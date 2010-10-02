@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 30 10:48:02 HST 2010
+#  Last edit: Fri Oct  1 16:45:15 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -211,6 +211,7 @@ class IntegController(object):
     def tm_resume(self, queueName):
         def resume():
             self.tm2.resume(queueName)
+            #self.gui.gui_do(self.gui.reset_pause)
             
         t = Task.FuncTask2(resume)
         t.init_and_start(self)
@@ -225,7 +226,7 @@ class IntegController(object):
             self.gui.update_statusMsg("Restarting TaskManager.  Please wait...")
             
             # reset visually all command executors
-            self.gui.gui_do(self.gui.reset)
+            self.gui.gui_do(self.gui.reset_pause)
 
             # Release all pending transactions
             self.release_all_transactions()

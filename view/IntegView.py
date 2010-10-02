@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct  1 13:31:20 HST 2010
+#  Last edit: Fri Oct  1 17:39:51 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -108,7 +108,7 @@ class IntegView(object):
         self.oiws.select('obsinfo')
 
         # Populate "Command Executors" ws
-        self.load_terminal(self.exws)
+        self.add_terminal(self.exws)
         self.add_commands(self.exws)
 
         self.add_statusbar()
@@ -208,12 +208,6 @@ class IntegView(object):
         #                      "file.Load fits")
         # item.show()
 
-        item = gtk.MenuItem(label="terminal")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.load_terminal(self.exws),
-                             "file.Load terminal")
-        item.show()
-        
         item = gtk.MenuItem(label="launcher")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_launcher(self.lws),
@@ -226,12 +220,6 @@ class IntegView(object):
                              "file.Load handset")
         item.show()
 
-        item = gtk.MenuItem(label="commands")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.load_commands(self.exws),
-                             "file.Load commands")
-        item.show()
-
         item = gtk.MenuItem(label="log")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_log(self.logpage),
@@ -242,6 +230,36 @@ class IntegView(object):
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_monlog(self.logpage),
                              "file.Load mon log")
+        item.show()
+        
+        newmenu = gtk.Menu()
+        item = gtk.MenuItem(label="New")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(newmenu)
+
+        item = gtk.MenuItem(label="Terminal page")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.add_terminal(self.exws),
+                             "file.New terminal")
+        item.show()
+        
+        item = gtk.MenuItem(label="Command page")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.add_commands(self.exws),
+                             "file.New command page")
+        item.show()
+
+        item = gtk.MenuItem(label="New queue ...")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_create_queue(),
+                             "file.New queue")
+        item.show()
+
+        item = gtk.MenuItem(label="Workspace ...")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_create_workspace(self.ojws),
+                             "file.New Workspace")
         item.show()
         
         item = gtk.MenuItem(label="Config from session")
@@ -407,7 +425,7 @@ class IntegView(object):
         self.filesave.popup(title, execfn, initialdir=filedir,
                             filename=filename)
 
-    def load_terminal(self, workspace):
+    def add_terminal(self, workspace):
         try:
             os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
             #os.chdir(os.environ['HOME'])
@@ -882,6 +900,39 @@ class IntegView(object):
                     name, str(e)))
             return None
 
+    def gui_create_workspace(self, workspace):
+        
+        def create_workspace_res(w, rsp, went):
+            name = went.get_text()
+            w.destroy()
+            if rsp == 1:
+                self.add_workspace(workspace, name)
+            return True
+
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   message_format="Please enter a name for the new workspace:")
+        dialog.set_title("Create Workspace")
+        dialog.add_buttons("Ok", 1, "Cancel", 0)
+        vbox = dialog.get_content_area()
+        ent = gtk.Entry()
+        vbox.add(ent)
+        ent.show()
+        dialog.connect("response", create_workspace_res, ent)
+        dialog.show()
+
+    def add_workspace(self, workspace, name):
+        try:
+            page = workspace.addpage(name, name, WorkspacePage)
+
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot create workspace page: %s" % (
+                    str(e)))
+            return None
+        
     def edit_command(self, cmdstr):
         try:
             page = self.exws.getPage('Commands')
@@ -904,13 +955,13 @@ class IntegView(object):
         gtk.main_quit()
         return False
 
-    def reset(self):
+    def reset_pause(self):
         try:
             # Perform a global reset across all command-type pages
             for ws in self.ds.getWorkspaces():
                 for page in ws.getPages():
                     if isinstance(page, Page.CommandPage):
-                        page.reset()
+                        page.reset_pause()
         except Exception, e:
             self.logger.error("Error resetting pages: %s" % str(e))
 

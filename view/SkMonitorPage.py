@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 28 13:36:39 HST 2010
+#  Last edit: Fri Oct  1 17:03:50 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -36,7 +36,7 @@ class SkMonitorPage(Page.ButtonPage):
         self.lock = threading.RLock()
 
         self.nb = gtk.Notebook()
-        self.nb.set_tab_pos(gtk.POS_TOP)
+        self.nb.set_tab_pos(gtk.POS_LEFT)
         self.nb.set_scrollable(True)
         self.nb.set_show_tabs(True)
         self.nb.set_show_border(True)

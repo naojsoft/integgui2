@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct  1 16:35:35 HST 2010
+#  Last edit: Fri Oct  1 17:03:52 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -39,8 +39,8 @@ class Workspace(object):
 
         nb.show()
 
-        self.widget = nb
-        frame.pack_start(self.widget, expand=True, fill=True,
+        self.nb = nb
+        frame.pack_start(self.nb, expand=True, fill=True,
                          padding=2)
 
         # Holds my pages
@@ -77,10 +77,10 @@ class Workspace(object):
             label.show()
 
             # Add the page to the notebook
-            self.widget.append_page(child, label)
+            self.nb.append_page(child, label)
 
-            self.widget.set_tab_reorderable(child, True)
-            self.widget.set_tab_detachable(child, True)
+            self.nb.set_tab_reorderable(child, True)
+            self.nb.set_tab_detachable(child, True)
             
             # Some attributes we force on our children
             pageobj.logger = self.logger
@@ -139,7 +139,7 @@ class Workspace(object):
     def delpage(self, name):
         with self.lock:
             i = self.getIndexByName(name)
-            self.widget.remove_page(i)
+            self.nb.remove_page(i)
 
             try:
                 del self.pages[name]
@@ -154,7 +154,7 @@ class Workspace(object):
             
     def select(self, name):
         i = self.getIndexByName(name)
-        self.widget.set_current_page(i)
+        self.nb.set_current_page(i)
 
     def getNames(self):
         with self.lock:
@@ -167,7 +167,7 @@ class Workspace(object):
     def getIndexByName(self, name):
         with self.lock:
             page = self.getPage(name)
-            return self.widget.page_num(page.frame)
+            return self.nb.page_num(page.frame)
         
     def getPages(self):
         with self.lock:
