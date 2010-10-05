@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct  1 17:39:51 HST 2010
+#  Last edit: Tue Oct  5 12:31:25 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -24,6 +24,7 @@ import Future
 import common
 from pages import *
 import Page
+import Workspace
 from dialogs import *
 
 
@@ -77,8 +78,8 @@ class IntegView(object):
 
         self.w.root = root
 
-        self.add_menus()
-        self.add_dialogs()
+        self.w.menubar = gtk.MenuBar()
+        self.w.mframe.pack_start(self.w.menubar, expand=False)
 
         # Create a "desktop" the holder for workspaces
         self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
@@ -106,10 +107,14 @@ class IntegView(object):
         self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
+        self.lws.move_page(self.queuepage, self.handsets)
 
         # Populate "Command Executors" ws
         self.add_terminal(self.exws)
         self.add_commands(self.exws)
+        
+        self.add_menus(self.w.menubar)
+        self.add_dialogs()
 
         self.add_statusbar()
 
@@ -142,10 +147,7 @@ class IntegView(object):
             os.path.join(topprocdir, 'COMMON'),
             ]
         
-    def add_menus(self):
-
-        menubar = gtk.MenuBar()
-        self.w.mframe.pack_start(menubar, expand=False)
+    def add_menus(self, menubar):
 
         # create a File pulldown menu, and add it to the menu bar
         filemenu = gtk.Menu()
@@ -154,113 +156,17 @@ class IntegView(object):
         file_item.show()
         file_item.set_submenu(filemenu)
 
-        loadmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Load source")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(loadmenu)
-
-        item = gtk.MenuItem(label="ope")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_ope(self.exws),
-                             "file.Load ope")
-        item.show()
-
-        item = gtk.MenuItem(label="sk")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_sk(self.exws),
-                             "file.Load sk")
-        item.show()
-
-        item = gtk.MenuItem(label="task")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_task(self.exws),
-                             "file.Load task")
-        item.show()
-
-        item = gtk.MenuItem(label="launcher")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(self.exws),
-                             "file.Load launcher")
-        item.show()
-
-        item = gtk.MenuItem(label="handset")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset_source(self.exws),
-                             "file.Load handset")
-        item.show()
-
-        item = gtk.MenuItem(label="inf")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_inf(self.exws),
-                             "file.Load inf")
-        item.show()
-
-        loadmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Load")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(loadmenu)
-
-        # item = gtk.MenuItem(label="fits")
-        # loadmenu.append(item)
-        # item.connect_object ("activate", lambda w: self.gui_load_fits(self.fitspage),
-        #                      "file.Load fits")
-        # item.show()
-
-        item = gtk.MenuItem(label="launcher")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher(self.lws),
-                             "file.Load launcher")
-        item.show()
-
-        item = gtk.MenuItem(label="handset")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset(self.handsets),
-                             "file.Load handset")
-        item.show()
-
-        item = gtk.MenuItem(label="log")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_log(self.logpage),
-                             "file.Load log")
-        item.show()
-        
-        item = gtk.MenuItem(label="monlog")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_monlog(self.logpage),
-                             "file.Load mon log")
-        item.show()
-        
-        newmenu = gtk.Menu()
-        item = gtk.MenuItem(label="New")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(newmenu)
-
-        item = gtk.MenuItem(label="Terminal page")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.add_terminal(self.exws),
-                             "file.New terminal")
-        item.show()
-        
-        item = gtk.MenuItem(label="Command page")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.add_commands(self.exws),
-                             "file.New command page")
-        item.show()
-
-        item = gtk.MenuItem(label="New queue ...")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_queue(),
-                             "file.New queue")
-        item.show()
-
-        item = gtk.MenuItem(label="Workspace ...")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_workspace(self.ojws),
-                             "file.New Workspace")
-        item.show()
+        # Add all the different kind of loaders to load up into these
+        # default workspaces
+        d = {'executers': self.exws,
+             'launchers': self.lws,
+             'journals': self.ojws,
+             'logs': self.logpage,
+             'fits': self.fitspage,
+             'handsets': self.handsets,
+             'queues': self.queuepage,
+            }
+        self.add_load_menus(filemenu, d)
         
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
@@ -304,6 +210,143 @@ class IntegView(object):
         queuemenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(),
                              "queue.Create queue")
+        item.show()
+
+
+    def add_load_menus(self, filemenu, where):
+
+        def _get_ws(bnch, name, where):
+            if isinstance(where, Workspace.Workspace):
+                bnch[name] = where
+            ## elif isinstance(where, Desktop):
+            ##     bnch[name] = where.getws(name)
+            elif isinstance(where, dict):
+                bnch[name] = where[name]
+            else:
+                raise Exception("I don't know how to find the workspace '%s' in %s" % (
+                name, where))
+
+        ws = Bunch.Bunch()
+        
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load source")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
+
+        _get_ws(ws, 'executers', where)
+        
+        item = gtk.MenuItem(label="ope")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_ope(ws.executers),
+                             "file.Load ope")
+        item.show()
+
+        item = gtk.MenuItem(label="sk")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_sk(ws.executers),
+                             "file.Load sk")
+        item.show()
+
+        item = gtk.MenuItem(label="task")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_task(ws.executers),
+                             "file.Load task")
+        item.show()
+
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(ws.executers),
+                             "file.Load launcher")
+        item.show()
+
+        item = gtk.MenuItem(label="handset")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_handset_source(ws.executers),
+                             "file.Load handset")
+        item.show()
+
+        item = gtk.MenuItem(label="inf")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_inf(ws.executers),
+                             "file.Load inf")
+        item.show()
+
+        loadmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Load")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(loadmenu)
+
+        _get_ws(ws, 'fits', where)
+        # item = gtk.MenuItem(label="fits")
+        # loadmenu.append(item)
+        # item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
+        #                      "file.Load fits")
+        # item.show()
+
+        _get_ws(ws, 'launchers', where)
+
+        item = gtk.MenuItem(label="launcher")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_launcher(ws.launchers),
+                             "file.Load launcher")
+        item.show()
+
+        _get_ws(ws, 'handsets', where)
+
+        item = gtk.MenuItem(label="handset")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_handset(ws.handsets),
+                             "file.Load handset")
+        item.show()
+
+        _get_ws(ws, 'logs', where)
+
+        item = gtk.MenuItem(label="log")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_log(ws.logs),
+                             "file.Load log")
+        item.show()
+        
+        item = gtk.MenuItem(label="monlog")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_monlog(ws.logs),
+                             "file.Load mon log")
+        item.show()
+        
+        newmenu = gtk.Menu()
+        item = gtk.MenuItem(label="New")
+        filemenu.append(item)
+        item.show()
+        item.set_submenu(newmenu)
+
+        item = gtk.MenuItem(label="Terminal page")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.add_terminal(ws.executers),
+                             "file.New terminal")
+        item.show()
+        
+        item = gtk.MenuItem(label="Command page")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.add_commands(ws.executers),
+                             "file.New command page")
+        item.show()
+
+        _get_ws(ws, 'queues', where)
+
+        item = gtk.MenuItem(label="New queue ...")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_create_queue(ws.queues),
+                             "file.New queue")
+        item.show()
+
+        _get_ws(ws, 'journals', where)
+
+        item = gtk.MenuItem(label="Workspace ...")
+        newmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_create_workspace(ws.journals),
+                             "file.New Workspace")
         item.show()
 
 
@@ -926,6 +969,10 @@ class IntegView(object):
             page = workspace.addpage(name, name, WorkspacePage)
 
             workspace.select(page.name)
+
+            page.menu_close.set_sensitive(True)
+
+            #self.add_load_menus(page.wsmenu, page)
             return page
 
         except Exception, e:

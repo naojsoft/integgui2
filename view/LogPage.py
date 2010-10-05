@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 30 11:36:27 HST 2010
+#  Last edit: Sat Oct  2 23:07:20 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -8,6 +8,7 @@ from __future__ import with_statement
 
 import time
 import threading
+
 import gtk
 import gobject
 import os.path
@@ -166,6 +167,7 @@ class LogPage(NotePage):
         # This is a table of regex, tag tuples used to do
         # auto coloring of log entries
         self.regexes = []
+
 
     def clear_regexes(self):
         self.regexes = []

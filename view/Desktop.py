@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 30 17:46:24 HST 2010
+#  Last edit: Tue Oct  5 11:02:32 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -130,5 +130,39 @@ class Desktop(object):
         with self.lock:
             return self.ws.keys()
 
+    def gui_moveto_workspace(self, src_ws, page):
+        
+        def move_page(w, rsp, went):
+            name = went.get_text()
+            w.destroy()
+            if rsp == 1:
+                dst_ws = self.getWorkspace(name)
+                self.move_page(src_ws, page, dst_ws)
+            return True
 
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_QUESTION,
+                                   buttons=gtk.BUTTONS_OK_CANCEL,
+                                   message_format="To workspace:")
+        dialog.set_title("Move page")
+        # Add a combo box to the content area containing the names of the
+        # current workspaces
+        vbox = dialog.get_content_area()
+        cbox = gtk.combo_box_new_text()
+        index = 0
+        names = []
+        for name in self.getNames():
+            cbox.insert_text(index, name)
+            names.append(name)
+            index += 1
+        cbox.set_active(0)
+        vbox.add(cbox)
+        cbox.show()
+        dialog.connect("response", move_page, cbox, names)
+        dialog.show()
+
+
+    def move_page(self, src_ws, page, dst_ws):
+        src_ws.move_page(page, dst_ws)
+        
 #END

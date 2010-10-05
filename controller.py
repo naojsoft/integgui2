@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct  1 16:45:15 HST 2010
+#  Last edit: Sat Oct  2 23:07:22 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -9,6 +9,7 @@ from __future__ import with_statement
 import re
 import os, time
 import threading
+import string
 
 import view.common as common
 import CommandQueue
@@ -94,6 +95,9 @@ class IntegController(object):
         self.insconfig = INSdata()
         self.insname = 'SUKA'
 
+        # Used to strip out bogus characters from log buffers
+        self.deletechars = ''.join(set(string.maketrans('', '')) -
+                                   set(string.printable))
         self.reset_conn()
 
 
@@ -506,7 +510,10 @@ class IntegController(object):
         match = regex_log.match(bnch.path)
         if match:
             logname = match.group(1)
-            self.gui.update_loginfo(logname, bnch.value)
+            # Remove any non-ascii characters that won't go into
+            # a standard text buffer
+            buf = bnch.value.translate(None, self.deletechars)
+            self.gui.update_loginfo(logname, buf)
             
         
     # this one is called if new data becomes available about frames
