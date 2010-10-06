@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 12:31:25 HST 2010
+#  Last edit: Tue Oct  5 14:37:30 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -107,7 +107,6 @@ class IntegView(object):
         self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
-        self.lws.move_page(self.queuepage, self.handsets)
 
         # Populate "Command Executors" ws
         self.add_terminal(self.exws)

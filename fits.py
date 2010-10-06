@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jul  9 11:47:21 HST 2010
+#  Last edit: Tue Oct  5 14:36:04 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -150,9 +150,13 @@ class IntegGUINotify(object):
 
     def STARSint_hdlr(self, frameid, vals):
         """Called with information provided by the STARS interface."""
-        
-        if Monitor.has_keys(vals, ['done', 'time_done', 'end_result']) \
-               and vals['end_result'] == 0:
+
+        # TODO: integgui shouldn't have to understand this level of
+        # the stars protocol
+        if Monitor.has_keys(vals, ['done', 'time_done', 'end_result',
+                                   'end_status1', 'end_status2']) \
+               and ((vals['end_result'] == 0) and (vals['end_status1'] == 0) \
+                    and (vals['end_status2'] == 0)):
             # --> STARS may have the file
             self.in_stars(frameid)
 
