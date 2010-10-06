@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  2 23:07:22 HST 2010
+#  Last edit: Tue Oct  5 15:15:00 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -512,8 +512,10 @@ class IntegController(object):
             logname = match.group(1)
             # Remove any non-ascii characters that won't go into
             # a standard text buffer
-            buf = bnch.value.translate(None, self.deletechars)
-            self.gui.update_loginfo(logname, buf)
+            # this is now handled at the sending end....EJ
+            #buf = bnch.value['msgstr']
+            #bnch.value['msgstr'] = buf.translate(None, self.deletechars)
+            self.gui.update_loginfo(logname, bnch.value)
             
         
     # this one is called if new data becomes available about frames

@@ -138,7 +138,7 @@ launchers:
 #       cmd  : ECHINIT OBE_ID=FMOS OBE_MODE=LAUNCHER
 #
     -
-        label: "INIT TAKO"
+        label: "INIT FAM/CMM/AGSH"
         cmd  : INITTAKO OBE_ID=FMOS OBE_MODE=LAUNCHER
 
     -
