@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:30:25 HST 2010
+#  Last edit: Sat Oct  9 20:29:09 HST 2010
 #]
 #
 import os
@@ -18,8 +18,9 @@ RIGHT = 'right'
 class Page(object):
 
     def __init__(self, frame, name, title):
-        super(Page, self).__init__()
 
+        #super(Page, self).__init__()
+        
         self.frame = frame
         self.name = name
         self.title = title
@@ -45,8 +46,9 @@ class Page(object):
 class ButtonPage(Page):
 
     def __init__(self, frame, name, title):
-        super(ButtonPage, self).__init__(frame, name, title)
-        
+        Page.__init__(self, frame, name, title)
+        #super(ButtonPage, self).__init__(frame, name, title)
+
         self.add_menubar()
         
         # bottom buttons
@@ -136,7 +138,8 @@ class CommandPage(ButtonPage):
         self.paused = False
         # *** subclass should define self.tm_queueName ***
 
-        super(CommandPage, self).__init__(frame, name, title)
+        ButtonPage.__init__(self, frame, name, title)
+        #super(CommandPage, self).__init__(frame, name, title)
         
     def cancel(self):
         #controller = self.parent.get_controller()
@@ -179,8 +182,8 @@ class TextPage(Page):
     """Mixin class adding methods for text manipulation.
     """
 
-    def __init__(self, frame, name, title):
-        super(TextPage, self).__init__(frame, name, title)
+    ## def __init__(self, frame, name, title):
+    ##     super(TextPage, self).__init__(frame, name, title)
         
     def save(self, dirpath=None, filename=None):
         # If we have a filepath associated with this buffer, try to

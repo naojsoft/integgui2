@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 12:36:36 HST 2010
+#  Last edit: Sat Oct  9 19:47:23 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -21,7 +21,7 @@ drag_src = None
 class Workspace(object):
     
     def __init__(self, frame, name, title):
-        
+
         self.frame = frame
         self.name = name
         self.title = title
@@ -221,7 +221,8 @@ class Workspace(object):
 
             try:
                 del self.pages[name]
-                del self.pages_w[name]
+                # this needs to index by widget
+                #del self.pages_w[name]
             except KeyError:
                 pass
 

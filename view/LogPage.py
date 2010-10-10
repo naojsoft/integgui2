@@ -190,21 +190,6 @@ class LogPage(NotePage):
         self.size = self.file.tell()
         self.poll()
 
-    def g2log(self, svcname):
-        self.filepath = 'g2log(%s)' % svcname
-
-        try:
-            self.proc = subprocess.Popen(['g2log.py', svcname],
-                                         buzsize=1, stdout=subprocess.PIPE)
-        except Exception, e:
-            self.logger.error("Couldn't open tail process: %s" % str(e))
-            return
-        
-        self.file = self.proc.stdout
-        self.size = 0
-        self.poll()
-
-
     def close(self):
         try:
             self.file.close()
@@ -290,6 +275,7 @@ class MonLogPage(LogPage):
         if len(data) > 0:
             with self.lock:
                 for line in data.split('\n'):
-                    self.push(line)
+                    if len(line) > 0:
+                        self.push(line)
 
 #END

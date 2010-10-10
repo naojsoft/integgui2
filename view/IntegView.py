@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 14:37:30 HST 2010
+#  Last edit: Sat Oct  9 21:24:56 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -23,8 +23,8 @@ import Future
 # Local integgui2 imports
 import common
 from pages import *
-import Page
-import Workspace
+import Page as PG
+import Workspace as WS
 from dialogs import *
 
 
@@ -96,15 +96,19 @@ class IntegView(object):
         self.add_frameinfo(self.ojws)
 
         # Populate "Command Launchers" ws
-        self.queuepage = self.lws.addpage('queues', "Queues", WorkspacePage)
+        self.queuepage = self.lws.addpage('queues', "Queues",
+                                          WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
-        self.handsets = self.lws.addpage('handset', "Handset", WorkspacePage)
+        self.handsets = self.lws.addpage('handset', "Handset",
+                                         WorkspacePage.WorkspacePage)
 
         # Populate "Observation Info" ws
         self.add_obsinfo(self.oiws)
         self.add_monitor(self.oiws)
-        self.logpage = self.oiws.addpage('loginfo', "Logs", WorkspacePage)
-        self.fitspage = self.oiws.addpage('fitsview', "Fits", WorkspacePage)
+        self.logpage = self.oiws.addpage('loginfo', "Logs",
+                                         WorkspacePage.WorkspacePage)
+        self.fitspage = self.oiws.addpage('fitsview', "Fits",
+                                          WorkspacePage.WorkspacePage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
@@ -205,9 +209,9 @@ class IntegView(object):
         item.show()
         item.set_submenu(queuemenu)
 
-        item = gtk.MenuItem(label="Create queue ...")
+        item = gtk.MenuItem(label="New queue ...")
         queuemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_queue(),
+        item.connect_object ("activate", lambda w: self.gui_create_queue(self.queuepage),
                              "queue.Create queue")
         item.show()
 
@@ -215,7 +219,7 @@ class IntegView(object):
     def add_load_menus(self, filemenu, where):
 
         def _get_ws(bnch, name, where):
-            if isinstance(where, Workspace.Workspace):
+            if isinstance(where, WS.Workspace):
                 bnch[name] = where
             ## elif isinstance(where, Desktop):
             ##     bnch[name] = where.getws(name)
@@ -334,7 +338,7 @@ class IntegView(object):
 
         _get_ws(ws, 'queues', where)
 
-        item = gtk.MenuItem(label="New queue ...")
+        item = gtk.MenuItem(label="Queue ...")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(ws.queues),
                              "file.New queue")
@@ -822,7 +826,7 @@ class IntegView(object):
                        (not page.name in exclude):
                     page.close()
 
-                elif isinstance(page, WorkspacePage):
+                elif isinstance(page, WorkspacePage.WorkspacePage):
                     # Recurse into workspace pages
                     self.close_pages_ws(page, pageKlass, exclude=exclude)
 
@@ -965,7 +969,8 @@ class IntegView(object):
 
     def add_workspace(self, workspace, name):
         try:
-            page = workspace.addpage(name, name, WorkspacePage)
+            page = workspace.addpage(name, name,
+                                     WorkspacePage.WorkspacePage)
 
             workspace.select(page.name)
 
@@ -1006,7 +1011,7 @@ class IntegView(object):
             # Perform a global reset across all command-type pages
             for ws in self.ds.getWorkspaces():
                 for page in ws.getPages():
-                    if isinstance(page, Page.CommandPage):
+                    if isinstance(page, PG.CommandPage):
                         page.reset_pause()
         except Exception, e:
             self.logger.error("Error resetting pages: %s" % str(e))

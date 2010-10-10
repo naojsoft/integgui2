@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct  1 17:03:50 HST 2010
+#  Last edit: Sat Oct  9 21:18:07 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -18,46 +18,43 @@ import gtk
 import Bunch
 import remoteObjects as ro
 import common
-import Page
+import WorkspacePage
+from LogPage import NotePage
 
 
-class SkMonitorPage(Page.ButtonPage):
+class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
     def __init__(self, frame, name, title):
 
-        super(SkMonitorPage, self).__init__(frame, name, title)
+        WorkspacePage.ButtonWorkspacePage.__init__(self, frame, name, title)
 
-        # Holds my pages
-        self.pages = {}
         self.pagelist = []
         self.pagelimit = 100
-
+        self.db = {}
+        # TODO: this dict is growing indefinitely
         self.track = {}
-        self.lock = threading.RLock()
 
-        self.nb = gtk.Notebook()
-        self.nb.set_tab_pos(gtk.POS_LEFT)
-        self.nb.set_scrollable(True)
-        self.nb.set_show_tabs(True)
-        self.nb.set_show_border(True)
-        #self.nb.set_size_request(1000, 700)
-        self.nb.show()
+        # Don't allow DND to this workspace
+        self.nb.set_group_id(2)
+        self.nb.set_tab_pos(gtk.POS_RIGHT)
 
-        frame.pack_start(self.nb, expand=True, fill=True,
-                         padding=2)
+        ## menu = self.add_pulldownmenu("Page")
 
-        menu = self.add_pulldownmenu("Page")
-
-        item = gtk.MenuItem(label="Close")
-        # currently disabled
-        item.set_sensitive(False)
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        ## item = gtk.MenuItem(label="Close")
+        ## # currently disabled
+        ## item.set_sensitive(False)
+        ## menu.append(item)
+        ## item.connect_object ("activate", lambda w: self.close(),
+        ##                      "menu.Close")
+        ## item.show()
 
         # Options menu
-        menu = self.add_pulldownmenu("Option")
+        ## menu = self.add_pulldownmenu("Option")
+        menu = gtk.Menu()
+        item = gtk.MenuItem(label="Option")
+        self.wsmenu.append(item)
+        item.show()
+        item.set_submenu(menu)
 
         # Option variables
         self.save_decode_result = False
@@ -138,71 +135,48 @@ class SkMonitorPage(Page.ButtonPage):
         #tw.tag_raise('code')
         #print "all tags=%s" % str(all_tags)
 
-    def astIdtoTitle(self, ast_id):
-        page = self.pages[ast_id]
-        return page.title
+    ## def astIdtoTitle(self, ast_id):
+    ##     page = self.pages[ast_id]
+    ##     return page.title
         
-    def delpage(self, ast_id):
+    def delpage(self, name):
         with self.lock:
-            i = self.pagelist.index(ast_id)
-            self.nb.remove_page(i)
+            try:
+                super(SkMonitorPage, self).delpage(name)
+            except Exception, e:
+                # may have already been removed
+                pass
+            try:
+                self.pagelist.remove(name)
+            except ValueError:
+                # may have already been removed
+                pass
+            try:
+                del self.db[name]
+            except KeyError:
+                # may have already been removed
+                pass
 
-            del self.pages[ast_id]
-            self.pagelist.remove(ast_id)
-
-    def addpage(self, ast_id, title, text):
+    def addpage(self, name, title, text):
 
         with self.lock:
             # Make room for new pages
             while len(self.pagelist) >= self.pagelimit:
-                oldast_id = self.pagelist[0]
-                self.delpage(oldast_id)
-                
-            scrolled_window = gtk.ScrolledWindow()
-            scrolled_window.set_border_width(2)
+                oldname = self.pagelist.pop(0)
+                self.delpage(oldname)
 
-            scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                       gtk.POLICY_AUTOMATIC)
+            page = super(SkMonitorPage, self).addpage(name, title, NotePage)
 
-            tw = gtk.TextView(buffer=None)
-            scrolled_window.add(tw)
-            tw.show()
-            scrolled_window.show()
+            self.pagelist.append(name)
 
-            tw.set_editable(False)
-            tw.set_wrap_mode(gtk.WRAP_NONE)
-            tw.set_left_margin(4)
-            tw.set_right_margin(4)
+            self.nb.set_tab_reorderable(page.frame, False)
+            self.nb.set_tab_detachable(page.frame, False)
 
-            label = gtk.Label(title)
-            label.show()
+            self.insert_ast(page.tw, text)
+            page.tagtbl = page.buf.get_tag_table()
 
-            self.nb.append_page(scrolled_window, label)
-
-            self.insert_ast(tw, text)
-
-            txtbuf = tw.get_buffer()
-            tagtbl = txtbuf.get_tag_table()
-            try:
-                page = self.pages[ast_id]
-                page.tw = tw
-                page.buf = txtbuf
-                page.tagtbl = tagtbl
-                page.title = title
-            except KeyError:
-                self.pages[ast_id] = Bunch.Bunch(tw=tw, title=title,
-                                                 buf=txtbuf, tagtbl=tagtbl)
-
-            self.pagelist.append(ast_id)
-
-            self.setpage(ast_id)
-
-    def setpage(self, name):
-        # Because %$%(*)&^! gtk notebook widget doesn't associate names
-        # with pages
-        i = self.pagelist.index(name)
-        self.nb.set_current_page(i)
-
+            #self.select(name)
+            return page
         
     def change_text(self, page, tagname, key):
         tagname = str(tagname)
@@ -217,44 +191,14 @@ class SkMonitorPage(Page.ButtonPage):
             
         #page.tw.tag_raise(ast_num)
         # Scroll the view to this area
-        start, end = self.get_region(page.buf, tagname)
+        start, end = common.get_region(page.buf, tagname)
         page.tw.scroll_to_iter(start, 0.1)
-
-
-    def get_region(self, txtbuf, tagname):
-        """Returns a (start, end) pair of Gtk text buffer iterators
-        associated with this tag.
-        """
-        # Painfully inefficient and error-prone way to locate a tagged
-        # region.  Seems gtk text buffers have tags, but no good way to
-        # manipulate text associated with them efficiently.
-
-        tagname = str(tagname)
-
-        # Get the tag table associated with this text buffer
-        tagtbl = txtbuf.get_tag_table()
-        # Look up the tag
-        tag = tagtbl.lookup(tagname)
-        
-        # Get text iters at beginning and end of buffer
-        start, end = txtbuf.get_bounds()
-
-        # Now search forward from beginning for first location of this
-        # tag, and backwards from the end
-        result = start.forward_to_tag_toggle(tag)
-        if not result:
-            raise TagError("Tag not found: '%s'" % tagname)
-        result = end.backward_to_tag_toggle(tag)
-        if not result:
-            raise TagError("Tag not found: '%s'" % tagname)
-
-        return (start, end)
 
 
     def replace_text(self, page, tagname, textstr):
         tagname = str(tagname)
         txtbuf = page.buf
-        start, end = self.get_region(txtbuf, tagname)
+        start, end = common.get_region(txtbuf, tagname)
         txtbuf.delete(start, end)
         txtbuf.insert_with_tags_by_name(start, textstr, tagname)
 
@@ -265,7 +209,7 @@ class SkMonitorPage(Page.ButtonPage):
     def append_error(self, page, tagname, textstr):
         tagname = str(tagname)
         txtbuf = page.buf
-        start, end = self.get_region(txtbuf, tagname)
+        start, end = common.get_region(txtbuf, tagname)
         txtbuf.insert_with_tags_by_name(end, textstr, tagname)
 
         self.change_text(page, tagname, 'error')
@@ -278,7 +222,7 @@ class SkMonitorPage(Page.ButtonPage):
 
         tagname = str(tagname)
         txtbuf = page.buf
-        start, end = self.get_region(txtbuf, tagname)
+        start, end = common.get_region(txtbuf, tagname)
 
         if vals.has_key('time_added'):
             length = vals['time_added']
@@ -292,7 +236,8 @@ class SkMonitorPage(Page.ButtonPage):
 
     def update_page(self, bnch):
 
-        page = bnch.page
+        info = bnch.info
+        page = info.page
         vals = bnch.state
         #print "vals = %s" % str(vals)
         ast_num = vals['ast_num']
@@ -318,8 +263,8 @@ class SkMonitorPage(Page.ButtonPage):
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):
-                if self.track_elapsed and bnch.page.has_key('asttime'):
-                    elapsed = vals['task_start'] - bnch.page.asttime
+                if self.track_elapsed and info.has_key('asttime'):
+                    elapsed = vals['task_start'] - info.asttime
                 else:
                     elapsed = vals['task_end'] - vals['task_start']
                 self.update_time(page, ast_num, vals, '[ F %9.3f s ]: ' % (
@@ -360,30 +305,36 @@ class SkMonitorPage(Page.ButtonPage):
         time_sfx = ('%.3f' % (time_cmd - time_int)).split('.')[1]
         title = time_str + ',' + time_sfx
         return title
+
             
     def process_ast(self, ast_id, vals):
         #print ast_id, vals
-
+        name = str(ast_id)
+        
         with self.lock:
             try:
-                page = self.pages[ast_id]
+                info = self.db[name]
+                page = info.page
             except KeyError:
-                # this page is not received/set up yet
-                page = Bunch.Bunch(vals)
-                page.nodes = {}
-                self.pages[ast_id] = page
+                # this ast_id is not received/set up yet
+                info = Bunch.Bunch(nodes={}, page=None)
+                # ??for what?
+                info.update(vals)
+                self.db[name] = info
+                page = None
 
             if vals.has_key('ast_buf'):
                 ast_str = ro.binary_decode(vals['ast_buf'])
                 # Get the time of the command to construct the tab title
                 title = self.time2str(vals['ast_time'])
-                page.asttime = vals['ast_time']
+                info.asttime = vals['ast_time']
 
                 # TODO: what if this page has already been deleted?
                 if self.save_decode_result:
-                    self.addpage(ast_id + '.decode', title, ast_str)
+                    self.addpage(name + '.decode', title, ast_str)
 
-                self.addpage(ast_id, title, ast_str)
+                page = self.addpage(name, title, ast_str)
+                info.page = page
 
             elif vals.has_key('ast_track'):
                 path = vals['ast_track']
@@ -395,14 +346,14 @@ class SkMonitorPage(Page.ButtonPage):
                
                 # Make an entry for this ast node, if there isn't one already
                 ast_num = '%d' % vals['ast_num']
-                state = page.nodes.setdefault(ast_num, vals)
+                state = info.nodes.setdefault(ast_num, vals)
 
-                bnch = Bunch.Bunch(page=page, state=state)
+                bnch = Bunch.Bunch(info=info, state=state)
                 self.track.setdefault(vals['ast_track'], bnch)
 
                 # It's possible in some cases that the ast_track could
                 # arrive before the page is added or set up
-                if not hasattr(page, 'buf'):
+                if not page:
                     return
 
                 # Replace the decode string with the actual parameters
@@ -425,7 +376,8 @@ class SkMonitorPage(Page.ButtonPage):
             #print path, vals
             bnch.state.update(vals)
 
-            self.update_page(bnch)
+            if bnch.info.page:
+                self.update_page(bnch)
             
 
     def process_ast_err(self, ast_id, vals):
