@@ -1,8 +1,9 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 13:02:12 HST 2010
+#  Last edit: Mon Oct 11 23:38:58 HST 2010
 #]
 import os.path
+import string
 
 import common
 import Page
@@ -14,6 +15,12 @@ class CodePage(Page.ButtonPage, Page.TextPage):
     def __init__(self, frame, name, title):
 
         super(CodePage, self).__init__(frame, name, title)
+
+        # Used to strip out bogus characters from buffers
+        acceptchars = set(string.printable)
+        self.deletechars = ''.join(set(string.maketrans('', '')) -
+                                   acceptchars)
+        self.transtbl = string.maketrans('\r', '\n')
 
         self.hbox = gtk.HPaned()
         
@@ -83,6 +90,12 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
 
     def loadbuf(self, buftxt):
+
+        # "cleanse" text--change CR to NL, delete unprintable chars
+        # TODO: what about unicode?
+        buftxt = buftxt.translate(self.transtbl, self.deletechars)
+        # translate tabs
+        buftxt = buftxt.replace('\t', '        ')
 
         # insert text
         tags = ['code']

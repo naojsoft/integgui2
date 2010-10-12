@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 28 13:33:27 HST 2010
+#  Last edit: Mon Oct 11 23:45:13 HST 2010
 #]
 import sys, traceback
 
@@ -71,10 +71,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         tw.set_wrap_mode(gtk.WRAP_NONE)
         tw.set_left_margin(2)
         tw.set_right_margin(2)
+        
         tw.connect("button-press-event", self.jump_tag)
 
         self.tagtw = tw
         self.tagbuf = tw.get_buffer()
+        # self.tagbuf.deserialize_set_can_create_tags("application/x-gtk-text-buffer-rich-text", False)
         self.tagidx = {}
         # hack to get auto-scrolling to work
         self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
@@ -405,6 +407,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 match = regex_varref.match(line)
                 while match:
                     pfx, varref, sfx = match.groups()
+                    #print "1) %d pfx=(%s) varref=(%s) sfx=(%s)" % (
+                    #    lineno, pfx, varref, sfx)
                     varref = varref.upper()
                     start.set_line(lineno)
                     offset += len(pfx)
@@ -412,6 +416,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     end.set_line(lineno)
                     offset += len(varref)
                     end.forward_chars(offset)
+                    if end.get_line() > lineno:
+                        end.backward_char()
 
                     self.buf.apply_tag_by_name('varref', start, end)
                     try:
@@ -425,14 +431,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             lineno = 0
             for line in buf.split('\n'):
-                line = line.strip()
-                if line.startswith('###'):
+                sline = line.strip()
+                if sline.startswith('###'):
                     addtags(lineno, line, ['comment3'])
 
-                elif line.startswith('##'):
+                elif sline.startswith('##'):
                     addtags(lineno, line, ['comment2'])
 
-                elif line.startswith('#'):
+                elif sline.startswith('#'):
                     addtags(lineno, line, ['comment1'])
 
                 else:
@@ -591,6 +597,21 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             
         return True
 
+
+    def copy(self):
+        # A hack to get around accidentally copying rich text tags along
+        # with the text
+
+        # Get the selection.  If there is none, we're done.
+        tup = self.buf.get_selection_bounds()
+        if not tup:
+            return
+
+        # Set the clipboard to the plain ASCII text
+        text = self.buf.get_text(*tup)
+        common.view.clipboard.set_text(text, -1)
+
+        
     def keypress(self, w, event):
         keyname = gtk.gdk.keyval_name(event.keyval)
         #print "key pressed --> %s" % keyname
@@ -610,6 +631,10 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
             elif keyname == 'h':
                 common.view.raise_handset()
+                return True
+        
+            elif keyname == 'c':
+                self.copy()
                 return True
         
         return False
@@ -713,7 +738,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for i in xrange(int(lrow)+1-frow):
 
             row = frow+i
-            print "row: %d" % (row)
+            #print "row: %d" % (row)
 
             first.set_line(row)
             last.set_line(row)

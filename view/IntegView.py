@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  9 21:24:56 HST 2010
+#  Last edit: Mon Oct 11 22:22:14 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -70,6 +70,10 @@ class IntegView(object):
         root.set_title('Gen2 Integrated GUI II')
         root.connect("delete_event", self.delete_event)
         root.set_border_width(2)
+
+        # These are sometimes needed
+        self.display = gtk.gdk.display_manager_get().get_default_display()
+        self.clipboard = gtk.Clipboard(self.display, "CLIPBOARD")
 
         # create main frame
         self.w.mframe = gtk.VBox(spacing=2)
@@ -824,11 +828,12 @@ class IntegView(object):
             for page in workspace.getPages():
                 if isinstance(page, pageKlass) and \
                        (not page.name in exclude):
+                    self.logger.debug("closing page '%s'" % (page.name))
                     page.close()
 
                 elif isinstance(page, WorkspacePage.WorkspacePage):
                     # Recurse into workspace pages
-                    self.close_pages_ws(page, pageKlass, exclude=exclude)
+                    self.close_pages_workspace(page, pageKlass, exclude=exclude)
 
         except Exception, e:
             self.logger.error("Error closing pages: %s" % str(e))
@@ -838,7 +843,7 @@ class IntegView(object):
             self.close_pages_workspace(ws, pageKlass, exclude=exclude)
 
     def close_pages(self, pageKlass, exclude=[]):
-        self.close_pages_desktop(self.ds)
+        self.close_pages_desktop(self.ds, pageKlass)
             
     def close_launchers(self):
         return self.close_pages(LauncherPage)
