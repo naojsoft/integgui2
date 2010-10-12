@@ -1,0 +1,70 @@
+# 
+# IRCS.yml -- IRCS launchers file 
+#
+# This is a YAML file
+
+tabname: "IRCS"
+launchers:
+#
+# IRCSmovePix
+#
+    -
+        label:  "IRCSmovePix" # IRCS pixel offset 
+        cmd  : CCDOFFSET OBE_ID=IRCS OBE_MODE=IRCS_SETUP DX=$VAL03 DY=$VAL04 SLIT_PA=$VAL05
+        params:
+            - [ VAL01, LIST, [["IRCS 58MAS", "58MAS"],["IRCS 23MAS", "23MAS"]], 
+                 "Ins & pix scale" ]
+            - [ VAL02, LIST, [["Imaging", "IMG"],["Grism", "GRS"],["Echelle","ECH"]],
+                 "Obs Mode" ]
+            - [ VAL03, INPUT, 6, 0.0, "X Offset" ]
+            - [ VAL04, INPUT, 6, 0.0, "Y Offset" ]
+            - [ VAL05, INPUT, 6, 0.0, "PA" ]
+
+    - sep
+ 
+    -
+        label:  "MoveGuide0" # MoveGuide 0
+        cmd  : MoveGuide0 OBE_ID=COMMON OBE_MODE=TOOL DELTA_RA=$VAL01 DELTA_DEC=$VAL02
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "RA Offset" ]
+            - [ VAL02, INPUT, 6, 0.0, "Dec Offset" ]
+
+    - sep
+
+    -
+        label: "Set AO Point (IRCS pix)" # AO acquisition
+        cmd  : AOPSET OBE_ID=IRCS OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "X" ]
+            - [ VAL02, INPUT, 6, 0.0, "Y" ]
+            - [ VAL03, LIST, [["52MAS", "52MAS"],["20MAS", "20MAS"]], "Pixel Scale" ]
+
+    - sep
+
+    -
+        label: "Offset(IRCS pix)" # AO acquisition offset
+        cmd  : AOOFFSET OBE_ID=IRCS OBE_MODE=IRCS_SUBROUTINE X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 COORD=$VAL04 MODE=$VAL05 TTSTEP=$VAL06 PA=$VAL07
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "dX" ]
+            - [ VAL02, INPUT, 6, 0.0, "dY" ]
+            - [ VAL03, LIST, [["52MAS", "52MAS"],["20MAS", "20MAS"]], "Scale" ]
+            - [ VAL04, LIST, [["Sdrl", "ABS"],["N-Sdrl", "FILE"]], "Type" ]
+            - [ VAL05, LIST, [["TT", "TT"],["TT NULL", "TTNULL"],["AO POINT","AOP"]],
+                  "Mode" ]
+            - [ VAL06, INPUT, 2, 1, "Step" ]
+            - [ VAL07, INPUT, 6, 0.0, "PA" ]
+
+    - sep
+
+    -
+        label:  "TT Off-load" # TT nulling
+        cmd  : AO_TTNULL OBE_ID=IRCS OBE_MODE=LAUNCHER TT_X=$VAL01 TT_Y=$VAL02 PA=$VAL03 COORD=$VAL04
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "TT X" ]
+            - [ VAL02, INPUT, 6, 0.0, "TT Y" ]
+            - [ VAL03, INPUT, 6, 0.0, "PA" ]
+            - [ VAL04, LIST, [["Sidereal", "ABS"],["Non-Sidereal", "FILE"]], "Type" ]
+
+    - sep
+
+#END
