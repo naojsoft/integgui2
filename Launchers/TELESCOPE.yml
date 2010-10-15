@@ -68,9 +68,9 @@ launchers:
 
     -
         label: "Setup Field"
-        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL RA=$VAL01 DEC=$VAL02 EQUINOX=$VAL03 INSROT_PA=$VAL04 Object=$VAL05
+        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL RA=$VAL01 DEC=$VAL02 EQUINOX=$VAL03 INSROT_PA=$VAL04 Object="$VAL05"
         params:
-            - [ VAL01, INPUT, 10, 000000.000, "RA" ]
+            - [ VAL01, INPUT, 10, "000000.000", "RA" ]
             - [ VAL02, INPUT, 10, "+00000.00", "DEC" ]
             - [ VAL03, INPUT, 6, 2000.0, "Equinox" ]
             - break
@@ -79,7 +79,7 @@ launchers:
 
     -
         label: "NonSiderealTracking"
-        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL Target=$VAL01 INSROT_PA=$VAL02 Object=$VAL03 Coord=file
+        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL Target=$VAL01 INSROT_PA=$VAL02 Object="$VAL03" Coord=file
         params:
             - [ VAL01, INPUT, 16, "08###.dat", "TargetFile" ]
             - [ VAL02, INPUT, 8, 0.00, "Insrot_PA" ]

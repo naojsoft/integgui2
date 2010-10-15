@@ -117,12 +117,12 @@ class HandsetPage(Page.CommandPage):
         for x, y, name, axis, mult in ((off_xv, off_yh-140, 'up3', 0, 10),
                                        (off_xv, off_yh-100, 'up2', 0, 3),
                                        (off_xv, off_yh-60, 'up1', 0, 1),
-                                       (off_xv-170, off_yh, 'left3', 1, -10),
-                                       (off_xv-130, off_yh, 'left2', 1, -3),
-                                       (off_xv-90, off_yh, 'left1', 1, -1),
-                                       (off_xv+80, off_yh, 'right1', 1, 1),
-                                       (off_xv+120, off_yh, 'right2', 1, 3),
-                                       (off_xv+160, off_yh, 'right3', 1, 10),
+                                       (off_xv-170, off_yh, 'left3', 1, 10),
+                                       (off_xv-130, off_yh, 'left2', 1, 3),
+                                       (off_xv-90, off_yh, 'left1', 1, 1),
+                                       (off_xv+80, off_yh, 'right1', 1, -1),
+                                       (off_xv+120, off_yh, 'right2', 1, -3),
+                                       (off_xv+160, off_yh, 'right3', 1, -10),
                                        (off_xv, off_yh+60, 'down1', 0, -1),
                                        (off_xv, off_yh+100, 'down2', 0, -3),
                                        (off_xv, off_yh+140, 'down3', 0, -10),
@@ -351,9 +351,16 @@ class HandsetPage(Page.CommandPage):
         """Callback when an arrow button is pressed.
         """
         info = self.arrow_info
+        stepval = self.widgets['entries']['mainstep'].get_text()
+        try:
+            stepval = float(stepval)
+        except Exception, e:
+            common.view.popup_error("Bad step value '%s': %s" % (
+                    stepval, str(e)))
+            return
 
         self.logger.debug("Move by arrow: axis=%d mult=%f" % (axis, mult))
-        val = self.stepval * mult
+        val = stepval * mult
         if axis == 0:
             var = info.dec_var
         else:
