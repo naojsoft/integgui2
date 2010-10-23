@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Oct 11 22:22:14 HST 2010
+#  Last edit: Fri Oct 22 15:30:02 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -284,6 +284,12 @@ class IntegView(object):
         filemenu.append(item)
         item.show()
         item.set_submenu(loadmenu)
+
+        item = gtk.MenuItem(label="directory")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_folder(ws.executers, '*'),
+                             "file.Load dir")
+        item.show()
 
         _get_ws(ws, 'fits', where)
         # item = gtk.MenuItem(label="fits")
@@ -606,6 +612,14 @@ class IntegView(object):
                                                               TaskPage),
                            initialdir=initialdir)
 
+    def gui_load_folder(self, workspace, pattern):
+        initialdir = self.procdir
+        self.filesel.popup("Load folder",
+                           lambda dirpath: self.load_folder(workspace,
+                                                             dirpath,
+                                                             pattern=pattern),
+                           initialdir=initialdir)
+
     def gui_load_inf(self, workspace):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure',
                                   'COMICS')
@@ -664,6 +678,28 @@ class IntegView(object):
     def load_ope(self, filepath):
         return self.load_generic(self.exws, filepath, OpePage.OpePage)
 
+    def load_inf(self, filepath):
+        return self.load_generic(self.exws, filepath, InfPage)
+
+    def load_file(self, filepath):
+        if os.path.isdir(filepath):
+            return self.load_folder(self.exws, filepath)
+        else:
+            pfx, ext = os.path.splitext(filepath)
+            ext = ext.lower()[1:]
+            try:
+                d = {'ope': OpePage.OpePage,
+                     'cd': OpePage.OpePage,
+                     'sk': SkPage,
+                     'py': TaskPage,
+                     'inf': InfPage,
+                     }
+                pageKlass = d[ext]
+            except KeyError:
+                pageKlass = CodePage.CodePage
+
+            return self.load_generic(self.exws, filepath, pageKlass)
+
     def load_generic(self, workspace, filepath, pageKlass):
         try:
             buf = self.readfile(filepath)
@@ -673,6 +709,21 @@ class IntegView(object):
         except Exception, e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
+
+
+    def load_folder(self, workspace, dirpath, pattern='*'):
+        try:
+            pathpfx, dirname = os.path.split(dirpath)
+
+            page = workspace.addpage(dirpath, dirname, DirectoryPage)
+            page.load(dirpath, pattern)
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load directory '%s': %s" % (
+                    dirpath, str(e)))
+            return None
 
 
     def gui_load_launcher(self, workspace):

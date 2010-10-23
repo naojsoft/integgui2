@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:59:14 HST 2010
+#  Last edit: Fri Oct 22 15:08:05 HST 2010
 #]
 
 import os
@@ -46,7 +46,8 @@ class InfPage(CodePage.CodePage):
 
             opepath = os.path.join(infdir, '%s.ope' % infpfx)
 
-            common.view.open_generic(output, opepath, OpePage.OpePage)
+            common.view.open_generic(common.view.exws, output, opepath,
+                                     OpePage.OpePage)
 
         except Exception, e:
             return common.view.popup_error("Cannot generate ope file: %s" % (
