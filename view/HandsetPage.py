@@ -42,7 +42,7 @@ class HandsetPage(Page.CommandPage):
                                    gtk.POLICY_AUTOMATIC)
 
         lw = gtk.Layout()
-        lw.set_size(500, 350)
+        lw.set_size(420, 340)
         scrolled_window.add(lw)
         lw.show()
         scrolled_window.show()
