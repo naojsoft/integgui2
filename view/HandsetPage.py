@@ -2,7 +2,7 @@
 # HandsetPage.py -- implements an Integgui2 handset
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:32:26 HST 2010
+#  Last edit: Fri Oct 22 21:23:45 HST 2010
 #]
 
 import gtk
@@ -42,7 +42,7 @@ class HandsetPage(Page.CommandPage):
                                    gtk.POLICY_AUTOMATIC)
 
         lw = gtk.Layout()
-        lw.set_size(700, 350)
+        lw.set_size(500, 350)
         scrolled_window.add(lw)
         lw.show()
         scrolled_window.show()
@@ -110,7 +110,7 @@ class HandsetPage(Page.CommandPage):
         widgets = {}
 
         # Place arrow buttons
-        off_xv = 300
+        off_xv = 220
         off_yh = 150
 
         btns = widgets.setdefault('buttons', {})
@@ -173,7 +173,7 @@ class HandsetPage(Page.CommandPage):
         # Compass
         lbl = self._make_compass('N', 'S', 'E', 'W')
         lbls['compass'] = lbl
-        self.lw.put(lbl, 380, 35)
+        self.lw.put(lbl, off_xv+80, off_yh-120)
 
         # Place buttons
         btns = widgets['buttons']

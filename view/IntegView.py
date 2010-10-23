@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 15:30:02 HST 2010
+#  Last edit: Fri Oct 22 20:38:57 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -93,6 +93,8 @@ class IntegView(object):
         # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Observation Journal")
         self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
+        self.umws = self.ds.addws('um', 'umws', "UM Workspace")
+        self.lmws  = self.ds.addws('lm', 'lmws', "LM Workspace")
         self.lws  = self.ds.addws('ll', 'launchers', "Command Launchers")
         self.exws = self.ds.addws('lr', 'executor', "Command Executers")
 
@@ -100,10 +102,10 @@ class IntegView(object):
         self.add_frameinfo(self.ojws)
 
         # Populate "Command Launchers" ws
-        self.queuepage = self.lws.addpage('queues', "Queues",
-                                          WorkspacePage.WorkspacePage)
+        self.queuepage = self.lmws.addpage('queues', "Queues",
+                                           WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
-        self.handsets = self.lws.addpage('handset', "Handset",
+        self.handsets = self.lmws.addpage('handset', "Handset",
                                          WorkspacePage.WorkspacePage)
 
         # Populate "Observation Info" ws

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 11:02:32 HST 2010
+#  Last edit: Fri Oct 22 21:24:15 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -24,31 +24,43 @@ class Desktop(object):
         
         # TODO: should generalize to number of rows and columns
 
-        paned = gtk.HPaned()
-        self.hframe = paned
-        paned.show()
+        vframe = gtk.VPaned()
 
-        frame.pack_start(paned, fill=True, expand=True)
-
-        lframe = gtk.VPaned()
-        rframe = gtk.VPaned()
-
-        paned.add1(lframe)
-        paned.add2(rframe)
+        ulhframe = gtk.HPaned()
+        llhframe = gtk.HPaned()
+        umhframe = gtk.HPaned()
+        lmhframe = gtk.HPaned()
+        ulhframe.add2(umhframe)
+        llhframe.add2(lmhframe)
+        
+        frame.pack_start(vframe, fill=True, expand=True)
 
         ul = gtk.VBox()
-        lframe.add1(ul)
+        ul.set_size_request(850, 400)
         ll = gtk.VBox()
-        lframe.add2(ll)
-
+        ll.set_size_request(450, -1)
+        um = gtk.VBox()
+        um.set_size_request(0, -1)
+        lm = gtk.VBox()
+        lm.set_size_request(460, -1)
         ur = gtk.VBox()
-        rframe.add1(ur)
         lr = gtk.VBox()
-        rframe.add2(lr)
 
+        ulhframe.add1(ul)
+        llhframe.add1(ll)
+        umhframe.add1(um)
+        lmhframe.add1(lm)
+        umhframe.add2(ur)
+        lmhframe.add2(lr)
+
+        vframe.add1(ulhframe)
+        vframe.add2(llhframe)
+        
         self.ws_fr = {
             'll': ll,
             'ul': ul,
+            'lm': lm,
+            'um': um,
             'lr': lr,
             'ur': ur,
             }
@@ -56,7 +68,7 @@ class Desktop(object):
         self.ws = {}
         self.lock = threading.RLock()
 
-        paned.show_all()
+        vframe.show_all()
 
 
     def get_wsframe(self, name):
