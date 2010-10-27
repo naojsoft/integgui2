@@ -10,7 +10,7 @@ launchers:
 #################
     - 
         label: "Image Rotator"
-        cmd  : AO188_IMGROT OBE_ID=AO188 OBE_MODE=LAUNCHER MOVE=$VAL01 COORD=$VAL02 RA=$VAL03 DEC=$VAL04 EQUINOX=$VAL05 PA=$VAL06 ANGLE=$VAL07 TARGET=$VAL08
+        cmd  : AO188_IMGROT OBE_ID=AO188 OBE_MODE=LAUNCHER MOVE=$VAL01 COORD=$VAL02 RA=$VAL03 DEC=$VAL04 EQUINOX=$VAL05 PA=$VAL06 ANGLE=$VAL07 TARGET=$VAL08 TMODE=$VAL09
         params:
             - [ VAL01, LIST, [ LINK, FREE, SLEW, STOP ], "MOVE" ]
             - [ VAL02, LIST, [ ABS, REL, FILE ], "COORD" ]
@@ -22,6 +22,7 @@ launchers:
             - [ VAL06, INPUT, 6, 0.0, "PA" ]
             - [ VAL07, INPUT, 6, 90.0, "ANGLE" ]
             - [ VAL08, INPUT, 8, NOP, "TARGET" ]
+            - [ VAL09, LIST, [["SID", "SID"], ["NON-SID","NON-SID"],["ADI", "ADI"]], "TMODE"]
 
     - sep
 

@@ -118,9 +118,9 @@ launchers:
 #######################
     -
         label: "Move F-conv"  
-        cmd  : AO188_FCONV OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+        cmd  : AO188_FCONV OBE_ID=AO188 OBE_MODE=LAUNCHER POS="$VAL01"
         params:
-            - [ VAL01, LIST, [["IN", IN], ["OUT", OUT]] ]
+            - [ VAL01, LIST, [["IN", "IN"], ["OUT", "OUT"]] ]
 
     - sep
 

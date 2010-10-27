@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 20:38:57 HST 2010
+#  Last edit: Sat Oct 23 13:13:58 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -91,22 +91,22 @@ class IntegView(object):
         self.ds.logger = logger
 
         # Add workspaces
-        self.ojws = self.ds.addws('ul', 'obsjrn', "Observation Journal")
-        self.oiws = self.ds.addws('ur', 'obsinfo', "Observation Info")
-        self.umws = self.ds.addws('um', 'umws', "UM Workspace")
-        self.lmws  = self.ds.addws('lm', 'lmws', "LM Workspace")
-        self.lws  = self.ds.addws('ll', 'launchers', "Command Launchers")
-        self.exws = self.ds.addws('lr', 'executor', "Command Executers")
+        self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
+        self.oiws = self.ds.addws('ur', 'obsinfo', "Upper Right Workspace")
+        self.umws = self.ds.addws('um', 'umws', "Upper Middle Workspace")
+        self.lmws  = self.ds.addws('lm', 'lmws', "Lower Middle Workspace")
+        self.lws  = self.ds.addws('ll', 'launchers', "Lower Left Workspace")
+        self.exws = self.ds.addws('lr', 'executor', "Lower Right Workspace")
 
         # Populate "Observation Journal" ws
         self.add_frameinfo(self.ojws)
 
-        # Populate "Command Launchers" ws
+        # Populate "Lower Middle" ws
+        self.handsets = self.lmws.addpage('handset', "Handset",
+                                         WorkspacePage.WorkspacePage)
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
-        self.handsets = self.lmws.addpage('handset', "Handset",
-                                         WorkspacePage.WorkspacePage)
 
         # Populate "Observation Info" ws
         self.add_obsinfo(self.oiws)
@@ -1090,7 +1090,7 @@ class IntegView(object):
             self.gui_do(self.framepage.update_frames, framelist)
 
     def update_obsinfo(self, infodict):
-        self.logger.info("OBSINFO=%s" % str(infodict))
+        self.logger.debug("OBSINFO=%s" % str(infodict))
         if hasattr(self, 'obsinfo'):
             self.gui_do(self.obsinfo.update_obsinfo, infodict)
    

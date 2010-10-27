@@ -152,7 +152,7 @@ launchers:
         cmd  : FocusSVSequence OBE_ID=HDS OBE_MODE=LAUNCHER SLIT_WIDTH=$VAL01 SLIT_LENGTH=$VAL02
         params:
             - [ VAL01, INPUT, 12, "-1", "Width(sec/um)" ]
-            - [ VAL02, INPUT, 12, "-1", "Length(sec/um)" ]
+            - [ VAL02, INPUT, 12, "30", "Length(sec/um)" ]
 
     -
         label: "Prepare FocusAG"
@@ -164,7 +164,7 @@ launchers:
 
     -
         label: "Setup CAL"
-        cmd  : SetCal OBE_ID=HDS OBE_MODE=LAUNCHER OBJECT=$VAL01 AMP=$VAL02 FILTER01=$VAL03 FILTER02=$VAL04 FILTER03=$VAL05 FILTER04=$VAL06 F_SELECT=Ns_Opt
+        cmd  : SetCal OBE_ID=HDS OBE_MODE=LAUNCHER CAL_SOURCE=$VAL01 AMP=$VAL02 FILTER01=$VAL03 FILTER02=$VAL04 FILTER03=$VAL05 FILTER04=$VAL06 F_SELECT=Ns_Opt
         params:
             - [ VAL01, LIST, [["HAL", HAL], ["HCT", HCT]] ]
             - [ VAL02, INPUT, 4, 4.0, "Amp" ]
@@ -175,7 +175,7 @@ launchers:
 
     -
         label: "Shutdown CAL"
-        cmd  : ShutdownComparison OBE_ID=HDS OBE_MODE=LAUNCHER OBJECT=$VAL01 RETRACT=$VAL02
+        cmd  : ShutdownComparison OBE_ID=HDS OBE_MODE=LAUNCHER CAL_SOURCE=$VAL01 RETRACT=$VAL02
         params:
             - [ VAL01, LIST, [["HAL", HAL], ["HCT", HCT]] ]
             - [ VAL02, LIST, [["Retract", "YES"], ["Lamp_Off", "NO"]] ]

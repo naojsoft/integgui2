@@ -270,7 +270,7 @@ class Workspace(object):
         
     # DRAG AND DROP TABS
     def _page_added(self, nb, child, page_num):
-        self.logger.info("page added %d" % page_num)
+        self.logger.debug("page added %d" % page_num)
         with self.lock:
             if not self.pages_w.has_key(child):
                 pageobj = child.get_data('ig_page')
@@ -282,7 +282,7 @@ class Workspace(object):
             return True
 
     def _page_removed(self, nb, child, page_num):
-        self.logger.info("page removed %d" % page_num)
+        self.logger.debug("page removed %d" % page_num)
         with self.lock:
             try:
                 pageobj = child.get_data('ig_page')

@@ -152,7 +152,8 @@ def main(options, args):
 
         if options.logmon:
             mymon.subscribe_remote(options.logmon, ['logs'], {})
-            mymon.subscribe(options.logmon, ['logs'], {})
+            #mymon.subscribe(options.logmon, ['logs'], {})
+            mymon.logmon(logger, options.logmon, ['logs'])
 
 ##         svc.ro_start(wait=True)
 ##         ro_server_started = True
