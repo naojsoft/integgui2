@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  2 23:07:20 HST 2010
+#  Last edit: Wed Nov  3 16:40:39 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -77,6 +77,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
+        self.menu_close = item
         item.show()
 
 
@@ -99,6 +100,10 @@ class NotePage(Page.ButtonPage, Page.TextPage):
             # tag may already exist--that's ok
             pass
 
+    def clear(self):
+        start, end = self.buf.get_bounds()
+        self.buf.delete(start, end)
+        
     def _cull(self):
         if self.logsize:
             end = self.buf.get_end_iter()

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Oct 11 23:38:58 HST 2010
+#  Last edit: Wed Nov  3 15:37:49 HST 2010
 #]
 import os.path
 import string
@@ -22,8 +22,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                    acceptchars)
         self.transtbl = string.maketrans('\r', '\n')
 
-        self.hbox = gtk.HPaned()
-        
         self.border = gtk.Frame("")
         self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
         self.border.set_label_align(0.1, 0.5)
@@ -51,9 +49,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.border.add(scrolled_window)
         self.border.show()
 
-        self.hbox.pack2(self.border, resize=False, shrink=True)
-        self.hbox.show()
-        frame.pack_start(self.hbox, fill=True, expand=True)
+        frame.pack_start(self.border, fill=True, expand=True)
 
         menu = self.add_pulldownmenu("Page")
 

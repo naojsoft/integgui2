@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 16:36:45 HST 2010
+#  Last edit: Wed Oct 27 21:07:11 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -15,15 +15,6 @@ import threading
 
 # GUI imports
 import gtk
-from matplotlib.axes import Subplot
-from matplotlib.figure import Figure
-
-# uncomment to select /GTK/GTKAgg/GTKCairo
-#from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
-#from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvas
-
-#from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 
 import common
 import Page
@@ -31,6 +22,7 @@ import Page
 import Bunch
 import astro.fitsdata as fitsdata
 import Datasrc
+import Gen2.Fitsview.FitsImage as FitsImage
 
 
 class FitsViewerPage(Page.ButtonPage):
@@ -72,23 +64,10 @@ class FitsViewerPage(Page.ButtonPage):
         scrolled_window.set_size_request(250, -1)
         hbox1.add1(scrolled_window)
 
-##         self.border = gtk.Frame("")
-##         self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-##         self.border.set_label_align(0.1, 0.5)
+        self.fitsimage = FitsImage.FitsImage(512, 512)
+        self.widget = self.fitsimage.get_widget()
 
-        self.fig = Figure(figsize=(5,4), dpi=100)
-        self.axes = self.fig.add_subplot(111, autoscale_on=True)
-        #self.axes.hold(False)
-        self.axes.hold(True)
-        self.canvas = FigureCanvas(self.fig)  # a gtk.DrawingArea
-
-##         self.border.add(self.canvas)
-        #self.canvas.set_size_request(600, -1)
-        self.canvas.show()
-##         self.border.show()
-
-##         hbox1.add2(self.border)
-        hbox1.add2(self.canvas)
+        hbox1.add2(self.widget)
         hbox1.show()
 
         # Colormap we will use for image display
@@ -100,23 +79,15 @@ class FitsViewerPage(Page.ButtonPage):
         self.image = Bunch.Bunch(name='', width=512, height=512,
                            data=data, header={})
         self.datasrc['__'] = self.image
-        self.data = self.axes.imshow(self.image.data, origin='lower',
-                                     cmap=self.cmap)
-        #self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
-        #                              shrink=0.8)
 
         vbox.pack_start(hbox1, expand=True, fill=True)
 
-        # Navigation toolbar
-        #toolbar = NavigationToolbar(self.canvas, None)
-        #vbox.pack_start(toolbar, expand=False, fill=False)
-
         self.add_close()
         
-##         self.btn_load = gtk.Button("Load")
-##         self.btn_load.connect("clicked", lambda w: self.load_fits())
-##         self.btn_load.show()
-##         self.leftbtns.pack_end(self.btn_load, padding=4)
+        self.btn_load = gtk.Button("Load")
+        self.btn_load.connect("clicked", lambda w: self.load_fits())
+        self.btn_load.show()
+        self.leftbtns.pack_end(self.btn_load, padding=4)
 
 ##         self.btn_save = gtk.Button("Save")
 ##         self.btn_save.connect("clicked", lambda w: self.save())
@@ -235,34 +206,9 @@ class FitsViewerPage(Page.ButtonPage):
         with self.lock:
             self.logger.debug("Update image start")
             curtime = time.time()
-            # NOTE: apparently gtk.gdk.threads_enter() is not reentrant
-            # Since the gtk events are processed inside a critical section
-            # in update_loop(), we are already inside the critical section
-            # here and no need to re-enter.
-            #gtk.gdk.threads_enter()
             try:
-                # Delete previous images--VERY IMPORTANT
-                # If you don't do this the images get stacked in the window
-                # and performance goes down the drain quickly
-                self.axes.images = []
-
-                im = self.axes.imshow(self.image.data, origin='lower',
-                                      interpolation='lanczos',
-                                      #interpolation='bilinear',
-                                      cmap=self.cmap, alpha=1)
-                self.data = im
-                self.logger.debug("Update image data: %.4f sec" % (time.time() - curtime))
-
-                #self.cbar.set_colorbar(im, self.axes)
-                #self.cbar.changed()
-                #self.cbar.update_bruteforce(im)
-                #self.cbar = self.fig.colorbar(self.data, orientation='horizontal',
-                #                              shrink=0.8)
-
-                # Update label
-                #filename, extname = os.path.splitext(self.image.name)
-                #self.border.set_label(filename)
-
+                self.fitsimage.set_data(self.image.data)
+                
                 # Update the header info
                 hdr_list = []
                 for (key, val) in self.image.header.items():
@@ -273,15 +219,10 @@ class FitsViewerPage(Page.ButtonPage):
                 common.append_tv(w, '\n'.join(hdr_list))
                 self.logger.debug("Update fits kwds: %.4f sec" % (time.time() - curtime))
                 
-                # THIS IS SLLOOOOWW--what else can we use?
-                self.canvas.draw()
-                #self.border.show_all()
-
                 tottime = time.time() - curtime
                 self.logger.debug("Update image end: time=%.4f sec" % tottime)
 
             finally:
-                #gtk.gdk.threads_leave()
                 pass
 
         return True

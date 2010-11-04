@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Oct 11 23:45:13 HST 2010
+#  Last edit: Wed Nov  3 16:42:07 HST 2010
 #]
 import sys, traceback
 
@@ -54,45 +54,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.varDict = {}
 
-        # Create the widgets for the tag buffer text
-        scrolled_window = gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
-
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
-        scrolled_window.set_size_request(0, -1)
-        
-        tw = gtk.TextView()
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
-
-        tw.set_editable(False)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
-        tw.set_left_margin(2)
-        tw.set_right_margin(2)
-        
-        tw.connect("button-press-event", self.jump_tag)
-
-        self.tagtw = tw
-        self.tagbuf = tw.get_buffer()
-        # self.tagbuf.deserialize_set_can_create_tags("application/x-gtk-text-buffer-rich-text", False)
-        self.tagidx = {}
         # hack to get auto-scrolling to work
         self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
                                          False)
-        self.tagmark = self.tagbuf.create_mark('end',
-                                               self.tagbuf.get_end_iter(),
-                                               False)
-
-        self.hbox.pack1(scrolled_window, resize=False, shrink=True)
-        self.hbox.show()
-        self.hbox.set_position(0)
 
         # this is for variable definition popups
         self.tw.set_property("has-tooltip", True)
         self.tw.connect("query-tooltip", self.query_vardef)
         #self.tw.connect("focus-out-event", self.focus_out)
+        self.tw.connect("focus-in-event", self.focus_in)
 
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
@@ -126,11 +96,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
         self.leftbtns.pack_end(self.btn_pause)
-
-        self.btn_tags = gtk.ToggleButton("Tags")
-        self.btn_tags.connect("toggled", self.toggle_tags)
-        self.btn_tags.show()
-        self.leftbtns.pack_end(self.btn_tags)
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Buffer")
@@ -313,32 +278,22 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if ext in ('.ope', '.cd'):
             self.color()
 
-    def showtags(self):
-        self.btn_tags.set_active(True)
-        
-    def hidetags(self):
-        self.btn_tags.set_active(False)
-        
-    def toggle_tags(self, w):
-        #common.view.playSound(common.sound.tags_toggle)
-        if w.get_active():
-            self.hbox.set_position(250)
-        else:
-            self.hbox.set_position(0)
-
     def get_vardef(self, varname):
         try:
             return self.varDict[varname]
         except KeyError:
             raise Exception("No definition found for '%s'" % varname)
         
-    def color(self):
+    def color(self, reporterror=True):
         try:
+            # Get "Tags" page
+            tagpage = common.view.tagpage
+            # TODO: what if user closed Tags page?
+            
             self.tags = common.decorative_tags + common.execution_tags
 
             # Remove everything from the tag buffer
-            start, end = self.tagbuf.get_bounds()
-            self.tagbuf.delete(start, end)
+            tagpage.initialize(self)
 
             # Get the text from the code buffer
             start, end = self.buf.get_bounds()
@@ -350,7 +305,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             badrefs = set([])
             badtags = []
-            self.tagidx = {}
 
             tagtbl = self.buf.get_tag_table()
 
@@ -373,21 +327,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 except:
                     # tag may already exist--that's ok
                     pass
+
                 try:
-                    self.tagbuf.create_tag(tag, **properties)
+                    tagpage.addtag(tag, **properties)
                 except:
                     # tag may already exist--that's ok
                     pass
-
-            def addbadtag(lineno, line, tags):
-                # Add this line and a tag to the tags buffer
-                tend = self.tagbuf.get_end_iter()
-                taglineno = tend.get_line()
-    ##             self.tagbuf.insert_with_tags_by_name(tend, line+'\n',
-    ##                                                  *(tags + [tag]))
-                self.tagbuf.insert_with_tags_by_name(tend, line+'\n', *tags)
-                # make an entry in the tags index
-                self.tagidx[taglineno] = lineno
 
             def addtags(lineno, line, tags):
                 # apply desired tags to entire line in main text buffer
@@ -398,7 +343,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 for tag in tags:
                     self.buf.apply_tag_by_name(tag, start, end)
 
-                addbadtag(lineno, line, tags)
+                tagpage.add_mapping(lineno, line, tags)
 
             def addvarrefs(lineno, line):
                 # apply desired tags to varrefs in this line in main text buffer
@@ -448,41 +393,28 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             if len(badrefs) > 0:
                 # Add all undefined refs to the tag table
-                loc = self.tagbuf.get_end_iter()
-                startline = loc.get_line()
-                addbadtag(1, "UNDEFINED VARIABLE REFS", ['badref'])
+                errline = tagpage.get_end_lineno()
+                tagpage.add_mapping(1, "UNDEFINED VARIABLE REFS", ['badref'])
                 for varref, lineno in badtags:
-                    addbadtag(lineno, "%s: line %d" % (varref, lineno), ['badref'])
+                    tagpage.add_mapping(lineno, "%s: line %d" % (varref, lineno), ['badref'])
 
-                # Scroll tag table to errors
-                loc = self.tagbuf.get_end_iter()
-                loc.set_line(startline)
-                # HACK: I have to defer the scroll operation until the widget
-                # is rendered or it does not scroll
-                common.view.gui_do(self.tagtw.scroll_to_iter,
-                                    loc, 0, True)
+                if reporterror:
+                    common.view.popup_error("Undefined variable references: " +
+                                            ' '.join(badrefs) +
+                                            ". See bottom of tags for details.")
+                    # scroll tag table to errors
+                    common.view.raise_tags()
+                    tagpage.scroll_to_lineno(errline)
 
-                # Set the background of the tags button to indicate error
-                self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                        common.launcher_colors.badtags)
-                self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                        common.launcher_colors.badtags)
-
-                common.view.popup_error("Undefined variable references: " +
-                                        ' '.join(badrefs) +
-                                        ". See bottom of tags for details.")
-                # open the tag table
-                self.showtags()
-
-            else:
-                self.btn_tags.modify_bg(gtk.STATE_NORMAL,
-                                        common.launcher_colors.normal)
-                self.btn_tags.modify_bg(gtk.STATE_ACTIVE,
-                                        common.launcher_colors.normal)
         except Exception, e:
             common.view.popup_error("Error coloring buffer: %s" % (
                 str(e)))
             
+
+    def focus_in(self, w, evt):
+        self.logger.debug("got focus!")
+        self.color(reporterror=False)
+        return False
 
     def focus_out(self, w, evt):
         self.logger.info("lost focus!")
@@ -492,37 +424,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         except ValueError:
             print "Error getting selection--no selection?"
         return False
-
-    def jump_tag(self, w, evt):
-        widget = self.tagtw
-        try:
-            tup = widget.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
-                                                 evt.x, evt.y)
-            #print tup
-            buf_x1, buf_y1 = tup
-        except Exception, e:
-            self.logger.error("Error converting coordinates to line: %s" % (
-                str(e)))
-            return False
-        
-        (startiter, coord) = widget.get_line_at_y(buf_y1)
-        taglineno = startiter.get_line()
-        try:
-            lineno = self.tagidx[taglineno]
-        except KeyError:
-            return
-
-        loc = self.buf.get_start_iter()
-        loc.set_line(lineno)
-        self.buf.move_mark(self.mark, loc)
-        #res = self.tw.scroll_to_iter(loc, 0.5)
-        #res = self.tw.scroll_to_mark(self.mark, 0.2)
-        res = self.tw.scroll_to_mark(self.mark, 0, True)
-        if not res:
-            res = self.tw.scroll_mark_onscreen(self.mark)
-        #print "line->%d res=%s" % (lineno, res)
-        return True
-            
 
     def current(self):
         """Scroll to the current position in the buffer.  The current
@@ -618,7 +519,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         if event.state & gtk.gdk.CONTROL_MASK:
             if keyname == 't':
-                self.btn_tags.set_active(not self.btn_tags.get_active())
+                common.view.raise_tags()
                 return True
         
             elif keyname == 'r':

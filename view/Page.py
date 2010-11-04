@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  9 20:29:09 HST 2010
+#  Last edit: Wed Nov  3 16:29:10 HST 2010
 #]
 #
 import os
@@ -269,5 +269,20 @@ class TextPage(Page):
 
     def select_clear(self):
         common.clear_selection(self.tw)
+
+    def get_end_lineno(self):
+        loc = self.buf.get_end_iter()
+        return loc.get_line()
+
+    def scroll_to_lineno(self, lineno):
+        loc = self.buf.get_start_iter()
+        loc.set_line(lineno)
+        self.buf.move_mark(self.mark, loc)
+        #res = self.tw.scroll_to_iter(loc, 0.5)
+        #res = self.tw.scroll_to_mark(self.mark, 0.2)
+        res = self.tw.scroll_to_mark(self.mark, 0.2, True)
+        if not res:
+            res = self.tw.scroll_mark_onscreen(self.mark)
+        #print "line->%d res=%s" % (lineno, res)
 
 #END

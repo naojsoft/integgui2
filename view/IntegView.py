@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct 23 13:13:58 HST 2010
+#  Last edit: Wed Nov  3 16:18:22 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -107,6 +107,8 @@ class IntegView(object):
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
+        self.tagpage = self.lmws.addpage('tags', "Tags", TagPage)
+        self.lmws.select('queues')
 
         # Populate "Observation Info" ws
         self.add_obsinfo(self.oiws)
@@ -115,6 +117,8 @@ class IntegView(object):
                                          WorkspacePage.WorkspacePage)
         self.fitspage = self.oiws.addpage('fitsview', "Fits",
                                           WorkspacePage.WorkspacePage)
+        self.fitspage.addpage('viewer', 'Fits Viewer',
+                              FitsViewerPage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
@@ -294,11 +298,11 @@ class IntegView(object):
         item.show()
 
         _get_ws(ws, 'fits', where)
-        # item = gtk.MenuItem(label="fits")
-        # loadmenu.append(item)
-        # item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
-        #                      "file.Load fits")
-        # item.show()
+        item = gtk.MenuItem(label="fits")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
+                             "file.Load fits")
+        item.show()
 
         _get_ws(ws, 'launchers', where)
 
@@ -920,10 +924,13 @@ class IntegView(object):
                 str(e)))
 
     def raise_queue(self):
-        self.lws.select('queues')
+        self.lmws.select('queues')
         
     def raise_handset(self):
-        self.lws.select('handset')
+        self.lmws.select('handset')
+        
+    def raise_tags(self):
+        self.lmws.select('tags')
         
     def get_handset_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
@@ -938,10 +945,11 @@ class IntegView(object):
         filepath = os.path.join(os.environ['LOGHOME'], filename)
         return filepath
 
-    def gui_load_fits(self):
+    def gui_load_fits(self, workspace):
         initialdir = os.environ['DATAHOME']
         
-        self.filesel.popup("Load FITS file", self.load_fits,
+        self.filesel.popup("Load FITS file",
+                           lambda filepath: self.load_fits(workspace, filepath),
                            initialdir=initialdir)
         
     def load_fits(self, workspace, filepath):

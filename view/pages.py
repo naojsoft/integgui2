@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 13:16:54 HST 2010
+#  Last edit: Wed Nov  3 15:39:40 HST 2010
 #]
 
 # meta import for all GUI object classes
@@ -9,6 +9,7 @@ from Desktop import *
 from Workspace import *
 
 from OpePage import *
+from TagPage import *
 from SkPage import *
 from TaskPage import *
 from CodePage import *
