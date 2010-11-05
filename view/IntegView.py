@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 16:18:22 HST 2010
+#  Last edit: Thu Nov  4 14:20:27 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -107,7 +107,7 @@ class IntegView(object):
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
-        self.tagpage = self.lmws.addpage('tags', "Tags", TagPage)
+        self.add_tagpage(self.lmws)
         self.lmws.select('queues')
 
         # Populate "Observation Info" ws
@@ -812,9 +812,13 @@ class IntegView(object):
     def add_history(self, workspace):
         try:
             page = workspace.addpage('history', "History", LogPage)
+            # TODO: add toggling of editing
+            page.set_editable(True)
 
             # mark command errors
             regexes = [
+                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
+                 ['cancel']),
                 (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
                  ['error']),
                 ]
@@ -830,9 +834,25 @@ class IntegView(object):
                     str(e)))
             return None
         
+    def add_tagpage(self, workspace):
+        try:
+            page = workspace.addpage('tags', "Tags", TagPage)
+
+            # Global side effect--for now we can only have one tag page
+            self.tagpage = page
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load tag page: %s" % (
+                    str(e)))
+            return None
+        
     def add_frameinfo(self, workspace):
         try:
             page = workspace.addpage('frames', "Frames", FrameInfoPage)
+            # TODO: add toggling of editing
+            page.set_editable(True)
 
             # Global side effect--for now we can only have one frame info page
             self.framepage = page

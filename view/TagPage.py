@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 16:41:45 HST 2010
+#  Last edit: Fri Nov  5 10:10:10 HST 2010
 #]
 
 import gtk
@@ -36,14 +36,15 @@ class TagPage(LogPage.NotePage):
         # make an entry in the tags index
         self.tagidx[taglineno] = lineno
 
-    def scroll_to_end(self):
-        # Scroll tag table to errors
-        loc = self.buf.get_end_iter()
-        loc.set_line(startline)
-        # HACK: I have to defer the scroll operation until the widget
-        # is rendered or it does not scroll
-        common.view.gui_do(self.tw.scroll_to_iter,
-                            loc, 0, True)
+    ## def scroll_to_lineno(self, lineno):
+    ##     # Scroll tag table to errors
+    ##     loc = self.buf.get_end_iter()
+    ##     loc.set_line(lineno)
+    ##     # HACK: I have to defer the scroll operation until the widget
+    ##     # is rendered or it does not scroll
+    ##     # UPDATE: this causes a crash
+    ##     ## common.view.gui_do(self.tw.scroll_to_iter,
+    ##     ##                     loc, 0, True)
 
     def jump_tag(self, w, evt):
         widget = self.tw

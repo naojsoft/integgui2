@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 16:40:39 HST 2010
+#  Last edit: Fri Nov  5 10:16:36 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -132,11 +132,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
         # Auto scroll to end of buffer
         if self.autoscroll:
-            loc = self.buf.get_end_iter()
-            self.buf.move_mark(self.mark, loc)
-            #self.tw.scroll_to_iter(loc, 0.0)
-            #self.tw.scroll_mark_onscreen(self.mark)
-            self.tw.scroll_to_mark(self.mark, 0.0)
+            self.scroll_to_end()
 
     def save_log_as(self):
         homedir = os.path.join(os.environ['HOME'], 'Procedure')
@@ -188,11 +184,14 @@ class LogPage(NotePage):
         self.filepath = filepath
         self.file = open(self.filepath, 'r')
         # Go to the end of the file
-        try:
-            self.file.seek(- self.logsize, 2)
-        except:
-            pass
-        self.size = self.file.tell()
+        if self.logsize:
+            try:
+                self.file.seek(- self.logsize, 2)
+            except:
+                pass
+            self.size = self.file.tell()
+        else:
+            self.size = 0
         self.poll()
 
     def close(self):

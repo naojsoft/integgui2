@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 15:15:00 HST 2010
+#  Last edit: Thu Nov  4 14:20:28 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -627,11 +627,17 @@ class IntegController(object):
         if soundfile:
             self.playSound(soundfile)
 
-    def feedback_error(self, tm_queueName, cmdstr, cmdObj, e, soundfile,
-                       time_start, time_end):
+    def feedback_error(self, tm_queueName, cmdstr, cmdObj, res,
+                       e, soundfile, time_start, time_end):
         self.logger.error("Error [%s] %s\n:%s" % (tm_queueName,
                                                   cmdstr, str(e)))
-        self.log_history(cmdstr, time_start, time_end, tm_queueName, 'NG')
+        if res == 3:
+            # Command was cancelled
+            status = 'CN'
+        else:
+            # Command had error
+            status = 'NG'
+        self.log_history(cmdstr, time_start, time_end, tm_queueName, status)
 
         # Mark an error graphically appropriate to the source
         cmdObj.mark_status('error')
@@ -729,8 +735,9 @@ class IntegController(object):
                 sound_failure = self.get_sound_failure(res, cmdstr,
                                                        sound_failure)
                 
-                self.feedback_error(tm_queueName, cmdstr, cmdObj, str(e),
-                                    sound_failure, time_start, time_end)
+                self.feedback_error(tm_queueName, cmdstr, cmdObj, res,
+                                    str(e), sound_failure, time_start,
+                                    time_end)
                 return
 
             self.feedback_ok(tm_queueName, cmdstr, cmdObj, res, None,
@@ -781,7 +788,7 @@ class IntegController(object):
             sound_failure = self.get_sound_failure(res, cmdstr,
                                                    sound_failure)
             
-            self.feedback_error(tm_queueName, cmdstr, cmdObj,
+            self.feedback_error(tm_queueName, cmdstr, cmdObj, res,
                                 str(e), sound_failure, time_start, time_end)
 
 

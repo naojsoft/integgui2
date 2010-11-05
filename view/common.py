@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 27 13:05:37 HST 2010
+#  Last edit: Thu Nov  4 16:29:21 HST 2010
 #]
 import os.path
 import re
@@ -71,6 +71,7 @@ execution_tags = [
 # Colors used in the LogPage
 log_tags = [
     ('error', Bunch.Bunch(foreground='red', background='lightyellow')),
+    ('cancel', Bunch.Bunch(foreground='orange3')),
     ('normal', Bunch.Bunch(foreground='black')),
     ]
 
@@ -79,6 +80,14 @@ log_tags = [
 error_regexes = [
     (re.compile(r'^.*\|\sE\s\|.*$'), ['error']),
     (re.compile(r'^.*(error|exception).*$', re.I), ['error']),
+    ]
+
+# Colors used in the DirectoryPage
+directory_tags = [
+    ('normal', Bunch.Bunch(foreground='black')),
+    ('executable', Bunch.Bunch(foreground='dark green')),
+    ('directory',  Bunch.Bunch(foreground='blue2')),
+    ('cursor',  Bunch.Bunch(foreground='yellow', background='dark green')),
     ]
 
 # colors used in the SkMonitorPage

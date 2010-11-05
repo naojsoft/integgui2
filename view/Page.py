@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 16:29:10 HST 2010
+#  Last edit: Fri Nov  5 10:38:08 HST 2010
 #]
 #
 import os
@@ -285,4 +285,13 @@ class TextPage(Page):
             res = self.tw.scroll_mark_onscreen(self.mark)
         #print "line->%d res=%s" % (lineno, res)
 
+    def scroll_to_end(self):
+        lineno = self.get_end_lineno()
+        self.scroll_to_lineno(lineno)
+        
+    def focus_in(self, *args):
+        print args
+        self.tw.grab_focus()
+        return True
+    
 #END

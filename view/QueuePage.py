@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:32:25 HST 2010
+#  Last edit: Fri Nov  5 11:13:07 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -15,7 +15,7 @@ import common
 import Page
 import CommandObject
 
-class QueuePage(Page.ButtonPage):
+class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
 
@@ -58,6 +58,8 @@ class QueuePage(Page.ButtonPage):
         
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
+        # Can't seem to get focus follows mouse effect
+        #self.tw.connect("enter-notify-event", self.focus_in)
         self.buf.connect("mark-set", self.show_cursor)
 
         tagtbl = self.buf.get_tag_table()

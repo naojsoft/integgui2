@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 16:42:07 HST 2010
+#  Last edit: Fri Nov  5 10:19:54 HST 2010
 #]
 import sys, traceback
 
@@ -391,6 +391,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
                 lineno += 1
 
+            common.view.statusMsg('')
             if len(badrefs) > 0:
                 # Add all undefined refs to the tag table
                 errline = tagpage.get_end_lineno()
@@ -398,17 +399,25 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 for varref, lineno in badtags:
                     tagpage.add_mapping(lineno, "%s: line %d" % (varref, lineno), ['badref'])
 
-                if reporterror:
-                    common.view.popup_error("Undefined variable references: " +
-                                            ' '.join(badrefs) +
-                                            ". See bottom of tags for details.")
-                    # scroll tag table to errors
-                    common.view.raise_tags()
-                    tagpage.scroll_to_lineno(errline)
+                errmsg = "Undefined variable references: " + \
+                         ' '.join(badrefs) + \
+                         ". See bottom of tags for details."
 
+                # scroll tag table to errors
+                tagpage.scroll_to_lineno(errline)
+
+                if reporterror:
+                    common.view.raise_tags()
+                    common.view.popup_error(errmsg)
+                else:
+                    common.view.statusMsg(errmsg)
+                    
         except Exception, e:
-            common.view.popup_error("Error coloring buffer: %s" % (
-                str(e)))
+            errmsg = "Error coloring buffer: %s" % (str(e))
+            self.logger.error(errmsg)
+            common.view.statusMsg(errmsg)
+            if reporterror:
+                common.view.popup_error(errmsg)
             
 
     def focus_in(self, w, evt):
@@ -435,12 +444,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for tag in ('executing', 'queued', 'error', 'done'):
             try:
                 start, end = common.get_region(self.buf, tag)
-                
-                self.buf.move_mark(self.mark, start)
-                res = self.tw.scroll_to_mark(self.mark, 0.2)
-                if not res:
-                    res = self.tw.scroll_mark_onscreen(self.mark)
-
+                self.scroll_to_lineno(start.get_line())
                 return
 
             except common.TagError:
