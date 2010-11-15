@@ -7,6 +7,16 @@ tabname: "SUKA"
 launchers:
 
     -
+        label: "ARCHIVE FITS"
+        cmd  : EXEC SUKA ARCHIVE_FITS PFX=$VAL01 START_NO=$VAL02 END_NO=$VAL03
+        params:
+            - [ VAL01, INPUT, 5, "", "Prefix" ]
+            - [ VAL02, INPUT, 8, "", "Start #" ]
+            - [ VAL03, INPUT, 8, "", "End #" ]
+
+    - sep
+
+    -
         label: "SLEEP"
         cmd  : SLEEP OBE_ID=SUKA OBE_MODE=fai_test sleep_time=$VAL01 
         params:
