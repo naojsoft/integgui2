@@ -33,7 +33,7 @@ launchers:
 
     -
         label: "DoAG"
-        cmd  : DOAG OBE_ID=COMMON OBE_MODE=LAUNCHER AG_Select=Manual EXPTIME_FACTOR=$VAL01 READREGION=$VAL02 CALCREGION=$VAL03
+        cmd  : DOAG OBE_ID=MOIRCS OBE_MODE=LAUNCHER AG_Select=Manual EXPTIME_FACTOR=$VAL01 READREGION=$VAL02 CALCREGION=$VAL03
         params:
             - [ VAL01, INPUT, 8, 1.0, "ExpFactor" ]
             - [ VAL02, INPUT, 8, 200, "ReadRegion" ]
