@@ -8,11 +8,12 @@ launchers:
 
     -
         label: "ARCHIVE FITS"
-        cmd  : EXEC SUKA ARCHIVE_FITS PFX=$VAL01 START_NO=$VAL02 END_NO=$VAL03
+        cmd  : EXEC SUKA ARCHIVE_FITS INSTRUMENT_NAME=$VAL01 FRTYPE=$VAL02 START_NO=$VAL03 END_NO=$VAL04
         params:
-            - [ VAL01, INPUT, 5, "", "Prefix" ]
-            - [ VAL02, INPUT, 8, "", "Start #" ]
-            - [ VAL03, INPUT, 8, "", "End #" ]
+            - [ VAL01, INPUT, 8, "", "InstName" ]
+            - [ VAL02, INPUT, 5, "A", "Frtype" ]
+            - [ VAL03, INPUT, 8, "", "Start #" ]
+            - [ VAL04, INPUT, 8, "", "End #" ]
 
     - sep
 
