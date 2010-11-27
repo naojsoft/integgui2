@@ -1,26 +1,37 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May 18 10:19:44 HST 2010
+#  Last edit: Fri Nov 26 14:33:26 HST 2010
 #]
 
 import gtk
 
+# NOTE [1]:
+#   There seems to be a bug in the gtk.FileChooserDialog() where if the
+# directory contents are changing while the dialog is open it will sometimes
+# crash the program.  For this reason I changed the class to create the
+# widget each time it is needed and destroy it afterwards
+#
+    
 class FileSelection(object):
     
     # Get the selected filename and print it to the console
     def file_ok_sel(self, w, rsp):
+        filepath = w.get_filename()
         self.close(w)
         if rsp == 0:
             return
         
-        filepath = self.filew.get_filename()
         self.callfn(filepath)
 
     def __init__(self, action=gtk.FILE_CHOOSER_ACTION_OPEN):
+        self.action = action
+
+    def _create_widget(self, action):
         # Create a new file selection widget
         self.filew = gtk.FileChooserDialog(title="Select a file",
                                            action=action)
-        self.filew.connect("destroy", self.close)
+        # See NOTE [1]
+        #self.filew.connect("destroy", self.close)
         if action == gtk.FILE_CHOOSER_ACTION_SAVE:
             self.filew.add_buttons(gtk.STOCK_SAVE, 1, gtk.STOCK_CANCEL, 0)
         else:
@@ -36,6 +47,9 @@ class FileSelection(object):
     
     def popup(self, title, callfn, initialdir=None,
               filename=None):
+        # See NOTE [1]
+        self._create_widget(self.action)
+        
         self.callfn = callfn
         self.filew.set_title(title)
         if initialdir:
@@ -48,7 +62,10 @@ class FileSelection(object):
         self.filew.show()
 
     def close(self, widget):
-        self.filew.hide()
+        # See NOTE [1]
+        #self.filew.hide()
+        self.filew.destroy()
+        self.filew = None
 
 
       
