@@ -5,56 +5,94 @@
 
 tabname: "HiCIAO"
 launchers:
+
 #
-# HiCIAO Command Launcher
+# TT Offload
 #
-#     -
-#         label: "Set AO Point (HiCIAO pix)" # AO acquisition
-#         cmd  : AOPSET OBE_ID=HICIAO OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=10MAS
-#         params:
-#             - [ VAL01, INPUT, 6, 0.0, "X" ]
-#             - [ VAL02, INPUT, 6, 0.0, "Y" ]
-
-#     - sep
-
-#     -
-#         label: "Offset(HiCIAO pix)" # AO acquisition offset
-#         cmd  : AOOFFSET OBE_ID=HICIAO OBE_MODE=SUBROUTINE X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=10MAS COORD=$VAL03 MODE=$VAL04 TTSTEP=$VAL05 PA=$VAL06
-#         params:
-#             - [ VAL01, INPUT, 6, 0.0, "dX" ]
-#             - [ VAL02, INPUT, 6, 0.0, "dY" ]
-#             - [ VAL03, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]],
-#                 "Type" ]
-#             - [ VAL04, LIST, [["TT", TT], ["TT NULL", TTNULL],
-#                   ["AO POINT", AOP]], "Mode" ]
-#             - [ VAL05, INPUT, 2, 1, "Step" ]
-#             - [ VAL06, INPUT, 6, 0.0, "PA" ]
-
-#     - sep
-
-#     -
-#         label: "TT Off-load" # TT nulling
-#         cmd  : AO_TTNULL OBE_ID=HICIAO OBE_MODE=LAUNCHER TT_X=$VAL01 TT_Y=$VAL02 PA=$VAL03 COORD=$VAL04
-#         params:
-#             - [ VAL01, INPUT, 6, 0.0, "TT X" ]
-#             - [ VAL02, INPUT, 6, 0.0, "TT Y" ]
-#             - [ VAL03, INPUT, 6, 0.0, "PA" ]
-#             - [ VAL04, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]],
-#                 "Type" ]
-
-#     - sep
-
-    -
-        label: "Focus OBE" # FocusOBE
-        cmd  : FOCUSOBE OBE_ID=HICIAO OBE_MODE=TOOL Z=$VAL01 DELTAZ=$VAL02 EXPTIME=$VAL03 NFRAME=$VAL04 EXP_MODE=$VAL05
+    - 
+        label: "TToffload" # Correction of AO TT mirror by moving telescope
+        cmd  : AO188_TTNULL_AUTO OBE_ID=AO188 OBE_MODE=LAUNCHER COORD=$VAL01 
         params:
-            - [ VAL01, INPUT, 8, "!TSCL.Z", "Start Z" ]
-            - [ VAL02, INPUT, 6, 0.07, "Delta Z" ]
-            - [ VAL03, INPUT, 6, 1.4, "Exp time" ]
-            - [ VAL04, INPUT, 6, 3, "No. of frames" ]
-            - [ VAL05, INPUT, 8, SHUTTER, "Exp Mode" ]
+            - [ VAL01, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]],
+                "Type" ]
 
     - sep
+
+#
+# AO Offset
+#
+
+    - 
+        label: "Offset pix" # AO acquisition offset
+        cmd  : AO188_AOOFFSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL04 INSTRUMENT=$VAL07 COORD=$VAL06 MODE=$VAL05 TTSTEP=$VAL03
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "dX" ]
+            - [ VAL02, INPUT, 6, 0.0, "dY" ]
+            - [ VAL03, INPUT, 2, 1, "Step" ]
+            - break
+            - [ VAL04, LIST, [ "10MAS" ],
+                "Pixel Scale" ]
+            - [ VAL05, LIST, [["TT", TT], ["TT NULL", TTNULL],
+                             ["AO POINT", AOP]], "Mode" ]
+            - [ VAL06, LIST, [["Sdrl", ABS], ["N-Sdrl", FILE]], "Type" ]
+            - [ VAL07, LIST, [["HiCIAO", HICIAO]], "Instrument" ]
+
+    - sep
+
+#
+# AO Focus
+#
+
+    -
+        label: "AU1 Focus"
+        cmd  : AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 VAL1=$VAL02 VAL2=0
+        params:
+            - [ VAL01, LIST, [["MOVABS", AFOCUS], ["MOVREL", RFOCUS]] ]
+            - [ VAL02, INPUT, 6, 0.0, "mm" ]
+
+#
+# Focus OBE
+#
+#
+#    -
+#        label: "Focus OBE" # FocusOBE
+#        cmd  : FOCUSOBE OBE_ID=HICIAO OBE_MODE=TOOL Z=$VAL01 DELTAZ=$VAL02 EXPTIME=$VAL03 NFRAME=$VAL04 EXP_MODE=$VAL05
+#        params:
+#            - [ VAL01, INPUT, 8, "!TSCL.Z", "Start Z" ]
+#            - [ VAL02, INPUT, 6, 0.07, "Delta Z" ]
+#            - [ VAL03, INPUT, 6, 1.4, "Exp time" ]
+#            - [ VAL04, INPUT, 6, 3, "No. of frames" ]
+#            - [ VAL05, INPUT, 8, SHUTTER, "Exp Mode" ]
+#
+#    - sep
+
+#
+# SNAP
+#
+
+    -
+        label:  "SNAP" # Take images
+        cmd  : SNAP OBE_ID=HICIAO OBE_MODE=SUBROUTINE EXPTIME=$VAL01 EXPMODE=$VAL02 NFRAME=$VAL03 NFOWLER=$VAL04 NCOADD=$VAL05 FIMAGE=$VAL06 CIMAGE=$VAL07 ARCHIVE=$VAL08 XSTART=$VAL09 XEND=$VAL10 YSTART=$VAL11 YEND=$VAL12
+        params:
+            - [ VAL01, INPUT, 6, 1.4, "Exptime" ]
+            - [ VAL02, INPUT, 6, "ASIC", "Mode" ]
+            - [ VAL03, INPUT, 6, 1, "Frames" ]
+            - [ VAL04, INPUT, 6, 1, "Fowler" ]
+            - [ VAL05, INPUT, 6, 1, "Coadd" ]
+            - break
+            - [ VAL06, INPUT, 6, "NO", "Fimage?" ]
+            - [ VAL07, INPUT, 6, "NO", "Cimage?" ]
+            - [ VAL08, LIST, [["YES", "YES"], ["NO", "NO"]], "Archive" ]
+            - break
+            - [ VAL09, INPUT, 6, 1, "X1" ]
+            - [ VAL10, INPUT, 6, 2048, "X2" ]
+            - [ VAL11, INPUT, 6, 1, "Y1" ]
+            - [ VAL12, INPUT, 6, 2048, "Y2" ]
+    - sep
+
+#
+# Teloffset
+#
 
     -
         label: "TELOFFSET" # TELOFFSET
@@ -65,20 +103,5 @@ launchers:
 
     - sep
 
-    -
-        label:  "SNAP" # Take images
-        cmd  : SNAP OBE_ID=HICIAO OBE_MODE=SUBROUTINE EXPTIME=$VAL01 EXPMODE=$VAL02 NFRAME=$VAL03 NFOWLER=$VAL04 NCOADD=$VAL05 FIMAGE=$VAL06 CIMAGE=$VAL07 ARCHIVE=$VAL08
-        params:
-            - [ VAL01, INPUT, 6, 1.4, "Exptime" ]
-            - [ VAL02, INPUT, 6, ASIC, "Mode" ]
-            - [ VAL03, INPUT, 6, 1, "Frames" ]
-            - [ VAL04, INPUT, 6, 1, "Fowler" ]
-            - break
-            - [ VAL05, INPUT, 6, 1, "Coadd" ]
-            - [ VAL06, INPUT, 6, NO, "Fimage?" ]
-            - [ VAL07, INPUT, 6, NO, "Cimage?" ]
-            - [ VAL08, LIST, [["YES", YES], ["NO", NO]], "Archive" ]
-
-    - sep
 
 #END
