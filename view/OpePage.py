@@ -14,7 +14,7 @@ import CommandObject
 import SOSS.parse.ope as ope
 
 # regex for matching variable references
-regex_varref = re.compile(r'^(.*?)(\$[\w_]+)(.*)$')
+regex_varref = re.compile(r'^(.*?)(\$[\w_\.]+)(.*)$')
 
 warning_close = """
 WARNING:        
