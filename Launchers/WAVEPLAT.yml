@@ -53,24 +53,24 @@ launchers:
 
     -
         label: "1/2 WP Rot. Stage" 
-        cmd  : SETUPOBE OBE_ID=WAVEPLAT OBE_MODE=TOOL POL="MANUAL" STAGE=HWP ACTION=$VAL02 MOVE=$VAL01 WSYNCHRO=$VAL03
+        cmd  : SETUPOBE OBE_ID=WAVEPLAT OBE_MODE=TOOL POL="MANUAL" STAGE=HWP ACTION=$VAL02 MOVE=$VAL01 TRACMODE=$VAL03
         params:
             - [ VAL01, LIST, [["0", 0.0], ["22.5", 22.5], ["45", 45.0],
                               ["67.5", 67.5]],  "Angle" ]
             - [ VAL02, LIST, [["MOVE", MOVE], ["STOP", STOP],
                   ["INIT", INIT]], "Action" ]
-            - [ VAL03, LIST, [["YES", YES], ["NO", NO]], "SYNC" ]
+            - [ VAL03, LIST, [["ADI", ADI], ["SIDEREAL", SIDEREAL], ["NO", NO]], "SYNC" ]
 
     - sep 
 
     -
         label: "1/4 WP Rot. Stage" 
-        cmd  : SETUPOBE OBE_ID=WAVEPLAT OBE_MODE=TOOL POL="MANUAL" STAGE=QWP ACTION=$VAL02 MOVE=$VAL01 WSYNCHRO=$VAL03 HWPROT=$VAL04
+        cmd  : SETUPOBE OBE_ID=WAVEPLAT OBE_MODE=TOOL POL="MANUAL" STAGE=QWP ACTION=$VAL02 MOVE=$VAL01 TRACMODE=$VAL03 HWPROT=$VAL04
         params:
             - [ VAL01, INPUT, 6, 0.0, "Angle" ]
             - [ VAL02, LIST, [["MOVE", MOVE], ["STOP", STOP],
                   ["INIT", INIT]], "Action" ]
-            - [ VAL03, LIST, [["YES", YES], ["NO", NO]], "SYNC" ]
+            - [ VAL03, LIST, [["ADI", ADI], ["SIDEREAL", SIDEREAL], ["NO", NO]], "SYNC" ]
             - [ VAL04, LIST, [["YES", YES], ["NO", NO]], "HWPROT" ]
 
     - sep 

@@ -92,7 +92,7 @@ class IntegGUINotify(object):
         """
         with self.lock:
             d = self._getframe(frameid)
-            if d.status == 'X':
+            if d.status in ('X', 'A'):
                 if status == 0:
                     d.status = 'R'
                 else:

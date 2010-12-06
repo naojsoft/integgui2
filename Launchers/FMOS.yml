@@ -42,6 +42,10 @@ launchers:
     - sep
 
     -
+        label: "FAM(Z-DRV) ON"
+        cmd  : FAMON OBE_ID=FMOS OBE_MODE=LAUNCHER
+
+    -
         label: "MOVE FOCUS Z"
         cmd  : FAMMOVE OBE_ID=FMOS OBE_MODE=LAUNCHER POSZ=$VAL01
         params:
