@@ -20,19 +20,22 @@ class InfPage(CodePage.CodePage):
 
         # add some bottom buttons
         self.btn_makeope = gtk.Button("Make OPE")
-        self.btn_makeope.connect("clicked", lambda w: self.makeope())
+        self.btn_makeope.connect("clicked", lambda w: self.makeope('app2ope.pl -'))
         self.btn_makeope.show()
         self.leftbtns.pack_end(self.btn_makeope)
 
-        self.cmdstr = 'app2ope.pl -'
+        self.btn_makedarks = gtk.Button("Make Darks")
+        self.btn_makedarks.connect("clicked", lambda w: self.makeope('mkDARKope.pl -'))
+        self.btn_makedarks.show()
+        self.leftbtns.pack_end(self.btn_makedarks)
 
-    def makeope(self):
+    def makeope(self, cmdstr):
         # get text to process
         start, end = self.buf.get_bounds()
         buf = self.buf.get_text(start, end)
 
         try:
-            proc = myproc.myproc(self.cmdstr)
+            proc = myproc.myproc(cmdstr)
             # write input to stdin
             proc.stdin.write(buf)
             proc.stdin.close()
