@@ -10,7 +10,7 @@ launchers:
 ####################
     -
         label: "Entrance shutter"     # AO188 entrance shutter
-        cmd  : AO188_ENT_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+        cmd  : AO188_ENT_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
         params:
             - [ VAL01, LIST, [OPEN, CLOSE] ]
 
@@ -21,11 +21,9 @@ launchers:
 #######
     -
         label: "Move CALXZ stage"     # AO188 entrance shutter
-        cmd  : AO188_CALXZ OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 CAL_X=$VAL02 CAL_Z=$VAL03
+        cmd  : AO188_CALXZ OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01 
         params:
-            - [ VAL01, LIST, [OUT, CENTER, GASCELL, MOVREL, MOVABS] ]
-            - [ VAL02, INPUT, 6, 0.0, "X" ]
-            - [ VAL03, INPUT, 6, 0.0, "Z" ]
+            - [ VAL01, LIST, [["OUT", "OUT"], ["CENTER", "CENTER"], ["GASCELL", "GASCELL"]] ]
 
     -
         label: "Set CALLD power"
@@ -59,15 +57,17 @@ launchers:
 
     -
         label: "AU1 Focus"
-        cmd  : AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 VAL1=$VAL02 VAL2=0
+        cmd  : AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL01 VAL1=$VAL02
         params:
             - [ VAL01, LIST, [["MOVABS", AFOCUS], ["MOVREL", RFOCUS]] ]
             - [ VAL02, INPUT, 6, 0.0, "mm" ]
 
     -
         label: "AU1 Base"
-        cmd  : AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=BASE VAL1=0 VAL2=0
-
+        cmd  : AO188_AU1_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=BASE INS=$VAL01
+        params:
+            - [ VAL01, LIST, [["IRCS","IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+ 
     - sep
 
 #########################
@@ -120,7 +120,31 @@ launchers:
         label: "Move F-conv"  
         cmd  : AO188_FCONV OBE_ID=AO188 OBE_MODE=LAUNCHER POS="$VAL01"
         params:
-            - [ VAL01, LIST, [["IN", "IN"], ["OUT", "OUT"]] ]
+            - [ VAL01, LIST, [["OUT", "OUT"], ["IN", "IN"]] ]
+
+    - sep
+
+
+#######################
+# DM flat sequence    #
+#######################
+    -
+        label: "Make DM flat"  
+        cmd  : AO188_MKDMFLAT OBE_ID=AO188 OBE_MODE=AO188_SETUP INS="$VAL01"
+        params:
+            - [ VAL01, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+
+    - sep
+
+################
+# LOOP MODE    #
+################
+    -
+        label: "Set Loop mode"  
+        cmd  : AO188_SETMODE OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE="$VAL01" INS="$VAL02"
+        params:
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
 
     - sep
 

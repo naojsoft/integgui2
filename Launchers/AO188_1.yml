@@ -138,14 +138,14 @@ launchers:
 ############
     - 
         label: "NGS aperture"
-        cmd:   AO188_NGSAP OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+        cmd:   AO188_AP OBE_ID=AO188 OBE_MODE=LAUNCHER AP="NGSAP" POS=$VAL01
         params:
             - [ VAL01, LIST, [["20asec", "20ASEC"], ["4asec", "4ASEC"], 
-                ["2asec", "2ASEC"], ["1asec", "1ASEC"]] ]
+                ["2asec", "2ASEC"], ["1asec", "1ASEC"], ["Mirror", "MIRROR"]] ]
 
     - 
         label: "VM iris"
-        cmd  : AO188_VMAP OBE_ID=AO188 OBE_MODE=LAUNCHER "CMD"=$VAL01 VAL=$VAL02
+        cmd  : AO188_IRIS OBE_ID=AO188 OBE_MODE=LAUNCHER AP="VMAP" CMD="$VAL01" VAL=$VAL02
         params:
             - [ VAL01, LIST, [["Full", FULL], ["MOVREL", MOVREL],
                 ["MOVABS", MOVABS]] ]
