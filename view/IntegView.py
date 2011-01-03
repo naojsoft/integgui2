@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Nov  4 14:20:27 HST 2010
+#  Last edit: Tue Dec 28 18:53:01 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -10,6 +10,7 @@ from __future__ import with_statement
 import sys, os, glob
 import re
 import thread, threading, Queue
+import traceback
 
 # Special library imports
 import pygtk
@@ -1139,11 +1140,16 @@ class IntegView(object):
    
     def process_ast(self, ast_id, vals):
         if hasattr(self, 'monpage'):
-            self.gui_do(self.monpage.process_ast_err, ast_id, vals)
+            self.gui_do(self.monpage.process_ast, ast_id, vals)
+
+    def process_subcommand(self, parent_path, subpath, vals):
+        if hasattr(self, 'monpage'):
+            self.gui_do(self.monpage.process_subcommand,
+                        parent_path, subpath, vals)
 
     def process_task(self, path, vals):
         if hasattr(self, 'monpage'):
-            self.gui_do(self.monpage.process_task_err, path, vals)
+            self.gui_do(self.monpage.process_task, path, vals)
 
     def update_statusMsg(self, format, *args):
         self.gui_do(self.statusMsg, format, *args)
@@ -1199,8 +1205,18 @@ class IntegView(object):
                 try:
                     try:
                         res = method(*args, **kwdargs)
+
                     except Exception, e:
                         res = e
+                        self.logger.error("gui error: %s" % str(e))
+                        try:
+                            (type, value, tb) = sys.exc_info()
+                            tb_str = "".join(traceback.format_tb(tb))
+                            print "Traceback:\n%s" % (tb_str)
+                            self.logger.error("Traceback:\n%s" % (tb_str))
+
+                        except Exception, e:
+                            self.logger.error("Traceback information unavailable.")
 
                 finally:
                     gtk.gdk.threads_leave()

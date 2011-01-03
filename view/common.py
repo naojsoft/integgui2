@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Nov  4 16:29:21 HST 2010
+#  Last edit: Tue Dec 28 20:02:27 HST 2010
 #]
 import os.path
 import re
@@ -96,7 +96,7 @@ monitor_tags = Bunch.Bunch(
     task_start=Bunch.Bunch(foreground='black', background='palegreen'),
     cmd_time=Bunch.Bunch(foreground='brown', background='palegreen'),
     ack_time=Bunch.Bunch(foreground='green4', background='palegreen'),
-    end_time=Bunch.Bunch(foreground='blue1', background='palegreen'),
+    end_time=Bunch.Bunch(foreground='blue1', background='white'),
     task_end=Bunch.Bunch(foreground='blue2', background='white'),
     error=Bunch.Bunch(foreground='red', background='lightyellow')
     )

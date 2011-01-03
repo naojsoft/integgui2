@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Nov  4 14:20:28 HST 2010
+#  Last edit: Tue Dec 28 19:04:30 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -440,11 +440,17 @@ class IntegController(object):
         vals = bnch.value
 
         if vals.has_key('ast_id'):
-            # SkMonitorPage update on some AB command
+            # SkMonitorPage update on some abstract or device dependent command
             self.gui.process_ast(vals['ast_id'], vals)
 
-        # possible SkMonitorPage update on some DD command
-        self.gui.process_task(bnch.path, vals)
+        elif vals.has_key('subpath'):
+            # SkMonitorPage update on some subcommand
+            self.gui.process_subcommand(bnch.path,
+                                        vals['subpath'], vals)
+
+        # possible SkMonitorPage update on some command status change
+        else:
+            self.gui.process_task(bnch.path, vals)
         
         if vals.has_key('task_code'):
             # possible update on some integgui command finishing

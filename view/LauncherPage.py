@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Sep 23 11:26:11 HST 2010
+#  Last edit: Thu Dec 30 10:40:07 HST 2010
 #]
 
 # remove once we're certified on python 2.6
@@ -86,7 +86,7 @@ class Launcher(object):
 
         name = name.lower()
         self.params[name] = Bunch.Bunch(widget=field,
-                                        get=self.get_entry)
+                                        get_fn=self.get_entry)
         self.addParam(name)
 
 
@@ -113,7 +113,7 @@ class Launcher(object):
 
         name = name.lower()
         self.params[name] = Bunch.Bunch(widget=combobox, 
-                                        get=self.get_list,
+                                        get_fn=self.get_list,
                                         options=options)
         self.addParam(name)
 
@@ -138,7 +138,7 @@ class Launcher(object):
             btn.show()
 
         name = name.lower()
-        self.params[name] = Bunch.Bunch(get=self.get_radio,
+        self.params[name] = Bunch.Bunch(get_fn=self.get_radio,
                                         options=options)
         self.addParam(name)
 
@@ -165,7 +165,7 @@ class Launcher(object):
             dvar = '$%s' % var.upper()
             if dvar in cmdstr:
                 bnch = self.params[var]
-                val = str(bnch.get(bnch))
+                val = str(bnch.get_fn(bnch))
                 cmdstr = cmdstr.replace(dvar, val)
 
         return cmdstr
