@@ -1,10 +1,7 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Dec 30 10:09:11 HST 2010
+#  Last edit: Mon Jan  3 13:54:28 HST 2011
 #]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
 
 # Standard library imports
 import sys
@@ -59,27 +56,27 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         self.save_decode_result = False
         self.show_times = False
         self.track_elapsed = False
-        self.track_subcommands = False
+        self.track_subcommands = True
 
         w = gtk.CheckMenuItem("Track Subcommands")
-        w.set_active(False)
+        w.set_active(self.track_subcommands)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'track_subcommands'))
 
         w = gtk.CheckMenuItem("Save Decode Result")
-        w.set_active(False)
+        w.set_active(self.save_decode_result)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
         w = gtk.CheckMenuItem("Show Times")
-        w.set_active(False)
+        w.set_active(self.show_times)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
 
         w = gtk.CheckMenuItem("Track Elapsed")
-        w.set_active(False)
+        w.set_active(self.track_elapsed)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
@@ -102,13 +99,13 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             loc = buf.get_end_iter()
             #linenum = loc.get_line()
             try:
-                foo = text.index("<div ")
+                idx_div = text.index("<div ")
 
             except ValueError:
                 buf.insert_with_tags_by_name(loc, text, *tags)
                 return
 
-            match = re.match(r'^\<div\sclass=([^\>]+)\>', text[foo:],
+            match = re.match(r'^\<div\sclass=([^\>]+)\>', text[idx_div:],
                              re.MULTILINE | re.DOTALL)
             if not match:
                 buf.insert_with_tags_by_name(loc, 'ERROR 1: %s' % text, *tags)
@@ -199,11 +196,16 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
     def replace_text(self, page, tagname, textstr,
                      start_offset=0):
+        #print "replacing '%s' on %s" % (textstr, tagname)
         tagname = str(tagname)
         txtbuf = page.buf
+        #print "getting region"
         start, end = common.get_region(txtbuf, tagname)
         start.forward_chars(start_offset)
+        text = txtbuf.get_text(start, end)
+        #print "deleting %s" % (text)
         txtbuf.delete(start, end)
+        #print "inserting %s" % (textstr)
         txtbuf.insert_with_tags_by_name(start, textstr, tagname)
 
         # Scroll the view to this area
@@ -219,7 +221,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         if end.get_line() != end2.get_line():
             end2 = end.copy()
         txtbuf.create_tag(newtag, foreground="black")
-        prefix = '\n' + ('>>' * level) + ' '
+        prefix = '\n' + ('  ' * level) + ' '
         txtbuf.insert_with_tags_by_name(end2, prefix, 'code')
         txtbuf.insert_with_tags_by_name(end2, textstr, newtag)
         txtbuf.insert_with_tags_by_name(end2, ' ', 'code')
@@ -273,7 +275,6 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 self.replace_text(page, tagname, cmd_repn,
                                   start_offset=offset)
                 vals['inserted'] = cmd_repn
-
 
         if vals.has_key('task_error'):
             self.append_error(page, tagname, '\n ==> ' + vals['task_error'])
@@ -345,6 +346,11 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             if vals.has_key('ast_buf'):
                 ast_str = ro.binary_decode(vals['ast_buf'])
                 ast_str = ro.uncompress(ast_str)
+                # Due to an unfortunate way in which we have to search for
+                # tags in common.get_region()
+                if not ast_str.endswith('\n'):
+                    ast_str = ast_str + '\n'
+                #print "BUF!"; print ast_str
 
                 # Get the time of the command to construct the tab title
                 title = self.time2str(vals['ast_time'])

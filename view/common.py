@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Dec 28 20:02:27 HST 2010
+#  Last edit: Mon Jan  3 13:53:14 HST 2011
 #]
 import os.path
 import re
