@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Nov  5 10:19:54 HST 2010
+#  Last edit: Tue Jan  4 21:18:28 HST 2011
 #]
 import sys, traceback
 
@@ -104,6 +104,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         menu.append(item)
         item.connect_object ("activate", lambda w: self.color(),
                              "menu.Recolor")
+        item.show()
+
+        item = gtk.MenuItem(label="Uncolor")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.color(eraseall=True),
+                             "menu.Uncolor")
         item.show()
 
         item = gtk.MenuItem(label="Current")
@@ -284,13 +290,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         except KeyError:
             raise Exception("No definition found for '%s'" % varname)
         
-    def color(self, reporterror=True):
+    def color(self, reporterror=True, eraseall=False):
         try:
             # Get "Tags" page
             tagpage = common.view.tagpage
             # TODO: what if user closed Tags page?
             
-            self.tags = common.decorative_tags + common.execution_tags
+            tags = common.decorative_tags + common.execution_tags
 
             # Remove everything from the tag buffer
             tagpage.initialize(self)
@@ -308,8 +314,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             tagtbl = self.buf.get_tag_table()
 
+            if eraseall:
+                removetags = tags
+            else:
+                removetags = common.decorative_tags
+
             # remove decorative tags
-            for tag, bnch in common.decorative_tags:
+            for tag, bnch in removetags:
                 gtktag = tagtbl.lookup(tag)
                 try:
                     if gtktag:
@@ -319,7 +330,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     pass
 
             # add tags back in
-            for tag, bnch in self.tags:
+            for tag, bnch in tags:
                 properties = {}
                 properties.update(bnch)
                 try:
@@ -528,6 +539,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
             elif keyname == 'r':
                 self.color()
+                return True
+        
+            elif keyname == 'e':
+                self.color(eraseall=True)
+                return True
+        
+            elif keyname == 'l':
+                self.current()
                 return True
         
             elif keyname == 'q':

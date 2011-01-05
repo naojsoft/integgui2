@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Dec 28 19:04:30 HST 2010
+#  Last edit: Tue Jan  4 21:19:00 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -24,6 +24,7 @@ import cfg.g2soss
 
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
+regex_frameid = re.compile('^(\w{3})([AQ])(\d{8})$')
 
 # Regex used to discover/parse log info
 regex_log = re.compile(r'^mon\.log\.(\w+)$')
@@ -94,6 +95,8 @@ class IntegController(object):
         # Used for looking up instrument codes, etc.
         self.insconfig = INSdata()
         self.insname = 'SUKA'
+        self.inscodes = []
+        self.propid = None
 
         # Used to strip out bogus characters from log buffers
         self.deletechars = ''.join(set(string.maketrans('', '')) -
@@ -324,6 +327,10 @@ class IntegController(object):
         for name in self.insconfig.getNames(active=True):
             if name in allocs:
                 allocs_lst.append(name)
+
+        # List of inst codes we should pay attention to
+        self.inscodes = map(self.insconfig.getCodeByName, allocs_lst)
+        self.propid = propid
         
         # Load up appropriate launchers and handsets
         #self.gui.close_launchers()
@@ -549,6 +556,14 @@ class IntegController(object):
             except AttributeError:
                 self.logger.debug("No handler for '%s' subsystem" % subsys)
                 return
+
+            # check if this is a frame from an instrument that is
+            # allocated
+            match = regex_frameid.match(frameid)
+            if match:
+                inscode = match.group(1).upper()
+                if not (inscode in self.inscodes):
+                    return
 
             try:
                 # Get all the saved items under this path to report to
