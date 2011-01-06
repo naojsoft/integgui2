@@ -1,10 +1,7 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Jan  4 21:19:00 HST 2011
+#  Last edit: Wed Jan  5 20:46:28 HST 2011
 #]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
 
 import re
 import os, time
@@ -20,7 +17,7 @@ import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
 import Bunch
 from cfg.INS import INSdata
-import cfg.g2soss
+import cfg.g2soss as g2soss
 
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
@@ -52,7 +49,7 @@ valid_monlogs = set(['taskmgr0', 'TSC', 'status',
 # add active instrument names
 valid_monlogs.update(INSdata().getNames())
 
-typical_monlogs = set(['taskmgr0', 'TSC', 'status', 
+typical_monlogs = set(['taskmgr0', 'TSC', 'status', 'integgui2',
                        ])
 typical_monlogs.update(INSdata().getNames())
 
@@ -69,7 +66,7 @@ class IntegController(object):
     """
     
     def __init__(self, logger, ev_quit, monitor, view, queues, fits,
-                 soundsink, options):
+                 soundsink, options, logtype='normal'):
 
         self.logger = logger
         self.ev_quit = ev_quit
@@ -81,8 +78,9 @@ class IntegController(object):
         self.lock = threading.RLock()
         self.soundsink = soundsink
         self.options = options
+        self.logtype = logtype
 
-        # TODO: fix this
+        # TODO: improve this
         self.valid_monlogs = valid_monlogs
 
         self.executingP = threading.Event()
@@ -366,7 +364,14 @@ class IntegController(object):
         logs.sort()
 
         for name in logs:
-            self.gui.gui_do(self.gui.load_monlog, self.gui.logpage, name)
+            if self.logtype == 'monlog':
+                self.gui.gui_do(self.gui.load_monlog, self.gui.logpage,
+                                name)
+            else:
+                logpath = os.path.join(g2soss.loghome, name + '.log')
+                self.gui.gui_do(self.gui.load_log, self.gui.logpage,
+                                logpath)
+
 
         # Set appropriate areas for loading OPE files
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
@@ -626,7 +631,7 @@ class IntegController(object):
 
 
     def playSound(self, soundfile):
-        soundpath = os.path.join(cfg.g2soss.producthome,
+        soundpath = os.path.join(g2soss.producthome,
                                  'file/Sounds', soundfile)
         if os.path.exists(soundpath):
             self.soundsink.playFile(soundpath)

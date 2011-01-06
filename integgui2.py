@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Sep 24 20:49:54 HST 2010
+#  Last edit: Wed Jan  5 20:22:17 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -52,11 +52,14 @@ def main(options, args):
 
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
-                                                            logger),
-                         )
-
+                                                            logger), )
+    if options.logmon:
+        logtype = 'monlog'
+    else:
+        logtype = 'normal'
+        
     # Create view
-    gui = igview.IntegView(logger, ev_quit, queues)
+    gui = igview.IntegView(logger, ev_quit, queues, logtype=logtype)
 
     # Create network callable object for notifications
     notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
@@ -70,7 +73,8 @@ def main(options, args):
     # Create controller
     controller = igctrl.IntegController(logger, ev_quit, mymon,
                                         gui, queues, notify_obj,
-                                        soundsink, options)
+                                        soundsink, options,
+                                        logtype=logtype)
 
     view.common.set_view(gui)
     view.common.set_controller(controller)

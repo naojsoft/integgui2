@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Dec 28 18:53:01 HST 2010
+#  Last edit: Wed Jan  5 20:22:17 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -31,11 +31,12 @@ from dialogs import *
 
 class IntegView(object):
 
-    def __init__(self, logger, ev_quit, queues):
+    def __init__(self, logger, ev_quit, queues, logtype='normal'):
 
         self.logger = logger
         self.ev_quit = ev_quit
         self.queue = queues
+        self.logtype = logtype
         self.lock = threading.RLock()
         # Used for tagging commands
         self.cmdcount = 0
@@ -930,7 +931,9 @@ class IntegView(object):
         return self.close_pages(HandsetPage)
 
     def close_logs(self):
-        return self.close_pages(MonLogPage)
+        if self.logtype == 'monlog':
+            return self.close_pages(MonLogPage)
+        self.close_pages_workspace(self.logpage, LogPage)
 
     def reconfig(self):
         self.close_logs()
