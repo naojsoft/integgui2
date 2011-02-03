@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan  5 20:46:28 HST 2011
+#  Last edit: Thu Feb  3 09:57:01 HST 2011
 #]
 
 import re
@@ -338,7 +338,7 @@ class IntegController(object):
 
         for name in ['TELESCOPE']:
             launchers.extend(self.gui.get_launcher_paths(name))
-        for name in ['STANDARD']:
+        for name in ['STANDARD', 'TELESCOPE']:
             handsets.extend(self.gui.get_handset_paths(name))
 
         for name in allocs_lst:

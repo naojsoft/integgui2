@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov  3 15:37:49 HST 2010
+#  Last edit: Mon Jan 10 15:30:13 HST 2011
 #]
 import os.path
 import string
@@ -9,6 +9,7 @@ import common
 import Page
 
 import gtk
+import gtksourceview2
 
 class CodePage(Page.ButtonPage, Page.TextPage):
 
@@ -33,7 +34,12 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
                                    gtk.POLICY_AUTOMATIC)
 
-        tw = gtk.TextView()
+        # create buffer
+        lm = gtksourceview2.LanguageManager()
+        self.buf = gtksourceview2.Buffer()
+        self.buf.set_data('languages-manager', lm)
+
+        tw = gtksourceview2.View(self.buf)
         scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
@@ -44,7 +50,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         tw.set_right_margin(4)
 
         self.tw = tw
-        self.buf = tw.get_buffer()
 
         self.border.add(scrolled_window)
         self.border.show()
@@ -93,10 +98,14 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         # translate tabs
         buftxt = buftxt.replace('\t', '        ')
 
+        self.buf.begin_not_undoable_action()
+
         # insert text
-        tags = ['code']
+        #tags = ['code']
+        tags = []
         try:
             start, end = self.buf.get_bounds()
+            self.buf.remove_source_marks(start, end)
             self.buf.delete(start, end)
         except:
             pass
@@ -109,6 +118,9 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             pass
 
         self.buf.insert_with_tags_by_name(start, buftxt, *tags)
+        self.buf.set_modified(False)
+
+        self.buf.end_not_undoable_action()
 
 
     def load(self, filepath, buf):
@@ -118,7 +130,16 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #lw.config(text=filepath)
         self.border.set_label(filepath)
 
-        self.buf.set_modified(False)
+        manager = self.buf.get_data('languages-manager')
+        language = manager.guess_language(filepath)
+        if language:
+            self.buf.set_highlight_syntax(True)
+            self.buf.set_language(language)
+        else:
+            self.logger.info('No language found for file "%s"' % filepath)
+            self.buf.set_highlight_syntax(False)
+
+        #self.buf.set_modified(False)
 
         
     def reload(self):
