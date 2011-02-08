@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 14:36:04 HST 2010
+#  Last edit: Tue Feb  8 12:42:30 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -11,26 +11,26 @@ import threading
 import remoteObjects as ro
 import remoteObjects.Monitor as Monitor
 import Bunch
+import Datasrc
 
 # Headers we show
 headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
             'OBJECT', 'FILTERS', 'MEMO' ]
 
+maxlen = 1000000
 
 class IntegGUINotify(object):
 
     def __init__(self, gui, fitsdir):
         self.gui = gui
         self.fitsdir = fitsdir
-        # Dict used to flag processed files so they are not repeated
-        self.framecache = {}
-        self.framelist = []
-        self.needsort = False
+        self.framecache = Datasrc.Datasrc(length=maxlen)
         self.lock = threading.RLock()
 
     def update_framelist(self):
         with self.lock:
-            return self.gui.update_frames(self.framelist)
+            # Datasrc objects key list is sorted by default
+            return self.gui.update_frames(self.framecache.keys())
 
     def output_line(self, frameinfo):
         self.gui.update_frame(frameinfo)
@@ -51,16 +51,9 @@ class IntegGUINotify(object):
                 d[key] = ""
             d.update(kwdargs)
 
+            # Update the GUI
             self.framecache[frameid] = d
-            try:
-                lastid = self.framelist[-1]
-                if frameid < lastid:
-                    self.needsort = True
-            except IndexError:
-                # First frame
-                pass
-            self.framelist.append(d)
-
+            self.update_framelist()
             return d
 
 

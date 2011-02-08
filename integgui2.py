@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan  5 20:22:17 HST 2011
+#  Last edit: Tue Feb  8 12:44:15 HST 2011
 #]
 
 # remove once we're certified on python 2.6
