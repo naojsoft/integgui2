@@ -3,7 +3,7 @@
 #
 # This is a YAML file
 
-tabname: "AO188 1"
+tabname: "AO188 (NGS)"
 launchers:
 #################
 # Image rotator #
@@ -23,6 +23,38 @@ launchers:
             - [ VAL07, INPUT, 6, 90.0, "ANGLE" ]
             - [ VAL08, INPUT, 8, NOP, "TARGET" ]
             - [ VAL09, LIST, [["SID", "SID"], ["NON-SID","NON-SID"],["ADI", "ADI"]], "TMODE"]
+
+    - sep
+
+#######
+# ADC #
+#######
+    - 
+        label: "ADC"
+        cmd  : AO188_ADC OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 CMD=$VAL02
+        params:
+            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
+            - [ VAL02, SELECT, [ "IN", "OUT" ]
+
+    - 
+        label: "ADC tracking"
+        cmd  : AO188_ADCTRK OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 MOVE=$VAL02 COORD=$VAL03 RA=$VAL04 DEC=$VAL05 EQUINOX=$VAL06 PA=$VAL07 FC=$VAL08 ANG1=$VAL09 ANG2=$VAL10 MODE=$VAL11 TARGET=$VAL12
+        params:
+            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
+            - [ VAL02, LIST, [ LINK, FREE, SLEW, STOP ], "MOVE" ]
+            - [ VAL03, LIST, [ ABS, REL, FILE ], "COORD" ]
+            - break
+            - [ VAL04, INPUT, 9, NOP, "RA" ]
+            - [ VAL05, INPUT, 9, NOP, "Dec" ]
+            - [ VAL06, INPUT, 8, 2000.0, "EQUINOX" ]
+            - break
+            - [ VAL07, INPUT, 6, 0.0, "PA" ]
+            - [ VAL08, INPUT, 6, 1.0, "FC" ]
+            - [ VAL09, INPUT, 6, 0.0, "ANG1" ]
+            - [ VAL10, INPUT, 6, 0.0, "ANG2" ]
+            - break
+            - [ VAL11, LIST, [["SID", "SID"], ["NON-SID","NON-SID"],["ADI", "ADI"]], "TMODE"]
+            - [ VAL12, INPUT, 8, NOP, "TARGET" ]
 
     - sep
 
@@ -83,7 +115,7 @@ launchers:
         label: "LA shutter"     # APD shutter
         cmd  : AO188_APD_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
         params:
-            - [ VAL01, LIST, [["Open", OPEN], ["Close", CLOSE]] ]
+            - [ VAL01, LIST, [["Close", CLOSE] , ["Open", OPEN] ] ]
 
     - sep
 

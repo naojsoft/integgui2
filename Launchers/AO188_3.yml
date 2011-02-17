@@ -1,0 +1,163 @@
+# 
+# AO188_3.yml -- AO188 launchers file 
+#
+# This is a YAML file
+
+tabname: "AO188 (Common)"
+launchers:
+####################
+# Entrance shutter #
+####################
+    -
+        label: "Entrance shutter"     # AO188 entrance shutter
+        cmd  : AO188_ENT_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+        params:
+            - [ VAL01, LIST, [OPEN, CLOSE] ]
+
+    - sep
+
+#######
+# CAL #
+#######
+    -
+        label: "Move CALXZ stage"     # AO188 entrance shutter
+        cmd  : AO188_CALXZ OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01 
+        params:
+            - [ VAL01, LIST, [["OUT", "OUT"], ["CENTER", "CENTER"], ["GASCELL", "GASCELL"]] ]
+
+    -
+        label: "Set CALLD power"
+        cmd  : AO188_CALLD_POWER OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+        params:
+            - [ VAL01, LIST, [["655nm", 1], ["1550nm", 2], ["589nm", 3]] ]
+            - [ VAL02, LIST, ["ON", "OFF"], "power" ]
+
+    -
+        label: "Set CALLD current"
+        cmd  : AO188_CALLD_ILD OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+        params:
+            - [ VAL01, LIST, [["655nm", 1], ["1550nm", 2], ["589nm", 3]] ]
+            - [ VAL02, INPUT, 6, 0.0, "mA"]
+
+    - sep
+
+#######
+# AU1 #
+#######
+    -
+        label: "Move AU"     
+        cmd  : AO188_AU_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL02 VAL1=$VAL03 VAL2=$VAL04 DEV=$VAL01
+        params:
+            - [ VAL01, LIST, ["AU1", "AU2"], "Device"]
+            - [ VAL02, LIST, [["ABS OFFSET(mm)", AOFF], ["REL OFFSET(mm)", ROFF],
+                ["ABS OFFSET(asec)", ASOFF], ["REL OFFSET(asec)", RSOFF],
+                ["ABS TILT(deg)", ATILT], ["REL TILT(deg)", RTILT],
+                ["TTZERO(V)", TTZERO], ["WACQ(PIX)", WACQ]] ]
+            - [ VAL03, INPUT, 6, 0.0, "X" ]
+            - [ VAL04, INPUT, 6, 0.0, "Y" ]
+
+    -
+        label: "AU Focus"
+        cmd  : AO188_AU_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=$VAL02 VAL1=$VAL03 DEV=$VAL01
+        params:
+            - [ VAL01, LIST, ["AU1", "AU2"], "Device"]
+            - [ VAL02, LIST, [["MOVABS", AFOCUS], ["MOVREL", RFOCUS]] ]
+            - [ VAL03, INPUT, 6, 0.0, "mm" ]
+
+    -
+        label: "AU Base"
+        cmd  : AO188_AU_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=BASE INS=$VAL02 DEV=$VAL01
+        params:
+            - [ VAL01, LIST, ["AU1", "AU2"], "Device"]
+            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+ 
+    - sep
+
+#########################
+# TT null (MANUAL FEED) #
+#########################
+#
+# AO TT Nulling (Use while AO loop is CLOSED)
+#
+    -
+        label: "TToffload" # Correction of AO TT mirror by moving telescope
+        cmd  : AO188_TTNULL_FEED OBE_ID=AO188 OBE_MODE=LAUNCHER TT_X=$VAL01 TT_Y=$VAL02 COORD=$VAL03
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "TT X" ]
+            - [ VAL02, INPUT, 6, 0.0, "TT Y" ]
+            - [ VAL03, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]],
+                "TYPE" ]
+
+    - sep
+
+##############################
+# Power/Voltage for DM/TT/VM #
+##############################
+    -
+        label: "Set VMpower"  # Set power
+        cmd:   AO188_VMPOWER OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+        params:
+            - [ VAL01, LIST, [["On", "ON"], ["Off", "OFF"]] ]
+
+    -
+        label: "Set DMvolt"  # Set voltage
+        cmd  : AO188_DMVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01
+        params:
+            - [ VAL01, LIST, [["Flat", FLAT], ["Zero", ZERO]] ]
+
+    -
+        label: "Set TTvolt"  # Set voltage
+        cmd  : AO188_TTVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 TTX=$VAL02 TTY=$VAL03
+        params:
+            - [ VAL01, LIST, [["Flat", FLAT], ["Zero", ZERO],
+                              ["MOVREL", MOVREL], ["MOVABS", MOVABS]], "Set" ]
+            - [ VAL02, INPUT, 6, 0.0, "TT X" ]
+            - [ VAL03, INPUT, 6, 0.0, "TT Y" ]
+
+    -
+        label: "Set WFS TTvolt"  # Set voltage
+        cmd  : AO188_WTTVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 WTTX=$VAL02 WTTY=$VAL03
+        params:
+            - [ VAL01, LIST, [["Flat", FLAT], ["Zero", ZERO],
+                              ["MOVREL", MOVREL], ["MOVABS", MOVABS]], "Set" ]
+            - [ VAL02, INPUT, 6, 0.0, "WTT X" ]
+            - [ VAL03, INPUT, 6, 0.0, "WTT Y" ]
+
+    - sep
+
+#######################
+# F-conversion optics #
+#######################
+    -
+        label: "Move F-conv"  
+        cmd  : AO188_FCONV OBE_ID=AO188 OBE_MODE=LAUNCHER POS="$VAL01"
+        params:
+            - [ VAL01, LIST, [["OUT", "OUT"], ["IN", "IN"]] ]
+
+    - sep
+
+
+#######################
+# DM flat sequence    #
+#######################
+    -
+        label: "Make DM flat"  
+        cmd  : AO188_MKDMFLAT OBE_ID=AO188 OBE_MODE=AO188_SETUP INS="$VAL01"
+        params:
+            - [ VAL01, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+
+    - sep
+
+################
+# LOOP MODE    #
+################
+    -
+        label: "Set Loop mode"  
+        cmd  : AO188_SETMODE OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE="$VAL01" INS="$VAL02"
+        params:
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+
+    - sep
+
+#END
