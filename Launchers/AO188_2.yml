@@ -27,6 +27,38 @@ launchers:
     - sep
 
 #######
+# ADC #
+#######
+    - 
+        label: "ADC"
+        cmd  : AO188_ADC OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 CMD="$VAL02"
+        params:
+            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
+            - [ VAL02, SELECT, [ "OUT", "IN" ]]
+
+    - 
+        label: "ADC tracking"
+        cmd  : AO188_ADCTRK OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 MOVE=$VAL02 COORD=$VAL03 RA=$VAL04 DEC=$VAL05 EQUINOX=$VAL06 PA=$VAL07 FC=$VAL08 ANG1=$VAL09 ANG2=$VAL10 MODE=$VAL11 TARGET=$VAL12
+        params:
+            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
+            - [ VAL02, LIST, [ LINK, FREE, SLEW, STOP ,BASE], "MOVE" ]
+            - [ VAL03, LIST, [ ABS, REL, FILE ], "COORD" ]
+            - break
+            - [ VAL04, INPUT, 9, NOP, "RA" ]
+            - [ VAL05, INPUT, 9, NOP, "Dec" ]
+            - [ VAL06, INPUT, 8, 2000.0, "EQUINOX" ]
+            - break
+            - [ VAL07, INPUT, 3, 0.0, "PA" ]
+            - [ VAL08, INPUT, 3, 1.0, "FC" ]
+            - [ VAL09, INPUT, 6, 0.0, "ANG1" ]
+            - [ VAL10, INPUT, 6, 0.0, "ANG2" ]
+            - break
+            - [ VAL11, LIST, [["NORMAL", "NORMAL"], ["ADI","ADI"]], "MODE"]
+            - [ VAL12, INPUT, 8, NOP, "TARGET" ]
+
+    - sep
+
+#######
 # AU1 #
 #######
     - 
