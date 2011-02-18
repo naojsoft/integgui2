@@ -12,7 +12,7 @@ launchers:
             - [ VAL01, LIST, [["B (W-J-B)", "W-J-B"], ["V (W-J-V)", "W-J-V"],
                 ["R (W-C-RC)", "W-C-RC"], ["I (W-C-IC)", "W-C-IC"],
                 ["g (W-S-G+)", "W-S-G+"], ["r (W-S-R+)", "W-S-R+"],
-                ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", ="W-S-Z+"],
+                ["i (W-S-I+)", "W-S-I+"], ["z (W-S-Z+)", "W-S-Z+"],
                 ["NB711 (N-B-L711)", "N-B-L711"], ["NB816 (N-B-L816)", "N-B-L816"],
                 ["NB921 (N-B-L921)", "N-B-L921"], ["V+R (W-J-VR)", "W-J-VR"]] ]
 

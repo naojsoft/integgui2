@@ -118,12 +118,18 @@ launchers:
     - sep
 
     -
+        label: "IRS1 JUST READ"
+        cmd  : IRS1READ OBE_ID=FMOS OBE_MODE=LAUNCHER NEXP=$VAL01
+        params:
+            - [ VAL01, INPUT, 3, 1, "Num. readouts" ]
+
+    -
         label: "IRS1 EXP ABORT"
         cmd  : EXP_ABORT OBE_ID=FMOS OBE_MODE=LAUNCHER TARGET=1
 
-#    -
-#       label: "IRS2 EXP ABORT"
-#       cmd  : EXP_ABORT OBE_ID=FMOS OBE_MODE=LAUNCHER TARGET=2
+    -
+        label: "IRS2 EXP ABORT"
+        cmd  : EXP_ABORT OBE_ID=FMOS OBE_MODE=LAUNCHER TARGET=2
 
     - sep
 

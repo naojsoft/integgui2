@@ -33,7 +33,7 @@ launchers:
         label: "BB-Filter"
         cmd  : SelectFilter OBE_ID=FOCAS OBE_MODE=LAUNCHER Filter=$VAL01
         params:
-            - [ VAL01, SELECT, [[None, 0], [U, 1], [B, 2], [V, 3],
+            - [ VAL01, SELECT, [["None", 0], [U, 1], [B, 2], [V, 3],
                                 [R, 4], [I, 5]] ]
 
     -
@@ -53,14 +53,14 @@ launchers:
         label: Grism
         cmd  : SelectGrism OBE_ID=FOCAS OBE_MODE=LAUNCHER Grism=$VAL01
         params:
-            - [ VAL01, SELECT, [[None, 0], ["75", 1], ["150", 5],
+            - [ VAL01, SELECT, [["None", 0], ["75", 1], ["150", 5],
                                 ["300R", 7], ["300B", 3]] ]
 
     -
         label: POL
-        cmd  : PolInsert OBE_ID=FOCAS OBE_MODE=LAUNCHER "Select"=$VAL01
+        cmd  : PolInsert OBE_ID=FOCAS OBE_MODE=LAUNCHER Select="$VAL01"
         params:
-            - [ VAL01, SELECT, [[None, "None"], [HWV, HWV], [QWV, QWV]] ]
+            - [ VAL01, SELECT, [["None", "None"], [HWV, HWV], [QWV, QWV]] ]
 
     - sep
 
