@@ -1,11 +1,8 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan  5 20:22:17 HST 2011
+#  Last edit: Wed Feb 23 11:38:19 HST 2011
 #]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
 
 # Standard library imports
 import sys, os
@@ -127,11 +124,14 @@ def main(options, args):
             logger.error("Failed to initialize from session '%s': %s" % (
                 options.session, str(e)))
 
-##     svc = ro.remoteObjectServer(svcname=options.svcname,
-##                                 obj=notify_obj, logger=logger,
-##                                 port=options.port,
-##                                 ev_quit=ev_quit,
-##                                 usethread=True)
+    # Start up a remote object server for certain services provided by
+    # integgui2
+    svc = ro.remoteObjectServer(svcname=options.svcname,
+                                obj=gui, logger=logger,
+                                method_list=['get_ope_paths'],
+                                port=options.port,
+                                ev_quit=ev_quit,
+                                usethread=True)
     
     # Load any files specified on the command line
     for opefile in args:
@@ -159,8 +159,8 @@ def main(options, args):
             #mymon.subscribe(options.logmon, ['logs'], {})
             mymon.logmon(logger, options.logmon, ['logs'])
 
-##         svc.ro_start(wait=True)
-##         ro_server_started = True
+        svc.ro_start(wait=True)
+        ro_server_started = True
 
         try:
             gui.mainloop()
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     optprs.add_option("--session", dest="session", metavar="NAME",
                       help="Configure from session NAME")
     optprs.add_option("--svcname", dest="svcname", metavar="NAME",
-                      default="integgui2-notify",
+                      default="integgui0",
                       help="Register using NAME as service name")
     optprs.add_option("--taskmgr", dest="taskmgr", metavar="NAME",
                       default='taskmgr0',

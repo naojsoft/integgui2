@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan  5 20:22:17 HST 2011
+#  Last edit: Wed Feb 23 11:31:07 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -902,6 +902,28 @@ class IntegView(object):
         res = glob.glob(pathmatch)
         return res
         
+    def get_file_paths_workspace(self, workspace, regex=None):
+        """This returns a list of all the paths of files loaded into
+        windows in workspace, that match regular expression _regex_.
+        """
+        res = []
+        for page in workspace.getPages():
+            if hasattr(page, 'get_filepath'):
+                path = page.get_filepath()
+                if (not regex) or re.match(regex, path):
+                    res.append(path)
+        return res
+        
+    def get_file_paths_desktop(self, desktop, regex=None):
+        res = []
+        for ws in desktop.getWorkspaces():
+            res.extend(self.get_file_paths_workspace(ws, regex=regex))
+
+        return res
+            
+    def get_ope_paths(self):
+        return self.get_file_paths_desktop(self.ds, regex='^.*\.(ope|OPE)$')
+    
     def close_pages_workspace(self, workspace, pageKlass, exclude=[]):
         try:
             for page in workspace.getPages():

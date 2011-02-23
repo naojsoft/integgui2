@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jan 10 15:30:13 HST 2011
+#  Last edit: Wed Feb 23 11:02:28 HST 2011
 #]
 import os.path
 import string
@@ -17,6 +17,9 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         super(CodePage, self).__init__(frame, name, title)
 
+        # Path of the file loaded into this buffer
+        self.filepath = ''
+        
         # Used to strip out bogus characters from buffers
         acceptchars = set(string.printable)
         self.deletechars = ''.join(set(string.maketrans('', '')) -
@@ -197,5 +200,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         else:
             _close('yes')
 
+    def get_filepath(self):
+        return self.filepath
 
 #END
