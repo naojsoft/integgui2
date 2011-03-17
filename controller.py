@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 12:36:27 HST 2011
+#  Last edit: Tue Mar 15 23:39:23 HST 2011
 #]
 
 import re
@@ -109,7 +109,7 @@ class IntegController(object):
         self.sm = ro.remoteObjectProxy('sessions')
         self.bm = ro.remoteObjectProxy('bootmgr')
 
-        self.transdict = {}
+        ## self.transdict = {}
 
 #############
 ###  GUI interface to the controller
@@ -233,8 +233,8 @@ class IntegController(object):
             # reset visually all command executors
             self.gui.gui_do(self.gui.reset_pause)
 
-            # Release all pending transactions
-            self.release_all_transactions()
+            ## # Release all pending transactions
+            ## self.release_all_transactions()
 
         t = Task.FuncTask2(kill)
         t.init_and_start(self)
@@ -384,49 +384,96 @@ class IntegController(object):
             self.gui.set_procdir(procdir, inst)
             
 
-    def get_transaction(self, path):
-        with self.lock:
-            # Will return KeyError if path does not reference a
-            # valid transaction
-            # TODO: should this dictionary be made persistent so
-            # that we can restart integgui and pick up outstanding
-            # transactions?
-            return self.transdict[path]
+    ## def get_transaction(self, path):
+    ##     with self.lock:
+    ##         # Will return KeyError if path does not reference a
+    ##         # valid transaction
+    ##         # TODO: should this dictionary be made persistent so
+    ##         # that we can restart integgui and pick up outstanding
+    ##         # transactions?
+    ##         return self.transdict[path]
 
-    def put_transaction(self, tm_tag, cmdObj):
-        with self.lock:
-            self.transdict[tm_tag] = cmdObj
-            cmdObj.tasktag = tm_tag
-            cmdObj.ev_trans = threading.Event()
+    ## def put_transaction(self, tm_tag, cmdObj):
+    ##     with self.lock:
+    ##         self.transdict[tm_tag] = cmdObj
+    ##         cmdObj.tasktag = tm_tag
+    ##         cmdObj.ev_trans = threading.Event()
 
-            # Graphically signal execution in some way
-            cmdObj.page.mark_status(cmdObj, 'executing')
+    ##         # Graphically signal execution in some way
+    ##         cmdObj.page.mark_status(cmdObj, 'executing')
 
 
-    def wait_transaction(self, cmdObj):
-        """Wait for transaction to be finished."""
-        cmdObj.ev_trans.wait()
+    ## def wait_transaction(self, cmdObj):
+    ##     """Wait for transaction to be finished."""
+    ##     cmdObj.ev_trans.wait()
 
-    def release_transaction(self, cmdObj):
-        """Signal that transaction is finished."""
-        cmdObj.ev_trans.set()
+    ## def release_transaction(self, cmdObj):
+    ##     """Signal that transaction is finished."""
+    ##     cmdObj.ev_trans.set()
 
-    def release_all_transactions(self):
-        with self.lock:
-            cmdObjs = self.transdict.values()
-        for cmdObj in cmdObjs:
-            self.release_transaction(cmdObj)
-        self.executingP.clear()
+    ## def release_all_transactions(self):
+    ##     with self.lock:
+    ##         cmdObjs = self.transdict.values()
+    ##     for cmdObj in cmdObjs:
+    ##         self.release_transaction(cmdObj)
+    ##     self.executingP.clear()
 
-    def del_transaction(self, cmdObj):
-        with self.lock:
-            try:
-                del self.transdict[cmdObj.path]
-            except:
-                pass
+    ## def del_transaction(self, cmdObj):
+    ##     with self.lock:
+    ##         try:
+    ##             del self.transdict[cmdObj.path]
+    ##         except:
+    ##             pass
        
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
+
+    def awaitTask(self, tag, timeout=None):
+
+        # If task submission was successful, then watch the monitor for
+        # the result.
+        try:
+            d = self.monitor.getitem_any(['%s.task_end' % tag],
+                                         timeout=timeout)
+
+        except Monitor.TimeoutError, e:
+            self.logger.error(str(e))
+            return 2
+        
+        # Task terminated.  Get all items currently associated with this
+        # transaction.
+        vals = self.monitor.getitems_suffixOnly(tag)
+        if type(vals) != dict:
+            self.logger.error("Could not get task transaction info")
+            return ro.ERROR
+
+        # This produces voluminous output for large sk files and is not helpful
+        #self.logger.debug("task transaction info: %s" % str(vals))
+
+        # Interpret task results:
+        #   task_code == 0 --> OK   task_code != 0 --> ERROR
+        #res = vals.get('task_code', 1)
+        if vals.has_key('task_code'):
+            res = vals['task_code']
+        else:
+            logger.error("Task has no task result code; assuming error")
+            res = ro.ERROR
+
+        if not isinstance(res, int):
+            logger.error("Task result code (%s) not int; assuming error" % (
+                res))
+            res = ro.ERROR
+
+        if res == 0:
+            self.logger.info("task terminated successfully")
+            return ro.OK
+        else:
+            # Check for a diagnostic message
+            msg = vals.get('task_error',
+                           "[No diagnostic message available]")
+            # This is reported elsewhere?
+            self.logger.info("task terminated with error: %s" % msg)
+            return res
 
     def update_integgui(self, statusDict):
         d = {}
@@ -467,15 +514,17 @@ class IntegController(object):
             self.gui.process_task(bnch.path, vals)
         
         if vals.has_key('task_code'):
+            print "VALS = %s" % str(vals)
             # possible update on some integgui command finishing
-            try:
-                # Did we initiate this command?
-                tmtrans = self.get_transaction(bnch.path)
+            ## try:
+            ##     # Did we initiate this command?
+            ##     tmtrans = self.get_transaction(bnch.path)
+            ##     print "trans = %s" % str(tmtrans)
 
-                self.release_transaction(tmtrans)
-            except KeyError:
-                # No
-                return
+            ##     self.release_transaction(tmtrans)
+            ## except KeyError:
+            ##     # No
+            ##     return
 
             res = vals['task_code']
             # Interpret task results:
@@ -488,9 +537,12 @@ class IntegController(object):
                 # If there was a problem, let the gui know about it
 ##                 self.gui.gui_do(self.gui.feedback_error,
 ##                                 tmtrans.queueName, tmtrans, str(res))
+                if res == 3:
+                    print "TASK CANCELLED (%s)" % bnch.path
+                    self.gui.cancel_dialog(bnch.path)
                 pass
 
-            self.del_transaction(tmtrans)
+            ## self.del_transaction(tmtrans)
 
     # this one is called if new data becomes available for integgui
     def arr_obsinfo(self, payload, name, channels):
@@ -641,7 +693,6 @@ class IntegController(object):
         else:
             self.logger.error("No such audio file: %s" % soundpath)
 
-
 #############
 #
     def feedback_ok(self, tm_queueName, cmdstr, cmdObj, res, soundfile,
@@ -743,6 +794,9 @@ class IntegController(object):
                 time_start = time.time()
 
                 res = self.tm.execTask(tm_queueName, cmdstr, '')
+                ## tag = self.tm.execTaskNoWait(tm_queueName, cmdstr)
+                ## self.logger.debug("Task submitted tag=%s" % tag)
+                ## res = self.awaitTask(tag)
 
                 time_end = time.time()
                 executingP.clear()
@@ -841,11 +895,11 @@ class IntegController(object):
         
         soundfn = self._soundfn(soundfile)
         try:
-            self.gui.obs_timer(title, iconfile, soundfn, time_sec, callback)
+            self.gui.obs_timer(tag, title, iconfile, soundfn, time_sec,
+                               callback)
 
-            self.monitor.setvals(['g2task'], tag, result=0,
-                                 status=0, msg="OK",
-                                 done_time=time.time(), done=True)
+            self.monitor.setvals(['g2task'], tag, complete=time.time(),
+                                 status=0)
             return ro.OK
     
         except Exception, e:
@@ -855,17 +909,17 @@ class IntegController(object):
     def obs_confirmation(self, tag, title, iconfile, soundfile, btnlist):
         def callback(idx, vallist):
             if idx == None:
-                self.monitor.setvals(['g2task'], tag, result=1,
-                                     status=-1, msg="User cancelled dialog!",
-                                     done_time=time.time(), done=True)
+                self.monitor.setvals(['g2task'], tag, status=-1,
+                                     complete=time.time(),
+                                     msg="User cancelled dialog!")
             else:
-                self.monitor.setvals(['g2task'], tag, result=0,
-                                     status=idx+1, msg="OK",
-                                     done_time=time.time(), done=True)
+                self.monitor.setvals(['g2task'], tag, status=idx+1,
+                                     msg="OK",
+                                     complete=time.time())
 
         soundfn = self._soundfn(soundfile)
         try:
-            self.gui.obs_confirmation(title, iconfile, soundfn, btnlist,
+            self.gui.obs_confirmation(tag, title, iconfile, soundfn, btnlist,
                                       callback)
             return ro.OK
     
@@ -875,17 +929,18 @@ class IntegController(object):
     def obs_userinput(self, tag, title, iconfile, soundfile, itemlist):
         def callback(idx, vallist, resDict):
             if idx == None:
-                self.monitor.setvals(['g2task'], tag, result=1,
-                                     status=-1, msg="User cancelled dialog!",
-                                     done_time=time.time(), done=True)
+                self.monitor.setvals(['g2task'], tag, status=-1,
+                                     msg="User cancelled dialog!",
+                                     complete=time.time())
             else:
-                self.monitor.setvals(['g2task'], tag, result=0,
-                                     status=idx+1, msg="OK", values=resDict,
-                                     done_time=time.time(), done=True)
+                self.monitor.setvals(['g2task'], tag, status=0,
+                                     msg="OK", values=resDict,
+                                     complete=time.time())
 
         soundfn = self._soundfn(soundfile)
         try:
-            self.gui.obs_userinput(title, iconfile, soundfn, itemlist, callback)
+            self.gui.obs_userinput(tag, title, iconfile, soundfn, itemlist,
+                                   callback)
 
             return ro.OK
     
@@ -893,6 +948,15 @@ class IntegController(object):
             raise Exception("failed to start userinput dialog: %s" % (str(e)))
     
 
+    def obs_play_sound_file(self, tag, soundfile):
+        try:
+            self.playSound(soundfile)
+            return ro.OK
+    
+        except Exception, e:
+            raise Exception("failed to play sound file '%s': %s" % (
+                soundfile, str(e)))
+    
     def get_ope_paths(self):
         return self.gui.get_ope_paths()
 

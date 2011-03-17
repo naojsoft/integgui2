@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Feb 28 12:07:04 HST 2011
+#  Last edit: Tue Mar 15 11:54:23 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -59,7 +59,8 @@ class Desktop(object):
         self.w.lmh.add2(lr)
         self.pane = Bunch.Bunch()
         for name in self.w.keys():
-            bnch = Bunch.Bunch(name=name, pos=None, time=None)
+            bnch = Bunch.Bunch(name=name, pos=None, time=None,
+                               widget=self.w[name])
             self.pane[name] = bnch
             self.w[name].connect('notify', self._get_resize_fn(bnch))
 
@@ -67,12 +68,12 @@ class Desktop(object):
         vframe.add2(self.w.llh)
 
         self.ws_fr = {
-            'll': ll,
-            'ul': ul,
-            'lm': lm,
-            'um': um,
-            'lr': lr,
-            'ur': ur,
+            'll': Bunch.Bunch(frame=ll, pane=self.pane.llh),
+            'ul': Bunch.Bunch(frame=ul, pane=self.pane.ulh),
+            'lm': Bunch.Bunch(frame=lm, pane=self.pane.lmh),
+            'um': Bunch.Bunch(frame=um, pane=self.pane.umh),
+            'lr': Bunch.Bunch(frame=lr, pane=self.pane.lmh),
+            'ur': Bunch.Bunch(frame=ur, pane=self.pane.umh),
             }
 
         self.ws = {}
@@ -81,29 +82,48 @@ class Desktop(object):
         vframe.show_all()
 
 
-    def get_wsframe(self, name):
+    def get_wsframe(self, loc):
         with self.lock:
-            return self.ws_fr[name]
+            return self.ws_fr[loc].frame
 
-    def pop_pane(self, name, pos):
+    def _show_pane(self, loc, pos):
         with self.lock:
-            pane_w = self.w[name]
-            self.pane[name].pos = pane_w.get_position()
-            self.pane[name].time = time.time()
-            pane_w.set_position(pos)
+            pinfo = self.ws_fr[loc].pane
+            pane_w = pinfo.widget
+            cur_pos = pane_w.get_position()
+            print "Setting position for pane %s to %d" % (pinfo.name, cur_pos)
+            pinfo.pos = cur_pos
+            pinfo.time = time.time()
+            if cur_pos < pos:
+                pane_w.set_position(pos)
+
+            return pos - cur_pos
             
-    def restore_pane(self, name):
+    def _restore_pane(self, loc):
         with self.lock:
-            pane_w = self.w[name]
+            pinfo = self.ws_fr[loc].pane
+            pane_w = pinfo.widget
+            cur_pos = pane_w.get_position()
+            print "Maybe restore position for pane %s" % (pinfo.name)
             try:
-                pos = self.pane[name].pos
+                pos = pinfo.pos
                 self.logger.debug("Restoring pane to pos %d" % (pos))
                 pane_w.set_position(pos)
+                return pos - cur_pos
             except:
-                pass
+                return 0
 
+    def show_ws(self, name, pos=450):
+        with self.lock:
+            bnch = self.ws[name]
+            self._show_pane(bnch.loc, pos)
+    
+    def restore_ws(self, name):
+        with self.lock:
+            bnch = self.ws[name]
+            self._restore_pane(bnch.loc)
+    
     def addws(self, loc, name, title):
-
         with self.lock:
             if self.ws.has_key(name):
                 raise Exception("A workspace with name '%s' already exists!" % name)
@@ -118,7 +138,7 @@ class Desktop(object):
             frame.show_all()
 
             self.count += 1
-            self.ws[name] = ws
+            self.ws[name] = Bunch.Bunch(ws=ws, frame=frame, loc=loc)
             return ws
 
     def add_detached(self, name, title, x=None, y=None):
@@ -146,7 +166,7 @@ class Desktop(object):
                 root.move(x, y)
             
             self.count += 1
-            self.ws[name] = ws
+            self.ws[name] = Bunch.Bunch(ws=ws, frame=frame, loc=None)
             return ws
 
     def add_detached_noname(self, x=None, y=None):
@@ -159,12 +179,28 @@ class Desktop(object):
         
     def getWorkspace(self, name):
         with self.lock:
-            return self.ws[name]
+            return self.ws[name].ws
 
     def getWorkspaces(self):
         with self.lock:
-            return self.ws.values()
+            return map(self.getWorkspace, self.ws.keys())
 
+    def getPages(self, name):
+        """Return a list of tuples of (ws, page) for pages matching
+        _name_.
+        """
+        with self.lock:
+            res = []
+            for ws in self.getWorkspaces():
+                try:
+                    res.append((ws, ws.getPage(name)))
+                except KeyError:
+                    pass
+            return res
+
+    def getPage(self, name):
+        return self.getPages(name)[0]
+    
     def getNames(self):
         with self.lock:
             return self.ws.keys()

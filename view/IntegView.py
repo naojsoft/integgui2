@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Feb 28 12:01:44 HST 2011
+#  Last edit: Wed Mar 16 00:29:28 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -48,7 +48,7 @@ class IntegView(object):
         # Options that can be set graphically
         self.audible_errors = True
         self.suppress_confirm_exec = True
-        self.embed_dialogs = True
+        self.embed_dialogs = False
 
         # This is the home directory for loading all kinds of files
         self.procdir = None
@@ -115,11 +115,6 @@ class IntegView(object):
                                          WorkspacePage.WorkspacePage)
         self.lmws.select('queues')
 
-        # Define some functions that depend on the workspace
-        self.raise_queue = lambda : self.lmws.select('queues')
-        self.raise_handset = lambda : self.lmws.select('handset')
-        self.raise_tags = lambda : self.lmws.select('tags')
-        
         # Populate "Observation Info" ws
         self.add_obsinfo(self.oiws)
         self.add_monitor(self.oiws)
@@ -143,11 +138,26 @@ class IntegView(object):
 
         self.w.root.show_all()
 
-    def raise_dialogs(self):
-        self.lmws.pushRaise('dialogs',
-                            fn_open=lambda : self.ds.pop_pane('lmh', 450),
-                            fn_close=lambda : self.ds.restore_pane('lmh'))
-        
+    # Define some functions that depend on the workspace
+    def raise_page(self, name):
+        ws, page = self.ds.getPage(name)
+        self.ds.show_ws(ws.name)
+        ws.select(name)
+
+    def lower_page(self, name):
+        ws, page = self.ds.getPage(name)
+        self.ds.restore_ws(ws.name)
+
+    def raise_page_transient(self, name):
+        ws, page = self.ds.getPage(name)
+        self.ds.show_ws(ws.name)
+        ws.showTransient(name)
+
+    def lower_page_transient(self, name):
+        ws, page = self.ds.getPage(name)
+        ws.hideTransient(name)
+        self.ds.restore_ws(ws.name)
+
     def toggle_var(self, widget, key):
         if widget.active: 
             self.__dict__[key] = True
@@ -218,17 +228,17 @@ class IntegView(object):
         option_item.set_submenu(optionmenu)
 
         w = gtk.CheckMenuItem("Audible Errors")
-        w.set_active(True)
+        w.set_active(self.audible_errors)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
 
         w = gtk.CheckMenuItem("Suppress 'Confirm Execute' popups")
-        w.set_active(True)
+        w.set_active(self.suppress_confirm_exec)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'suppress_confirm_exec'))
 
         w = gtk.CheckMenuItem("Embed dialogs")
-        w.set_active(True)
+        w.set_active(self.embed_dialogs)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'embed_dialogs'))
 
@@ -1162,18 +1172,24 @@ class IntegView(object):
     # these calls off to the GUI thread using gui_do()
     ############################################################
 
-    def obs_timer(self, title, iconfile, soundfn, time_sec, callfn):
+    def obs_timer(self, tag, title, iconfile, soundfn, time_sec, callfn):
         dialog = dialogs.Timer()
-        self.gui_do(dialog.popup, title, iconfile, soundfn, time_sec, callfn)
+        self.gui_do(dialog.popup, title, iconfile, soundfn, time_sec, callfn,
+                    tag=tag)
     
-    def obs_confirmation(self, title, iconfile, soundfn, btnlist, callfn):
+    def obs_confirmation(self, tag, title, iconfile, soundfn, btnlist, callfn):
         dialog = dialogs.Confirmation()
-        self.gui_do(dialog.popup, title, iconfile, soundfn, btnlist, callfn)
+        self.gui_do(dialog.popup, title, iconfile, soundfn, btnlist, callfn,
+                    tag=tag)
     
-    def obs_userinput(self, title, iconfile, soundfn, itemlist, callfn):
+    def obs_userinput(self, tag, title, iconfile, soundfn, itemlist, callfn):
         dialog = dialogs.UserInput()
-        self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn)
-    
+        self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
+                    tag=tag)
+
+    def cancel_dialog(self, tag):
+        self.gui_do(dialogs.cancel_dialog, tag)
+        
     def update_frame(self, frameinfo):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frame, frameinfo)

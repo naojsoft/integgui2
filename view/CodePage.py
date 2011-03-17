@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Feb 23 11:02:28 HST 2011
+#  Last edit: Tue Mar 15 09:15:53 HST 2011
 #]
 import os.path
 import string
@@ -203,4 +203,25 @@ class CodePage(Page.ButtonPage, Page.TextPage):
     def get_filepath(self):
         return self.filepath
 
+    def line_numbering(self, onoff):
+        self.tw.set_show_line_numbers(onoff)
+        
+    def toggle_line_numbering(self, widget):
+        self.line_numbering(widget.active)
+        return True
+        
+    def line_wrapping(self, kind):
+        d = { 'none': gtk.WRAP_NONE,
+              'char': gtk.WRAP_CHAR,
+              'word': gtk.WRAP_WORD,
+              'full': gtk.WRAP_WORD_CHAR }
+        self.tw.set_wrap_mode(d[kind])
+        
+    def toggle_line_wrapping(self, widget):
+        if widget.active:
+            self.line_wrapping('full')
+        else:
+            self.line_wrapping('none')
+        return True
+        
 #END

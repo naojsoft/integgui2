@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Feb 28 11:14:46 HST 2011
+#  Last edit: Mon Mar  7 13:06:36 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -29,11 +29,11 @@ class Workspace(object):
         # Holds my pages
         self.pages = {}
         self.pages_w = {}
+        self.curpage = None
 
         # For handling dynamic pop-ups
-        self.stack = []
+        self.lastPage = None
         self.transients = []
-        self.fn_close = None
         # Mutex
         self.lock = threading.RLock()
 
@@ -232,11 +232,6 @@ class Workspace(object):
                 #del self.pages_w[name]
             except KeyError:
                 pass
-            # Remove from stack if stacked
-            try:
-                self.stack.remove(name)
-            except:
-                pass
 
     def delall(self):
         with self.lock:
@@ -270,38 +265,37 @@ class Workspace(object):
             page = self.getPage(name)
             return self.nb.page_num(page.frame)
         
-    def pushRaise(self, name, fn_open=None, fn_close=None):
-        # If a function was provided to 
-        if fn_open:
-            fn_open()
-            self.fn_close = fn_close
-            
+    def showTransient(self, name):
         with self.lock:
-            # Push current top page onto stack
+            # Get currently selected page
             currentPage = self.getCurrentPage()
-            if currentPage:
-                self.stack.insert(0, currentPage.name)
 
-            # Add this page into a list of "transients" and
+            # Add new page into a list of "transients" and
             # switch to it
             self.transients.insert(0, name)
+            # "Remember" old current page if it was not in the list of
+            # transients
+            if (currentPage != None) and (not currentPage.name in
+                                          self.transients):
+                self.lastPage = currentPage
+
+            # Go to the new page
             self.select(name)
             
-    def popRaise(self):
+    def hideTransient(self, name):
         # A dialog is finished.  Pop the page off the list of "transients"
         # and go to the 
         with self.lock:
             try:
-                self.transients.pop(0)
+                self.transients.remove(name)
             except:
                 pass
 
-            if len(self.stack) > 0:
-                name = self.stack.pop(0)
-                self.select(name)
-
-            if (len(self.stack) == 0) and (self.fn_close != None):
-                self.fn_close()
+            print "Transients: %s" % str(self.transients)
+            if len(self.transients) == 0:
+                if self.lastPage != None:
+                    print "Moving back to page: %s" % self.lastPage.name
+                    self.select(self.lastPage.name)
             
     def getPages(self):
         with self.lock:
@@ -326,13 +320,10 @@ class Workspace(object):
 
     def _page_switched(self, nb, child, page_num):
         with self.lock:
-            if len(self.stack) <= 0:
-                return True
-            
             for page in self.getPages():
                 if self.nb.page_num(page.frame) == page_num:
                     if not page.name in self.transients:
-                        self.stack[0] = page.name
+                        self.lastPage = page
                     break
                     
 
@@ -354,12 +345,12 @@ class Workspace(object):
         with self.lock:
             try:
                 pageobj = child.get_data('ig_page')
+                if self.lastPage == pageobj:
+                    self.lastPage = None
+                while pageobj.name in self.transients:
+                    self.transients.remove(pageobj.name)
                 del self.pages[pageobj.name]
                 del self.pages_w[child]
-                try:
-                    self.stack.remove(pageobj.name)
-                except:
-                    pass
             except Exception, e:
                 self.logger.error('Error removing page: %s' % str(e))
             return True
@@ -369,6 +360,10 @@ class Workspace(object):
         page = self.widgetToPage(widget)
         if not page:
             return None
+        while page.name in self.transients:
+            self.transients.remove(page.name)
+        if self.lastPage == page:
+            self.lastPage = None
         
         self.logger.info("detaching page %s" % (page.name))
         ws = self.parent.add_detached_noname(x=x, y=y)

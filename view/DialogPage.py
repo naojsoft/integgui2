@@ -2,7 +2,7 @@
 # DialogPage.py -- implements an Integgui2 dialog
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 16:44:11 HST 2011
+#  Last edit: Mon Mar  7 11:15:58 HST 2011
 #]
 
 import gtk
@@ -67,11 +67,7 @@ class DialogPage(Page.Page):
             self.add_button(name, rsp, callback)
             
     def destroy(self):
-        try:
-            # TODO: how do we know we are nested like this?
-            self.parent.parent.popRaise()
-        except:
-            pass
+        # this method is here to make it similar to a widget based class
         return self.close()
 
     def show(self):

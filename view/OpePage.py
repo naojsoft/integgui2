@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 17:19:04 HST 2011
+#  Last edit: Tue Mar 15 12:11:27 HST 2011
 #]
 import sys, traceback
 
@@ -145,6 +145,18 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         item.show()
 
         menu = self.add_pulldownmenu("Options")
+
+        item = gtk.CheckMenuItem("Wrap lines")
+        item.set_active(False)
+        menu.append(item)
+        item.connect("activate", self.toggle_line_wrapping)
+        item.show()
+
+        item = gtk.CheckMenuItem("Show line numbers")
+        item.set_active(False)
+        menu.append(item)
+        item.connect("activate", self.toggle_line_numbering)
+        item.show()
 
         item = gtk.CheckMenuItem("Don't link commands to page")
         item.set_active(False)
@@ -540,7 +552,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         if event.state & gtk.gdk.CONTROL_MASK:
             if keyname == 't':
-                common.view.raise_tags()
+                common.view.raise_page('tags')
                 return True
         
             elif keyname == 'r':
@@ -556,11 +568,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 return True
         
             elif keyname == 'q':
-                common.view.raise_queue()
+                common.view.raise_page('queues')
                 return True
         
             elif keyname == 'h':
-                common.view.raise_handset()
+                common.view.raise_page('handset')
                 return True
         
             elif keyname == 'c':

@@ -1,8 +1,9 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Feb 28 10:11:11 HST 2011
+#  Last edit: Wed Mar 16 00:21:28 HST 2011
 #]
 import time
+import threading
 
 import gtk
 import gobject
@@ -10,6 +11,48 @@ import gobject
 import common
 
 dialog_count = 0
+
+# This is a table of dialogs that have been opened by a remote task.
+dialog_table = {}
+# A lock to protect the table
+dialog_table_lock = threading.RLock()
+
+def register_dialog(tag, dialog):
+    """Register a dialog in the dialog table."""
+    if not tag:
+        # dialog is not associated with a remote task
+        return
+    with dialog_table_lock:
+        print "Registering dialog %s" % tag
+        dialog_table[tag] = dialog
+
+def unregister_dialog(tag):
+    """Unregister a dialog from the dialog table."""
+    if not tag:
+        return
+    with dialog_table_lock:
+        print "Unregistering dialog %s" % tag
+        try:
+            del dialog_table[tag]
+        except KeyError:
+            # if already deleted no big deal
+            pass
+
+def cancel_dialog(tag):
+    """Cancel any dialogs associated with a remote task.
+    """
+    with dialog_table_lock:
+        items = dialog_table.items()
+
+    # Search the dialog table for a tag that starts with this tag
+    for key, obj in items:
+        if key.startswith(tag):
+            # Found one--it must be associated with that command
+            print "Command cancelled--closing dialog %s" % key
+            unregister_dialog(key)
+            if obj.w:
+                obj.close(obj.w)
+    
 
 # NOTE [1]:
 #   There seems to be a bug in the gtk.FileChooserDialog() where if the
@@ -92,7 +135,7 @@ class MyDialog(gtk.Dialog):
 class Confirmation(object):
 
     def __init__(self, title='OBS Confirmation',
-                 logger=None, soundfn=None, timefreq=3):
+                 logger=None, soundfn=None, timefreq=5):
         self.title = title
         self.logger = logger
         
@@ -117,7 +160,8 @@ class Confirmation(object):
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
             self.w = common.view.create_dialog(name, name)
-            common.view.raise_dialogs()
+            self.w.add_hook('close', lambda: common.view.lower_page_transient('dialogs'))
+            common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
             self.w.add_buttons(buttons, callback)
             
@@ -136,7 +180,7 @@ class Confirmation(object):
         self.icon.set_from_animation(self.anim)
         self.icon.show_all()
         
-    def popup(self, title, iconfile, soundfn, buttons, callfn):
+    def popup(self, title, iconfile, soundfn, buttons, callfn, tag=None):
         button_list = []
         button_vals = []
         i = 0
@@ -151,12 +195,20 @@ class Confirmation(object):
                 val = None
             else:
                 val = rsp
+
+            unregister_dialog(self.tag)
             return callfn(val, button_vals)
             
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
+        self.tag = tag
+        register_dialog(tag, self)
+        
         self.w.show()
-        self.timeraction(soundfn)
+        #self.timeraction(soundfn)
+        self.timertask = gobject.timeout_add(self.interval,
+                                             self.timeraction,
+                                             soundfn)
 
     def close(self, widget):
         #self.w.hide()
@@ -186,7 +238,7 @@ class UserInput(Confirmation):
         super(UserInput, self).__init__(title=title, logger=logger,
                                         soundfn=soundfn)
         
-    def popup(self, title, iconfile, soundfn, itemlist, callfn):
+    def popup(self, title, iconfile, soundfn, itemlist, callfn, tag=None):
         button_vals = [1, 0]
         # NOTE: numbers here are INDEXES into self.button_vals, not values!
         button_list = [['OK', 0], ['Cancel', 1]]
@@ -205,6 +257,7 @@ class UserInput(Confirmation):
                 s = ent.get_text()
                 d[key] = s
 
+            unregister_dialog(self.tag)
             self.close(w)
             return callfn(val, button_vals, d)
             
@@ -231,8 +284,14 @@ class UserInput(Confirmation):
         tbl.show_all()
         self.cvbox.pack_start(tbl, fill=True, expand=False, padding=2)
         
+        self.tag = tag
+        register_dialog(tag, self)
+
         self.w.show()
-        self.timeraction(soundfn)
+        #self.timeraction(soundfn)
+        self.timertask = gobject.timeout_add(self.interval,
+                                             self.timeraction,
+                                             soundfn)
 
 
 class Timer(Confirmation):
@@ -253,7 +312,7 @@ class Timer(Confirmation):
         s = self.timestr.rjust(5)
         self.area.set_markup(self.fmtstr % (s))
 
-    def popup(self, title, iconfile, soundfn, time_sec, callfn):
+    def popup(self, title, iconfile, soundfn, time_sec, callfn, tag=None):
         button_vals = [0]
         # NOTE: numbers here are INDEXES into self.button_vals, not values!
         button_list = [['Close', 0]]
@@ -265,6 +324,7 @@ class Timer(Confirmation):
             else:
                 val = rsp
 
+            unregister_dialog(self.tag)
             return callfn(val, button_vals)
             
         self._create_widget(title, iconfile, tuple(button_list),
@@ -287,6 +347,9 @@ class Timer(Confirmation):
         self.pbar.set_text("0%")
         self.cvbox.pack_start(self.area, fill=True, expand=False, padding=2)
         self.cvbox.pack_start(self.pbar, fill=True, expand=False, padding=2)
+
+        self.tag = tag
+        register_dialog(tag, self)
 
         self.w.show()
         self.redraw()

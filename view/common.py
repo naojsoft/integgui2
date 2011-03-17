@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jan  3 13:53:14 HST 2011
+#  Last edit: Fri Mar  4 16:48:37 HST 2011
 #]
 import os.path
 import re
@@ -118,8 +118,10 @@ sound = Bunch.Bunch(success_executer='doorbell.au',
                     failure_executer='hit-02.au',
                     failure_launcher='dishes-break-01.au',
                     break_executer='beep-04.au',
-                    #tags_toggle='tos-turboliftdoor.au',
-                    tags_toggle='beep-07.au',
+                    #open_panel='tos-turboliftdoor.au',
+                    open_panel='beep-05.au',
+                    #close_panel='tos-turboliftdoor.au',
+                    close_panel='beep-05.au',
                     pause_toggle='beep-05.au',
                     bad_keystroke='beep-07.au',
                     )

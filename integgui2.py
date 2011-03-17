@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 12:25:03 HST 2011
+#  Last edit: Tue Mar 15 22:52:51 HST 2011
 #]
 
 # Standard library imports
@@ -46,6 +46,7 @@ def main(options, args):
 
     # Create a local monitor
     mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
+    #mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
 
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
@@ -63,8 +64,8 @@ def main(options, args):
     notify_obj.update_framelist()
 
     # For playing sounds
-    soundsink = SoundSink.SoundSink(monitor=mymon, logger=logger,
-                                    channels=['sound'])
+    soundsink = SoundSink.SoundSource(monitor=mymon, logger=logger,
+                                      channels=['sound'])
     pub_channels.append('sound')
 
     # Create controller
@@ -129,6 +130,7 @@ def main(options, args):
     svc = ro.remoteObjectServer(svcname=options.svcname,
                                 obj=controller, logger=logger,
                                 method_list=['get_ope_paths',
+                                             'obs_play_sound_file',
                                              'obs_timer',
                                              'obs_confirmation',
                                              'obs_userinput'],

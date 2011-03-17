@@ -1,6 +1,6 @@
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Nov  5 10:38:08 HST 2010
+#  Last edit: Mon Mar  7 12:21:01 HST 2011
 #]
 #
 import os
@@ -8,6 +8,7 @@ import threading
 
 import gtk
 
+import Bunch
 import common
 
 # constants
@@ -30,8 +31,13 @@ class Page(object):
         # every page has a lock
         self.lock = threading.RLock()
 
+        self.hooks = Bunch.Bunch(close=[])
+
     def close(self):
-        # parent attribute is added by parent workspace
+        for bnch in self.hooks.close:
+            bnch.cbfn(*bnch.args, **bnch.kwdargs)
+
+        # parent attribute is assigned by parent
         self.parent.delpage(self.name)
 
         self.closed = True
@@ -41,6 +47,14 @@ class Page(object):
         # NOTE: this doesn't really change the name of the page, as known
         # by the parent, just the appearance of the tab
         self.tablbl.set_label(name)
+
+    def add_hook(self, name, cbfn, args=None, kwdargs=None):
+        if args is None:
+            args = []
+        if kwdargs is None:
+            kwdargs = {}
+        self.hooks[name].append(Bunch.Bunch(cbfn=cbfn, args=args,
+                                            kwdargs=kwdargs))
 
 
 class ButtonPage(Page):
