@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 16:55:08 HST 2011
+#  Last edit: Mon Feb 28 11:14:46 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -29,8 +29,12 @@ class Workspace(object):
         # Holds my pages
         self.pages = {}
         self.pages_w = {}
+
+        # For handling dynamic pop-ups
         self.stack = []
         self.transients = []
+        self.fn_close = None
+        # Mutex
         self.lock = threading.RLock()
 
         nb = gtk.Notebook()
@@ -266,17 +270,26 @@ class Workspace(object):
             page = self.getPage(name)
             return self.nb.page_num(page.frame)
         
-    def pushRaise(self, name):
+    def pushRaise(self, name, fn_open=None, fn_close=None):
+        # If a function was provided to 
+        if fn_open:
+            fn_open()
+            self.fn_close = fn_close
+            
         with self.lock:
             # Push current top page onto stack
             currentPage = self.getCurrentPage()
             if currentPage:
                 self.stack.insert(0, currentPage.name)
 
+            # Add this page into a list of "transients" and
+            # switch to it
             self.transients.insert(0, name)
-            return self.select(name)
+            self.select(name)
             
     def popRaise(self):
+        # A dialog is finished.  Pop the page off the list of "transients"
+        # and go to the 
         with self.lock:
             try:
                 self.transients.pop(0)
@@ -285,7 +298,10 @@ class Workspace(object):
 
             if len(self.stack) > 0:
                 name = self.stack.pop(0)
-            return self.select(name)
+                self.select(name)
+
+            if (len(self.stack) == 0) and (self.fn_close != None):
+                self.fn_close()
             
     def getPages(self):
         with self.lock:

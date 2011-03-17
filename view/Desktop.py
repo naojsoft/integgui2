@@ -1,14 +1,16 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 21:24:15 HST 2010
+#  Last edit: Mon Feb 28 12:07:04 HST 2011
 #]
 
 # remove once we're certified on python 2.6
 from __future__ import with_statement
 
+import time
 import threading
 import gtk
 
+import Bunch
 import Workspace
 
 
@@ -21,19 +23,20 @@ class Desktop(object):
 
         self.count = 1
         self.detached = []
+        self.w = Bunch.Bunch()
         
         # TODO: should generalize to number of rows and columns
 
         vframe = gtk.VPaned()
 
-        ulhframe = gtk.HPaned()
-        ulhframe.set_size_request(-1, 400)
-        llhframe = gtk.HPaned()
-        umhframe = gtk.HPaned()
-        umhframe.set_size_request(-1, 400)
-        lmhframe = gtk.HPaned()
-        ulhframe.add2(umhframe)
-        llhframe.add2(lmhframe)
+        self.w.ulh = gtk.HPaned()
+        self.w.ulh.set_size_request(-1, 400)
+        self.w.llh = gtk.HPaned()
+        self.w.umh = gtk.HPaned()
+        self.w.umh.set_size_request(-1, 400)
+        self.w.lmh = gtk.HPaned()
+        self.w.ulh.add2(self.w.umh)
+        self.w.llh.add2(self.w.lmh)
         
         frame.pack_start(vframe, fill=True, expand=True)
 
@@ -48,16 +51,21 @@ class Desktop(object):
         ur = gtk.VBox()
         lr = gtk.VBox()
 
-        ulhframe.add1(ul)
-        llhframe.add1(ll)
-        umhframe.add1(um)
-        lmhframe.add1(lm)
-        umhframe.add2(ur)
-        lmhframe.add2(lr)
+        self.w.ulh.add1(ul)
+        self.w.llh.add1(ll)
+        self.w.umh.add1(um)
+        self.w.lmh.add1(lm)
+        self.w.umh.add2(ur)
+        self.w.lmh.add2(lr)
+        self.pane = Bunch.Bunch()
+        for name in self.w.keys():
+            bnch = Bunch.Bunch(name=name, pos=None, time=None)
+            self.pane[name] = bnch
+            self.w[name].connect('notify', self._get_resize_fn(bnch))
 
-        vframe.add1(ulhframe)
-        vframe.add2(llhframe)
-        
+        vframe.add1(self.w.ulh)
+        vframe.add2(self.w.llh)
+
         self.ws_fr = {
             'll': ll,
             'ul': ul,
@@ -76,6 +84,23 @@ class Desktop(object):
     def get_wsframe(self, name):
         with self.lock:
             return self.ws_fr[name]
+
+    def pop_pane(self, name, pos):
+        with self.lock:
+            pane_w = self.w[name]
+            self.pane[name].pos = pane_w.get_position()
+            self.pane[name].time = time.time()
+            pane_w.set_position(pos)
+            
+    def restore_pane(self, name):
+        with self.lock:
+            pane_w = self.w[name]
+            try:
+                pos = self.pane[name].pos
+                self.logger.debug("Restoring pane to pos %d" % (pos))
+                pane_w.set_position(pos)
+            except:
+                pass
 
     def addws(self, loc, name, title):
 
@@ -178,5 +203,21 @@ class Desktop(object):
 
     def move_page(self, src_ws, page, dst_ws):
         src_ws.move_page(page, dst_ws)
+
+    def _get_resize_fn(self, bnch):
+        def _pane_resized(pane_w, info):
+            # Callback function when pane is resized
+            pos = pane_w.get_position()
+            # Try to determine (via very ugly code) whether resize was
+            # a result of programmatic or manual resize by a human
+            if bnch.time and (time.time() - bnch.time < 0.5):
+                pass
+            else:
+                # If manually resized, record the new size so we don't
+                # undo a resize that was intentional
+                self.logger.debug("Pane manually resized to %d" % (pos))
+                bnch.pos = pos
+
+        return _pane_resized
         
 #END

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 17:03:52 HST 2011
+#  Last edit: Mon Feb 28 12:01:44 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -91,7 +91,7 @@ class IntegView(object):
         # Create a "desktop" the holder for workspaces
         self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
         # Some attributes we force on our children
-        self.ds.logger = logger
+        self.ds.logger = self.logger
 
         # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
@@ -115,6 +115,11 @@ class IntegView(object):
                                          WorkspacePage.WorkspacePage)
         self.lmws.select('queues')
 
+        # Define some functions that depend on the workspace
+        self.raise_queue = lambda : self.lmws.select('queues')
+        self.raise_handset = lambda : self.lmws.select('handset')
+        self.raise_tags = lambda : self.lmws.select('tags')
+        
         # Populate "Observation Info" ws
         self.add_obsinfo(self.oiws)
         self.add_monitor(self.oiws)
@@ -138,6 +143,11 @@ class IntegView(object):
 
         self.w.root.show_all()
 
+    def raise_dialogs(self):
+        self.lmws.pushRaise('dialogs',
+                            fn_open=lambda : self.ds.pop_pane('lmh', 450),
+                            fn_close=lambda : self.ds.restore_pane('lmh'))
+        
     def toggle_var(self, widget, key):
         if widget.active: 
             self.__dict__[key] = True
@@ -995,15 +1005,6 @@ class IntegView(object):
             self.gui.popup_error("Failed to initialize from session: %s" % (
                 str(e)))
 
-    def raise_queue(self):
-        self.lmws.select('queues')
-        
-    def raise_handset(self):
-        self.lmws.select('handset')
-        
-    def raise_tags(self):
-        self.lmws.select('tags')
-        
     def get_handset_paths(self, insname):
         filename = '%s*.yml' % insname.upper()
         pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',

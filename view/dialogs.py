@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb 25 17:03:51 HST 2011
+#  Last edit: Mon Feb 28 10:11:11 HST 2011
 #]
 import time
 
@@ -117,8 +117,7 @@ class Confirmation(object):
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
             self.w = common.view.create_dialog(name, name)
-            # TODO: how do we know the location of this page!
-            common.view.lmws.pushRaise('dialogs')
+            common.view.raise_dialogs()
             common.view.dialogs.select(name)
             self.w.add_buttons(buttons, callback)
             
