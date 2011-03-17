@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Feb  2 17:40:19 HST 2011
+#  Last edit: Fri Feb 25 17:19:04 HST 2011
 #]
 import sys, traceback
 
@@ -423,8 +423,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 else:
                     common.view.statusMsg(errmsg)
                     
-                tagpage.tablbl.modify_bg(gtk.STATE_NORMAL,
-                                         common.launcher_colors['execbtn'])
+                tagpage.tablbl.set_markup('<span background="orange">Tags</span>')
+
+            else:
+                tagpage.tablbl.set_markup('<span>Tags</span>')
+                
                 
         except Exception, e:
             errmsg = "Error coloring buffer: %s" % (str(e))

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Feb 23 11:31:07 HST 2011
+#  Last edit: Fri Feb 25 17:03:52 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -26,7 +26,7 @@ import common
 from pages import *
 import Page as PG
 import Workspace as WS
-from dialogs import *
+import dialogs
 
 
 class IntegView(object):
@@ -48,6 +48,7 @@ class IntegView(object):
         # Options that can be set graphically
         self.audible_errors = True
         self.suppress_confirm_exec = True
+        self.embed_dialogs = True
 
         # This is the home directory for loading all kinds of files
         self.procdir = None
@@ -110,6 +111,8 @@ class IntegView(object):
                                            WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
         self.add_tagpage(self.lmws)
+        self.dialogs = self.lmws.addpage('dialogs', "Dialogs",
+                                         WorkspacePage.WorkspacePage)
         self.lmws.select('queues')
 
         # Populate "Observation Info" ws
@@ -213,6 +216,11 @@ class IntegView(object):
         w.set_active(True)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'suppress_confirm_exec'))
+
+        w = gtk.CheckMenuItem("Embed dialogs")
+        w.set_active(True)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'embed_dialogs'))
 
         # create a Queue pulldown menu, and add it to the menu bar
         queuemenu = gtk.Menu()
@@ -372,8 +380,8 @@ class IntegView(object):
 
 
     def add_dialogs(self):
-        self.filesel = FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
-        self.filesave = FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
+        self.filesel = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
+        self.filesave = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
 
 
     def add_statusbar(self):
@@ -924,6 +932,24 @@ class IntegView(object):
     def get_ope_paths(self):
         return self.get_file_paths_desktop(self.ds, regex='^.*\.(ope|OPE)$')
     
+    def create_dialog(self, name, title):
+        try:
+            try:
+                page = self.dialogs.getPage(name)
+                raise Exception("There is already a paage open by that name!")
+            except KeyError:
+                pass
+            page = self.dialogs.addpage(name, title, DialogPage)
+
+            # Bring tab to front
+            self.dialogs.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot create dialog '%s': %s" % (
+                    title, str(e)))
+            return None
+
     def close_pages_workspace(self, workspace, pageKlass, exclude=[]):
         try:
             for page in workspace.getPages():
@@ -1135,6 +1161,18 @@ class IntegView(object):
     # these calls off to the GUI thread using gui_do()
     ############################################################
 
+    def obs_timer(self, title, iconfile, soundfn, time_sec, callfn):
+        dialog = dialogs.Timer()
+        self.gui_do(dialog.popup, title, iconfile, soundfn, time_sec, callfn)
+    
+    def obs_confirmation(self, title, iconfile, soundfn, btnlist, callfn):
+        dialog = dialogs.Confirmation()
+        self.gui_do(dialog.popup, title, iconfile, soundfn, btnlist, callfn)
+    
+    def obs_userinput(self, title, iconfile, soundfn, itemlist, callfn):
+        dialog = dialogs.UserInput()
+        self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn)
+    
     def update_frame(self, frameinfo):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frame, frameinfo)

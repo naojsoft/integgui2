@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  9 19:47:23 HST 2010
+#  Last edit: Fri Feb 25 16:55:08 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -29,6 +29,8 @@ class Workspace(object):
         # Holds my pages
         self.pages = {}
         self.pages_w = {}
+        self.stack = []
+        self.transients = []
         self.lock = threading.RLock()
 
         nb = gtk.Notebook()
@@ -41,6 +43,7 @@ class Workspace(object):
         nb.set_group_id(1)
         nb.connect("page-added", self._page_added)
         nb.connect("page-removed", self._page_removed)
+        nb.connect("switch-page", self._page_switched)
         # Allows dragging pages to create top-level detached workspaces
         #nb.connect("create-window", self._detach_page)
 
@@ -225,6 +228,11 @@ class Workspace(object):
                 #del self.pages_w[name]
             except KeyError:
                 pass
+            # Remove from stack if stacked
+            try:
+                self.stack.remove(name)
+            except:
+                pass
 
     def delall(self):
         with self.lock:
@@ -243,11 +251,42 @@ class Workspace(object):
         with self.lock:
             return self.pages[name]
 
+    def getCurrentPage(self):
+        with self.lock:
+            i = self.nb.get_current_page()
+            for page in self.getPages():
+                if self.nb.page_num(page.frame) == i:
+                    return page
+
+            # ???
+            return None
+
     def getIndexByName(self, name):
         with self.lock:
             page = self.getPage(name)
             return self.nb.page_num(page.frame)
         
+    def pushRaise(self, name):
+        with self.lock:
+            # Push current top page onto stack
+            currentPage = self.getCurrentPage()
+            if currentPage:
+                self.stack.insert(0, currentPage.name)
+
+            self.transients.insert(0, name)
+            return self.select(name)
+            
+    def popRaise(self):
+        with self.lock:
+            try:
+                self.transients.pop(0)
+            except:
+                pass
+
+            if len(self.stack) > 0:
+                name = self.stack.pop(0)
+            return self.select(name)
+            
     def getPages(self):
         with self.lock:
             return self.pages.values()
@@ -268,6 +307,19 @@ class Workspace(object):
         self.delpage(page.name)
         workspace._addpage(page.name, page.title, page.frame, page)
         
+
+    def _page_switched(self, nb, child, page_num):
+        with self.lock:
+            if len(self.stack) <= 0:
+                return True
+            
+            for page in self.getPages():
+                if self.nb.page_num(page.frame) == page_num:
+                    if not page.name in self.transients:
+                        self.stack[0] = page.name
+                    break
+                    
+
     # DRAG AND DROP TABS
     def _page_added(self, nb, child, page_num):
         self.logger.debug("page added %d" % page_num)
@@ -288,6 +340,10 @@ class Workspace(object):
                 pageobj = child.get_data('ig_page')
                 del self.pages[pageobj.name]
                 del self.pages_w[child]
+                try:
+                    self.stack.remove(pageobj.name)
+                except:
+                    pass
             except Exception, e:
                 self.logger.error('Error removing page: %s' % str(e))
             return True

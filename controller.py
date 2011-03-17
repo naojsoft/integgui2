@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Feb  3 09:57:01 HST 2011
+#  Last edit: Fri Feb 25 12:36:27 HST 2011
 #]
 
 import re
@@ -338,7 +338,9 @@ class IntegController(object):
 
         for name in ['TELESCOPE']:
             launchers.extend(self.gui.get_launcher_paths(name))
-        for name in ['STANDARD', 'TELESCOPE']:
+        # uncomment once Az/El handset is ready
+        #for name in ['STANDARD', 'TELESCOPE']:
+        for name in ['STANDARD']:
             handsets.extend(self.gui.get_handset_paths(name))
 
         for name in allocs_lst:
@@ -828,5 +830,70 @@ class IntegController(object):
             return
                 
         self.gui.gui_do(self.gui.edit_command, cmdstr)
+
+
+    def _soundfn(self, filename):
+        return lambda : self.playSound(filename)
+
+    def obs_timer(self, tag, title, iconfile, soundfile, time_sec):
+        def callback(*args):
+            pass
+        
+        soundfn = self._soundfn(soundfile)
+        try:
+            self.gui.obs_timer(title, iconfile, soundfn, time_sec, callback)
+
+            self.monitor.setvals(['g2task'], tag, result=0,
+                                 status=0, msg="OK",
+                                 done_time=time.time(), done=True)
+            return ro.OK
+    
+        except Exception, e:
+            raise Exception("failed to start timer: %s" % (str(e)))
+            
+    
+    def obs_confirmation(self, tag, title, iconfile, soundfile, btnlist):
+        def callback(idx, vallist):
+            if idx == None:
+                self.monitor.setvals(['g2task'], tag, result=1,
+                                     status=-1, msg="User cancelled dialog!",
+                                     done_time=time.time(), done=True)
+            else:
+                self.monitor.setvals(['g2task'], tag, result=0,
+                                     status=idx+1, msg="OK",
+                                     done_time=time.time(), done=True)
+
+        soundfn = self._soundfn(soundfile)
+        try:
+            self.gui.obs_confirmation(title, iconfile, soundfn, btnlist,
+                                      callback)
+            return ro.OK
+    
+        except Exception, e:
+            raise Exception("failed to start confirmation dialog: %s" % (str(e)))
+    
+    def obs_userinput(self, tag, title, iconfile, soundfile, itemlist):
+        def callback(idx, vallist, resDict):
+            if idx == None:
+                self.monitor.setvals(['g2task'], tag, result=1,
+                                     status=-1, msg="User cancelled dialog!",
+                                     done_time=time.time(), done=True)
+            else:
+                self.monitor.setvals(['g2task'], tag, result=0,
+                                     status=idx+1, msg="OK", values=resDict,
+                                     done_time=time.time(), done=True)
+
+        soundfn = self._soundfn(soundfile)
+        try:
+            self.gui.obs_userinput(title, iconfile, soundfn, itemlist, callback)
+
+            return ro.OK
+    
+        except Exception, e:
+            raise Exception("failed to start userinput dialog: %s" % (str(e)))
+    
+
+    def get_ope_paths(self):
+        return self.gui.get_ope_paths()
 
 #END

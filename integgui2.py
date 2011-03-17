@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Feb 23 11:38:19 HST 2011
+#  Last edit: Fri Feb 25 12:25:03 HST 2011
 #]
 
 # Standard library imports
@@ -42,7 +42,7 @@ def main(options, args):
 
     # monitor channels we are interested in
     sub_channels = []
-    pub_channels = []
+    pub_channels = ['g2task']
 
     # Create a local monitor
     mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
@@ -127,8 +127,11 @@ def main(options, args):
     # Start up a remote object server for certain services provided by
     # integgui2
     svc = ro.remoteObjectServer(svcname=options.svcname,
-                                obj=gui, logger=logger,
-                                method_list=['get_ope_paths'],
+                                obj=controller, logger=logger,
+                                method_list=['get_ope_paths',
+                                             'obs_timer',
+                                             'obs_confirmation',
+                                             'obs_userinput'],
                                 port=options.port,
                                 ev_quit=ev_quit,
                                 usethread=True)
