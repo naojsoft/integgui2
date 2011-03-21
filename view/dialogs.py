@@ -1,12 +1,13 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 16 00:21:28 HST 2011
+#  Last edit: Mon Mar 21 12:59:25 HST 2011
 #]
 import time
 import threading
 
 import gtk
 import gobject
+import pango
 
 import common
 
@@ -167,14 +168,26 @@ class Confirmation(object):
             
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
-        lbl = gtk.Label()
-        lbl.set_markup('<span size="x-large" weight="bold">%s</span>' % (
-            title ))
-        lbl.show()
+        tw = gtk.TextView()
+        # TODO: parameterize this
+        pangoFont = pango.FontDescription("Sans Bold 14")
+        tw.modify_font(pangoFont)
+        tw.set_editable(False)
+        tw.set_cursor_visible(False)
+        tw.set_size_request(425, -1)
+        tw.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+        tw.set_left_margin(4)
+        tw.set_right_margin(4)
+        txtbuf = tw.get_buffer()
+        enditer = txtbuf.get_end_iter()
+        txtbuf.insert(enditer, title)
+        self.tw = tw
+        tw.show()
+
         self.icon = gtk.Image()
         self.icon.set_from_file(iconfile)
         cvbox.pack_start(self.icon, expand=False, padding=2)
-        cvbox.pack_start(lbl, expand=False, padding=5)
+        cvbox.pack_start(tw, expand=False, padding=5)
 
         self.anim = gtk.gdk.PixbufAnimation(iconfile)
         self.icon.set_from_animation(self.anim)
