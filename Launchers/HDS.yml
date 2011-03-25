@@ -149,10 +149,11 @@ launchers:
 
     -
         label: "FocusSVSequence"
-        cmd  : FocusSVSequence OBE_ID=HDS OBE_MODE=LAUNCHER SLIT_WIDTH=$VAL01 SLIT_LENGTH=$VAL02
+        cmd  : FocusSVSequence OBE_ID=HDS OBE_MODE=LAUNCHER SELECT_MODE=$VAL01 SLIT_WIDTH=$VAL02 SLIT_LENGTH=$VAL03
         params:
-            - [ VAL01, INPUT, 12, "-1", "Width(sec/um)" ]
-            - [ VAL02, INPUT, 12, "30", "Length(sec/um)" ]
+            - [ VAL01, LIST, [["Auto", "AUTO"], ["Manual", "MANUAL"]], "Select" ]
+            - [ VAL02, INPUT, 12, "-1", "Width(sec/um)" ]
+            - [ VAL03, INPUT, 12, "30", "Length(sec/um)" ]
 
     -
         label: "Prepare FocusAG"
