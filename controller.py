@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Mar 15 23:39:23 HST 2011
+#  Last edit: Mon Mar 21 16:43:57 HST 2011
 #]
 
 import re
@@ -384,96 +384,55 @@ class IntegController(object):
             self.gui.set_procdir(procdir, inst)
             
 
-    ## def get_transaction(self, path):
-    ##     with self.lock:
-    ##         # Will return KeyError if path does not reference a
-    ##         # valid transaction
-    ##         # TODO: should this dictionary be made persistent so
-    ##         # that we can restart integgui and pick up outstanding
-    ##         # transactions?
-    ##         return self.transdict[path]
-
-    ## def put_transaction(self, tm_tag, cmdObj):
-    ##     with self.lock:
-    ##         self.transdict[tm_tag] = cmdObj
-    ##         cmdObj.tasktag = tm_tag
-    ##         cmdObj.ev_trans = threading.Event()
-
-    ##         # Graphically signal execution in some way
-    ##         cmdObj.page.mark_status(cmdObj, 'executing')
-
-
-    ## def wait_transaction(self, cmdObj):
-    ##     """Wait for transaction to be finished."""
-    ##     cmdObj.ev_trans.wait()
-
-    ## def release_transaction(self, cmdObj):
-    ##     """Signal that transaction is finished."""
-    ##     cmdObj.ev_trans.set()
-
-    ## def release_all_transactions(self):
-    ##     with self.lock:
-    ##         cmdObjs = self.transdict.values()
-    ##     for cmdObj in cmdObjs:
-    ##         self.release_transaction(cmdObj)
-    ##     self.executingP.clear()
-
-    ## def del_transaction(self, cmdObj):
-    ##     with self.lock:
-    ##         try:
-    ##             del self.transdict[cmdObj.path]
-    ##         except:
-    ##             pass
-       
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
 
-    def awaitTask(self, tag, timeout=None):
+    ## def awaitTask(self, tag, timeout=None):
 
-        # If task submission was successful, then watch the monitor for
-        # the result.
-        try:
-            d = self.monitor.getitem_any(['%s.task_end' % tag],
-                                         timeout=timeout)
+    ##     # If task submission was successful, then watch the monitor for
+    ##     # the result.
+    ##     try:
+    ##         d = self.monitor.getitem_any(['%s.task_end' % tag],
+    ##                                      timeout=timeout)
 
-        except Monitor.TimeoutError, e:
-            self.logger.error(str(e))
-            return 2
+    ##     except Monitor.TimeoutError, e:
+    ##         self.logger.error(str(e))
+    ##         return 2
         
-        # Task terminated.  Get all items currently associated with this
-        # transaction.
-        vals = self.monitor.getitems_suffixOnly(tag)
-        if type(vals) != dict:
-            self.logger.error("Could not get task transaction info")
-            return ro.ERROR
+    ##     # Task terminated.  Get all items currently associated with this
+    ##     # transaction.
+    ##     vals = self.monitor.getitems_suffixOnly(tag)
+    ##     if type(vals) != dict:
+    ##         self.logger.error("Could not get task transaction info")
+    ##         return ro.ERROR
 
-        # This produces voluminous output for large sk files and is not helpful
-        #self.logger.debug("task transaction info: %s" % str(vals))
+    ##     # This produces voluminous output for large sk files and is not helpful
+    ##     #self.logger.debug("task transaction info: %s" % str(vals))
 
-        # Interpret task results:
-        #   task_code == 0 --> OK   task_code != 0 --> ERROR
-        #res = vals.get('task_code', 1)
-        if vals.has_key('task_code'):
-            res = vals['task_code']
-        else:
-            logger.error("Task has no task result code; assuming error")
-            res = ro.ERROR
+    ##     # Interpret task results:
+    ##     #   task_code == 0 --> OK   task_code != 0 --> ERROR
+    ##     #res = vals.get('task_code', 1)
+    ##     if vals.has_key('task_code'):
+    ##         res = vals['task_code']
+    ##     else:
+    ##         logger.error("Task has no task result code; assuming error")
+    ##         res = ro.ERROR
 
-        if not isinstance(res, int):
-            logger.error("Task result code (%s) not int; assuming error" % (
-                res))
-            res = ro.ERROR
+    ##     if not isinstance(res, int):
+    ##         logger.error("Task result code (%s) not int; assuming error" % (
+    ##             res))
+    ##         res = ro.ERROR
 
-        if res == 0:
-            self.logger.info("task terminated successfully")
-            return ro.OK
-        else:
-            # Check for a diagnostic message
-            msg = vals.get('task_error',
-                           "[No diagnostic message available]")
-            # This is reported elsewhere?
-            self.logger.info("task terminated with error: %s" % msg)
-            return res
+    ##     if res == 0:
+    ##         self.logger.info("task terminated successfully")
+    ##         return ro.OK
+    ##     else:
+    ##         # Check for a diagnostic message
+    ##         msg = vals.get('task_error',
+    ##                        "[No diagnostic message available]")
+    ##         # This is reported elsewhere?
+    ##         self.logger.info("task terminated with error: %s" % msg)
+    ##         return res
 
     def update_integgui(self, statusDict):
         d = {}
@@ -489,7 +448,6 @@ class IntegController(object):
     # this one is called if new data becomes available about tasks
     def arr_taskinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
-
         try:
             bnch = Monitor.unpack_payload(payload)
 
@@ -498,6 +456,9 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
+        if not bnch.has_key('value'):
+            # delete (vaccuum) packet
+            return
         vals = bnch.value
 
         if vals.has_key('ast_id'):
@@ -514,18 +475,6 @@ class IntegController(object):
             self.gui.process_task(bnch.path, vals)
         
         if vals.has_key('task_code'):
-            print "VALS = %s" % str(vals)
-            # possible update on some integgui command finishing
-            ## try:
-            ##     # Did we initiate this command?
-            ##     tmtrans = self.get_transaction(bnch.path)
-            ##     print "trans = %s" % str(tmtrans)
-
-            ##     self.release_transaction(tmtrans)
-            ## except KeyError:
-            ##     # No
-            ##     return
-
             res = vals['task_code']
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR
@@ -538,11 +487,8 @@ class IntegController(object):
 ##                 self.gui.gui_do(self.gui.feedback_error,
 ##                                 tmtrans.queueName, tmtrans, str(res))
                 if res == 3:
-                    print "TASK CANCELLED (%s)" % bnch.path
+                    self.logger.info("Task cancelled (%s)" % bnch.path)
                     self.gui.cancel_dialog(bnch.path)
-                pass
-
-            ## self.del_transaction(tmtrans)
 
     # this one is called if new data becomes available for integgui
     def arr_obsinfo(self, payload, name, channels):
