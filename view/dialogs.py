@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Mar 21 12:59:25 HST 2011
+#  Last edit: Wed Mar 30 17:30:35 HST 2011
 #]
 import time
 import threading
@@ -67,6 +67,7 @@ class FileSelection(object):
     # Get the selected filename and print it to the console
     def file_ok_sel(self, w, rsp):
         filepath = w.get_filename()
+        #print "(dialog) File is %s" % filepath
         self.close(w)
         if rsp == 0:
             return

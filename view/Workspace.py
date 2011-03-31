@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Mar  7 13:06:36 HST 2011
+#  Last edit: Wed Mar 30 16:13:44 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -237,6 +237,9 @@ class Workspace(object):
         with self.lock:
             for name in self.pages.keys():
                 self.delpage(name)
+            
+    def clear(self):
+        return self.delall()
             
     def select(self, name):
         i = self.getIndexByName(name)

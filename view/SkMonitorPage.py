@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jan  3 13:54:28 HST 2011
+#  Last edit: Wed Mar 30 16:13:45 HST 2011
 #]
 
 # Standard library imports

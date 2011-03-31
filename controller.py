@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Mar 21 16:43:57 HST 2011
+#  Last edit: Wed Mar 30 17:17:08 HST 2011
 #]
 
 import re
@@ -50,6 +50,7 @@ valid_monlogs = set(['taskmgr0', 'TSC', 'status',
 valid_monlogs.update(INSdata().getNames())
 
 typical_monlogs = set(['taskmgr0', 'TSC', 'status', 'integgui2',
+                       'archiver'
                        ])
 typical_monlogs.update(INSdata().getNames())
 

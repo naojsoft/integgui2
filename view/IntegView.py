@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 16 00:29:28 HST 2011
+#  Last edit: Wed Mar 30 17:36:54 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -49,6 +49,7 @@ class IntegView(object):
         self.audible_errors = True
         self.suppress_confirm_exec = True
         self.embed_dialogs = False
+        self.clear_obs_info = True
 
         # This is the home directory for loading all kinds of files
         self.procdir = None
@@ -241,6 +242,11 @@ class IntegView(object):
         w.set_active(self.embed_dialogs)
         optionmenu.append(w)
         w.connect("activate", lambda w: self.toggle_var(w, 'embed_dialogs'))
+
+        w = gtk.CheckMenuItem(label="Clear info on Config")
+        w.set_active(self.clear_obs_info)
+        optionmenu.append(w)
+        w.connect("activate", lambda w: self.toggle_var(w, 'clear_obs_info'))
 
         # create a Queue pulldown menu, and add it to the menu bar
         queuemenu = gtk.Menu()
@@ -1008,12 +1014,32 @@ class IntegView(object):
         self.close_handsets()
         self.close_launchers()
 
+        if self.clear_obs_info:
+            self.clear_observation()
+
         try:
             common.controller.ctl_do(common.controller.config_from_session,
                                      'main')
         except Exception, e:
             self.gui.popup_error("Failed to initialize from session: %s" % (
                 str(e)))
+
+    def clear_observation(self):
+
+        # Clear some pages
+        for name in ('history', 'moninfo'):
+            try:
+                ws, page = self.ds.getPage(name)
+                page.clear()
+            except:
+                # possibly they don't have a history page up
+                pass
+
+        # Clear frame info page
+        # TODO: breaks abstraction to know that the controller has this.
+        # Fix!
+        common.controller.fits.clear()
+
 
     def get_handset_paths(self, insname):
         filename = '%s*.yml' % insname.upper()

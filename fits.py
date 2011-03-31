@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Oct  5 14:36:04 HST 2010
+#  Last edit: Wed Mar 30 16:02:05 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -35,7 +35,12 @@ class IntegGUINotify(object):
     def output_line(self, frameinfo):
         self.gui.update_frame(frameinfo)
 
-
+    def clear(self):
+        with self.lock:
+            self.framecache = {}
+            self.framelist = []
+            self.update_framelist()
+        
     def _getframe(self, frameid, **kwdargs):
         with self.lock:
             if self.framecache.has_key(frameid):

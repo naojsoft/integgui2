@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Mar 15 11:54:23 HST 2011
+#  Last edit: Wed Mar 30 16:06:51 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -199,7 +199,11 @@ class Desktop(object):
             return res
 
     def getPage(self, name):
-        return self.getPages(name)[0]
+        results = self.getPages(name)
+        if len(results) == 1:
+            return results[0]
+
+        raise KeyError("There are multiple pages with the name '%s'" % name)
     
     def getNames(self):
         with self.lock:
