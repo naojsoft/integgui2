@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 17:17:08 HST 2011
+#  Last edit: Wed Apr 13 09:54:03 HST 2011
 #]
 
 import re
@@ -904,7 +904,8 @@ class IntegController(object):
             raise Exception("failed to play sound file '%s': %s" % (
                 soundfile, str(e)))
     
-    def get_ope_paths(self):
+    def get_ope_paths(self, dummy):
+        # dummy argument for Tajitsu-san's C code
         return self.gui.get_ope_paths()
 
 #END

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Mar 15 12:11:27 HST 2011
+#  Last edit: Wed Apr  6 11:42:01 HST 2011
 #]
 import sys, traceback
 
@@ -12,9 +12,6 @@ import Page, CodePage
 import CommandObject
 
 import SOSS.parse.ope as ope
-
-# regex for matching variable references
-regex_varref = re.compile(r'^(.*?)(\$[\w_\.]+)(.*)$')
 
 warning_close = """
 WARNING:        
@@ -304,25 +301,19 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
     def color(self, reporterror=True, eraseall=False):
         try:
-            # Get "Tags" page
-            tagpage = common.view.tagpage
-            # TODO: what if user closed Tags page?
-            
-            tags = common.decorative_tags + common.execution_tags
-
-            # Remove everything from the tag buffer
-            tagpage.initialize(self)
-
             # Get the text from the code buffer
             start, end = self.buf.get_bounds()
             buf = self.buf.get_text(start, end)
 
             # compute the variable dictionary
             include_dirs = common.view.include_dirs
-            self.varDict = ope.get_vars_ope(buf, include_dirs)
 
-            badrefs = set([])
-            badtags = []
+            # check the file
+            self.logger.debug("Parsing OPE file.")
+            res = ope.check_ope(buf, include_dirs=include_dirs)
+
+            # store away our variable dictionary for future reference
+            self.varDict = res.vardict
 
             tagtbl = self.buf.get_tag_table()
 
@@ -330,6 +321,16 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 removetags = tags
             else:
                 removetags = common.decorative_tags
+
+            # Get "Tags" page
+            tagpage = common.view.tagpage
+            # TODO: what if user closed Tags page?
+            
+            tags = common.decorative_tags + common.execution_tags
+
+            # Remove everything from the tag buffer
+            self.logger.debug("Preparing tags.")
+            tagpage.initialize(self)
 
             # remove decorative tags
             for tag, bnch in removetags:
@@ -357,80 +358,56 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     # tag may already exist--that's ok
                     pass
 
-            def addtags(lineno, line, tags):
+            # Update the tag coloring and the tag list
+            self.logger.debug("Coloring tags.")
+            for bnch in res.taglist:
+                lineno = bnch.lineno
                 # apply desired tags to entire line in main text buffer
                 start.set_line(lineno)
                 end.set_line(lineno)
                 end.forward_to_line_end()
 
-                for tag in tags:
+                for tag in bnch.tags:
                     self.buf.apply_tag_by_name(tag, start, end)
 
-                tagpage.add_mapping(lineno, line, tags)
+                tagpage.add_mapping(lineno, bnch.text, bnch.tags)
 
-            def addvarrefs(lineno, line):
-                # apply desired tags to varrefs in this line in main text buffer
+            # apply desired tags to varrefs in main text buffer
+            self.logger.debug("Coloring refs.")
+            for bnch in res.reflist:
+                #print bnch
+                lineno = bnch.lineno
+                
+                start.set_line(lineno)
+                start.forward_chars(bnch.start)
+                end.set_line(lineno)
+                end.forward_chars(bnch.end)
+                if end.get_line() > lineno:
+                    end.backward_char()
 
-                offset = 0
-                match = regex_varref.match(line)
-                while match:
-                    pfx, varref, sfx = match.groups()
-                    #print "1) %d pfx=(%s) varref=(%s) sfx=(%s)" % (
-                    #    lineno, pfx, varref, sfx)
-                    varref = varref.upper()
-                    start.set_line(lineno)
-                    offset += len(pfx)
-                    start.forward_chars(offset)
-                    end.set_line(lineno)
-                    offset += len(varref)
-                    end.forward_chars(offset)
-                    if end.get_line() > lineno:
-                        end.backward_char()
+                self.buf.apply_tag_by_name('varref', start, end)
+                if bnch.varref in res.badset:
+                    self.buf.apply_tag_by_name('badref', start, end)
 
-                    self.buf.apply_tag_by_name('varref', start, end)
-                    try:
-                        res = self.get_vardef(varref[1:])
-                    except Exception, e:
-                        self.buf.apply_tag_by_name('badref', start, end)
-                        badrefs.add(varref)
-                        badtags.append((varref, lineno))
-
-                    match = regex_varref.match(sfx)
-
-            lineno = 0
-            for line in buf.split('\n'):
-                sline = line.strip()
-                if sline.startswith('###'):
-                    addtags(lineno, line, ['comment3'])
-
-                elif sline.startswith('##'):
-                    addtags(lineno, line, ['comment2'])
-
-                elif sline.startswith('#'):
-                    addtags(lineno, line, ['comment1'])
-
-                else:
-                    addvarrefs(lineno, line)
-
-                lineno += 1
-
+            self.logger.debug("Summarizing.")
             common.view.statusMsg('')
-            if len(badrefs) > 0:
+            if len(res.badset) > 0:
                 # Add all undefined refs to the tag table
                 errline = tagpage.get_end_lineno()
                 tagpage.add_mapping(1, "UNDEFINED VARIABLE REFS", ['badref'])
-                for varref, lineno in badtags:
-                    tagpage.add_mapping(lineno, "%s: line %d" % (varref, lineno), ['badref'])
+                for bnch in res.badlist:
+                    tagpage.add_mapping(bnch.lineno, "%s: line %d" % (
+                        bnch.varref, bnch.lineno), ['badref'])
 
                 errmsg = "Undefined variable references: " + \
-                         ' '.join(badrefs) + \
+                         ' '.join(res.badset) + \
                          ". See bottom of tags for details."
 
                 # scroll tag table to errors
                 tagpage.scroll_to_lineno(errline)
 
                 if reporterror:
-                    common.view.raise_tags()
+                    common.view.raise_page('tags')
                     common.view.popup_error(errmsg)
                 else:
                     common.view.statusMsg(errmsg)
