@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Mar  4 16:48:37 HST 2011
+#  Last edit: Fri Apr 15 10:05:21 HST 2011
 #]
 import os.path
 import re
@@ -245,6 +245,12 @@ def clear_tags(buf, tags):
     start, end = buf.get_bounds()
     for tag in tags:
         buf.remove_tag_by_name(tag, start, end)
+
+##### remove all markers
+def remove_all_marks(buffer):
+    # Only for gtksourceview buffers
+    begin, end = buffer.get_bounds()
+    buffer.remove_source_marks(begin, end)
 
 def get_tv(widget):
     txtbuf = widget.get_buffer()

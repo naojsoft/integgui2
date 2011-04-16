@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Apr  6 11:42:01 HST 2011
+#  Last edit: Fri Apr 15 16:04:15 HST 2011
 #]
 import sys, traceback
 
@@ -51,15 +51,26 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.varDict = {}
 
-        # hack to get auto-scrolling to work
-        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
-                                         False)
-
         # this is for variable definition popups
         self.tw.set_property("has-tooltip", True)
         self.tw.connect("query-tooltip", self.query_vardef)
         #self.tw.connect("focus-out-event", self.focus_out)
         self.tw.connect("focus-in-event", self.focus_in)
+
+        self.tw.set_show_line_marks(True)
+        self.tw.set_insert_spaces_instead_of_tabs(True)
+
+        # add marker pixbufs
+        # TODO: maybe design a custom pixmap and put it in the Gen2 area
+        DATADIR = '/usr/share'
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
+                                                           'pixmaps/apple-green.png'))
+        if pixbuf:
+            self.tw.set_mark_category_pixbuf('executing', pixbuf)
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
+                                                           'pixmaps/apple-red.png'))
+        if pixbuf:
+            self.tw.set_mark_category_pixbuf('error', pixbuf)
 
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
@@ -186,6 +197,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def _reload(self):
         super(OpePage, self).reload()
         self.cond_color()
+        common.remove_all_marks(self.buf)
 
     def reload(self):
         if not self.reload_check():
@@ -445,7 +457,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         poistion is determined by the first tag found, otherwise it
         just scrolls to the mark position.
         """
-        # TODO: might be lots of tags of 'error' and 'done' in the buffer
+
+        # Try to find a mark ('executing' or 'error') and scroll to it
+        start, end = self.buf.get_bounds()
+        res = self.buf.forward_iter_to_source_mark(start, None)
+        if res:
+            self.scroll_to_lineno(start.get_line())
+            return
+        
+        # If we can't find a mark then look for tags
         # It might be better to scroll to the mark than these tags
         for tag in ('executing', 'queued', 'error', 'done'):
             try:
@@ -536,9 +556,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 self.color()
                 return True
         
-            elif keyname == 'e':
-                self.color(eraseall=True)
-                return True
+            ## elif keyname == 'e':
+            ##     self.color(eraseall=True)
+            ##     return True
         
             elif keyname == 'l':
                 self.current()
@@ -554,6 +574,10 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         
             elif keyname == 'c':
                 self.copy()
+                return True
+        
+            elif keyname == 'f':
+                self.find()
                 return True
         
         return False
@@ -950,10 +974,19 @@ class OpeCommandObject(CommandObject.CommandObject):
         if txttag == 'executing':
             common.clear_tags_region(buf, ('done', 'error'),
                                      start, end)
+            # annotate line with executing mark
+            common.remove_all_marks(buf)
+            buf.create_source_mark(None, 'executing', start)
 
-        elif txttag in ('done', 'error'):
+        elif txttag in ('done',):
             common.clear_tags_region(buf, ('executing',),
                                      start, end)
+        elif txttag in ('error',):
+            common.clear_tags_region(buf, ('executing',),
+                                     start, end)
+            # annotate line with error mark
+            common.remove_all_marks(buf)
+            buf.create_source_mark(None, 'error', start)
             
         buf.apply_tag_by_name(txttag, start, end)
 

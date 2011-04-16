@@ -2,7 +2,7 @@
 # DialogPage.py -- implements an Integgui2 dialog
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Mar  7 11:15:58 HST 2011
+#  Last edit: Fri Apr 15 16:33:43 HST 2011
 #]
 
 import gtk
@@ -56,7 +56,7 @@ class DialogPage(Page.Page):
 
     def add_button(self, name, rsp, callback):
         def _callback(w):
-            return callback(w, rsp)
+            return callback(self, rsp)
         btn = gtk.Button(name)
         btn.connect("clicked", _callback)
         btn.show()

@@ -1,12 +1,13 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Mar 15 09:15:53 HST 2011
+#  Last edit: Fri Apr 15 16:04:14 HST 2011
 #]
 import os.path
 import string
 
 import common
 import Page
+import dialogs
 
 import gtk
 import gtksourceview2
@@ -53,6 +54,15 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         tw.set_right_margin(4)
 
         self.tw = tw
+        # hack to get auto-scrolling to work
+        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
+                                         False)
+        # For find & replace
+        self.searchmark = self.buf.create_mark('search',
+                                               self.buf.get_start_iter(),
+                                               False)
+        self.sr = dialogs.SearchReplace("Find and/or Replace")
+        self.buf.connect('mark-set', self.place_cursor_cb)
 
         self.border.add(scrolled_window)
         self.border.show()
@@ -90,6 +100,20 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
+        item.show()
+
+        menu = self.add_pulldownmenu("Buffer")
+
+        item = gtk.MenuItem(label="Find/Replace ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.find(),
+                             "menu.Find")
+        item.show()
+
+        item = gtk.MenuItem(label="Print ...")
+        menu.append(item)
+        item.connect_object ("activate", lambda w: self.print_cb(),
+                             "menu.Print")
         item.show()
 
 
@@ -223,5 +247,137 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         else:
             self.line_wrapping('none')
         return True
+
+    ##### Printing callbacks
+    
+    def begin_print_cb(self, operation, context, compositor):
+        while not compositor.paginate(context):
+            pass
+        n_pages = compositor.get_n_pages()
+        operation.set_n_pages(n_pages)
+
+    def draw_page_cb(self, operation, context, page_nr, compositor):
+        compositor.draw_page(context, page_nr)
+
+    def print_cb(self):
+        sourceview = self.tw
+        window = sourceview.get_toplevel()
+        buffer = sourceview.get_buffer()
+
+        compositor = gtksourceview2.print_compositor_new_from_view(sourceview)
+        compositor.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+        compositor.set_highlight_syntax(True)
+        #compositor.set_print_line_numbers(5)
+        #compositor.set_header_format(False, 'Printed on %A', None, '%F')
+        filename = self.get_filepath()
+        compositor.set_footer_format(True, '%T %F', filename, 'Page %N/%Q')
+        compositor.set_print_header(False)
+        compositor.set_print_footer(True)
+
+        print_op = gtk.PrintOperation()
+        print_op.connect("begin-print", self.begin_print_cb, compositor)
+        print_op.connect("draw-page", self.draw_page_cb, compositor)
+        res = print_op.run(gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG, window)
+
+        if res == gtk.PRINT_OPERATION_RESULT_ERROR:
+            error_dialog(window, "Error printing file:\n\n" + filename)
+        elif res == gtk.PRINT_OPERATION_RESULT_APPLY:
+            print 'file printed: "%s"' % filename
+
+    ##### Find and Replace callbacks
+    
+    def _find(self, response):
+        dialog = self.sr
+
+        if response == 'close':
+            common.clear_selection(self.tw)
+            return True
         
+        if response == 'replace':
+            if not self.buf.get_has_selection():
+                # No selection.
+                dialog.set_message("NO SELECTION")
+                return True
+                
+            try:
+                start, end = self.buf.get_selection_bounds()
+            except ValueError:
+                dialog.set_message("ERROR SELECTION?")
+                return True
+
+            # TODO: how to force increments of undoable actions?
+            self.buf.delete(start, end)
+            self.buf.insert(start, dialog.get_replace_text())
+
+            # Clear the selection
+            common.clear_selection(self.tw)
+
+            return True
+
+        reverse = dialog.is_reverse_search()
+        if dialog.is_case_sensitive():
+            search_flags = gtksourceview2.SEARCH_CASE_INSENSITIVE
+        else:
+            search_flags = 0
+
+        i = self.buf.get_iter_at_mark(self.searchmark)
+        if i == None:
+            dialog.set_message("PLEASE PLACE CURSOR")
+            return
+        dialog.set_message("Search begins in line %d" % (
+            i.get_line()))
+
+        if reverse:
+            searched = i.backward_search(dialog.get_search_text(),
+                                        search_flags, None)
+        else:
+            searched = i.forward_search(dialog.get_search_text(),
+                                        search_flags, None)
+        if searched:
+            dialog.set_message("Found string")
+            start, end = searched
+            self.buf.select_range(start, end)
+            self.scroll_to_lineno(start.get_line())
+            if reverse:
+                self.buf.move_mark(self.searchmark, start)
+            else:
+                self.buf.move_mark(self.searchmark, end)
+
+        else:
+            end = i
+            if reverse:
+                i = self.buf.get_end_iter()
+                searched = i.backward_search(dialog.get_search_text(),
+                                            search_flags, end)
+            else:
+                i = self.buf.get_start_iter()
+                searched = i.forward_search(dialog.get_search_text(),
+                                            search_flags, end)
+            if searched:
+                dialog.set_message("Found string")
+                start, end = searched
+                self.buf.select_range(start, end)
+                self.scroll_to_lineno(start.get_line())
+                if reverse:
+                    self.buf.move_mark(self.searchmark, start)
+                else:
+                    self.buf.move_mark(self.searchmark, end)
+
+            else:
+                dialog.set_message("NO MORE INSTANCES FOUND")
+
+    def find(self):
+        loc = self.buf.get_iter_at_mark(self.buf.get_insert())
+        if not loc:
+            loc = self.buf.get_start_iter()
+        self.buf.move_mark(self.searchmark, loc)
+
+        self.sr.popup(self._find)
+
+    def place_cursor_cb(self, buf, loc, mark):
+        if mark == buf.get_insert():
+            self.buf.move_mark(self.searchmark, loc)
+        return False
+            
+
 #END

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 17:30:35 HST 2011
+#  Last edit: Fri Apr 15 16:29:27 HST 2011
 #]
 import time
 import threading
@@ -134,6 +134,112 @@ class MyDialog(gtk.Dialog):
             self.connect("response", callback)
         
 
+class SearchReplace(object):
+
+    def __init__(self, title='Search and/or Replace'):
+        self.title = title
+
+        self.what = ''
+        self.replacement = ''
+        
+    def _create_widget(self, buttons, callback):
+        global dialog_count
+        
+        if not common.view.embed_dialogs:
+            self.w = MyDialog(title=self.title,
+                              flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              buttons=buttons,
+                              callback=callback)
+        else:
+            dialog_count += 1
+            name = 'Dialog_%d' % dialog_count
+            self.w = common.view.create_dialog(name, name)
+            self.w.add_hook('close', lambda: common.view.lower_page_transient('dialogs'))
+            common.view.raise_page_transient('dialogs')
+            common.view.dialogs.select(name)
+            self.w.add_buttons(buttons, callback)
+            
+        cvbox = self.w.get_content_area()
+        self.cvbox = cvbox
+
+        lbl = gtk.Label('Search string:')
+        lbl.show()
+        self.cvbox.pack_start(lbl, True, False, 0)
+        self._search_widget = gtk.Entry()
+        if self.what:
+            self._search_widget.set_text(self.what)
+        self._search_widget.set_activates_default(True)
+        self._search_widget.show()
+        self.cvbox.pack_start(self._search_widget, True, True, 0)
+
+        lbl = gtk.Label('Replacement string:')
+        lbl.show()
+        self.cvbox.pack_start(lbl, True, False, 0)
+        self._replace_widget = gtk.Entry()
+        if self.replacement:
+            self._replace_widget.set_text(self.replacement)
+        self._replace_widget.set_activates_default(True)
+        self._replace_widget.show()
+        self.cvbox.pack_start(self._replace_widget, True, True, 0)
+
+        self._case_sensitive = gtk.CheckButton("Case sensitive")
+        self._case_sensitive.set_active(True)
+        self._case_sensitive.set_sensitive(False)
+        self._case_sensitive.show()
+        self.cvbox.pack_start(self._case_sensitive, False, False, 0)
+
+        self._reverse = gtk.CheckButton("Reverse")
+        self._reverse.show()
+        self.cvbox.pack_start(self._reverse, False, False, 0)
+
+        self._message = gtk.Label('')
+        self._message.show()
+        self.cvbox.pack_start(self._message, True, True, 0)
+        
+    def popup(self, callfn):
+        button_list = [['Close', 0], ['Replace', 1], ['Find', 2], ]
+        button_vals = ['close', 'replace', 'find']
+
+        def callback(w, rsp):
+            if rsp < 0:
+                val = 'close'
+            else:
+                val = button_list[rsp][0].lower()
+                print "rsp=%d val=%s" % (rsp, val)
+
+            if val == 'close':
+                self.close(w)
+                
+            return callfn(val)
+            
+        self._create_widget(tuple(button_list), callback)
+        self.set_message("Search begins at cursor")
+        
+        self.w.show()
+
+    def is_case_sensitive(self):
+        return self._case_sensitive.get_active()
+
+    def is_reverse_search(self):
+        return self._reverse.get_active()
+
+    def get_search_text(self):
+        self.what = self._search_widget.get_text()
+        return self.what
+
+    def get_replace_text(self):
+        self.replacement = self._replace_widget.get_text()
+        return self.replacement
+
+    def set_message(self, text):
+        self._message.set_text(text)
+
+    def close(self, widget):
+        #self.w.hide()
+        widget.destroy()
+        self.w = None
+
+
 class Confirmation(object):
 
     def __init__(self, title='OBS Confirmation',
@@ -226,7 +332,7 @@ class Confirmation(object):
 
     def close(self, widget):
         #self.w.hide()
-        self.w.destroy()
+        widget.destroy()
         self.w = None
         if self.timertask:
             gobject.source_remove(self.timertask)
