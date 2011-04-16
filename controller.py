@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Apr 13 09:54:03 HST 2011
+#  Last edit: Sat Apr 16 10:37:21 HST 2011
 #]
 
 import re

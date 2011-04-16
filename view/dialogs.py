@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:29:27 HST 2011
+#  Last edit: Sat Apr 16 11:27:35 HST 2011
 #]
 import time
 import threading
@@ -205,7 +205,7 @@ class SearchReplace(object):
                 val = 'close'
             else:
                 val = button_list[rsp][0].lower()
-                print "rsp=%d val=%s" % (rsp, val)
+                #print "rsp=%d val=%s" % (rsp, val)
 
             if val == 'close':
                 self.close(w)

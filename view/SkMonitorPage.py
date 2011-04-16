@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 16:13:45 HST 2011
+#  Last edit: Sat Apr 16 11:27:32 HST 2011
 #]
 
 # Standard library imports
@@ -280,7 +280,11 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             self.append_error(page, tagname, '\n ==> ' + vals['task_error'])
             
             # audible warnings
-            #common.controller.audible_warn(cmd_str, vals)
+            if not vals.has_key('audible'):
+                vals['audible'] = True
+                # Only play an audible error if this was not a cancel
+                if vals.has_key('task_code') and (vals['task_code'] != 3):
+                    common.controller.audible_warn(cmd_str, vals)
 
         elif vals.has_key('task_end'):
             if vals.has_key('task_start'):

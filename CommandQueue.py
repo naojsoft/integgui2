@@ -2,14 +2,10 @@
 # command.py -- command object and queue object definitions
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Sep 13 10:54:21 HST 2010
+#  Last edit: Sat Apr 16 10:16:53 HST 2011
 #]
 
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
 import threading
-
 
 class QueueEmpty(Exception):
     pass

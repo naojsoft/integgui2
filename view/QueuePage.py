@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Nov  5 11:13:07 HST 2010
+#  Last edit: Sat Apr 16 10:16:52 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -408,13 +408,17 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         if w_break:
             try:
-                cmdobj = CommandObject.BreakCommandObject('brk%d',
-                                                         self.queueName,
-                                                         self.logger, self)
-                i = self._skip_comment(0)
-                if i < num_queued:
-                    i += 1
-                self.queueObj.insert(i, [cmdobj])
+                # Take a peek at the top item on the queue.  If it is not
+                # a break, then insert a break right after the top command
+                cmdobj = self.queueObj.peek()
+                if not isinstance(cmdobj, CommandObject.BreakCommandObject):
+                    cmdobj = CommandObject.BreakCommandObject('brk%d',
+                                                              self.queueName,
+                                                              self.logger, self)
+                    i = self._skip_comment(0)
+                    if i < num_queued:
+                        i += 1
+                    self.queueObj.insert(i, [cmdobj])
             except Exception, e:
                 common.view.popup_error(str(e))
                 return
