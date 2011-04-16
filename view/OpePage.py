@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:04:15 HST 2011
+#  Last edit: Fri Apr 15 16:52:19 HST 2011
 #]
 import sys, traceback
 
@@ -328,6 +328,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.varDict = res.vardict
 
             tagtbl = self.buf.get_tag_table()
+            tags = common.decorative_tags + common.execution_tags
 
             if eraseall:
                 removetags = tags
@@ -338,8 +339,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             tagpage = common.view.tagpage
             # TODO: what if user closed Tags page?
             
-            tags = common.decorative_tags + common.execution_tags
-
             # Remove everything from the tag buffer
             self.logger.debug("Preparing tags.")
             tagpage.initialize(self)

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:04:14 HST 2011
+#  Last edit: Fri Apr 15 16:57:45 HST 2011
 #]
 import os.path
 import string
@@ -280,9 +280,11 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         res = print_op.run(gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG, window)
 
         if res == gtk.PRINT_OPERATION_RESULT_ERROR:
-            error_dialog(window, "Error printing file:\n\n" + filename)
+            #error_dialog(window, "Error printing file:\n\n" + filename)
+            return common.view.popup_error("Error printing file '%s'" % (
+                filename))
         elif res == gtk.PRINT_OPERATION_RESULT_APPLY:
-            print 'file printed: "%s"' % filename
+            common.view.statusMsg('File printed: %s' % filename)
 
     ##### Find and Replace callbacks
     
