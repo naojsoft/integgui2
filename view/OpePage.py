@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:52:19 HST 2011
+#  Last edit: Wed May  4 10:35:01 HST 2011
 #]
 import sys, traceback
 
@@ -402,6 +402,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             self.logger.debug("Summarizing.")
             common.view.statusMsg('')
+            errlst = []
             if len(res.badset) > 0:
                 # Add all undefined refs to the tag table
                 errline = tagpage.get_end_lineno()
@@ -411,12 +412,29 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                         bnch.varref, bnch.lineno), ['badref'])
 
                 errmsg = "Undefined variable references: " + \
-                         ' '.join(res.badset) + \
-                         ". See bottom of tags for details."
+                         ' '.join(res.badset)
+                errlst.append(errmsg)
 
                 # scroll tag table to errors
                 tagpage.scroll_to_lineno(errline)
 
+            if len(res.badcoords) > 0:
+                # Add all bad coords to the tag table
+                errline = tagpage.get_end_lineno()
+                tagpage.add_mapping(1, "POSSIBLE BAD COORDINATES", ['badref'])
+                for bnch in res.badcoords:
+                    tagpage.add_mapping(bnch.lineno, "line %d: %s" % (
+                        bnch.lineno, bnch.errstr), ['badref'])
+
+                errmsg = "Possible bad RA/DEC coordinates."
+                errlst.append(errmsg)
+
+                # scroll tag table to errors
+                tagpage.scroll_to_lineno(errline)
+
+            if len(errlst) > 0:
+                errlst.append("See bottom of tags for details.")
+                errmsg = '; '.join(errlst)
                 if reporterror:
                     common.view.raise_page('tags')
                     common.view.popup_error(errmsg)
