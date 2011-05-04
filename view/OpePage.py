@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed May  4 10:35:01 HST 2011
+#  Last edit: Wed May  4 10:58:46 HST 2011
 #]
 import sys, traceback
 
@@ -372,7 +372,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # Update the tag coloring and the tag list
             self.logger.debug("Coloring tags.")
             for bnch in res.taglist:
-                lineno = bnch.lineno
+                lineno = bnch.lineno - 1
                 # apply desired tags to entire line in main text buffer
                 start.set_line(lineno)
                 end.set_line(lineno)
@@ -387,7 +387,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.logger.debug("Coloring refs.")
             for bnch in res.reflist:
                 #print bnch
-                lineno = bnch.lineno
+                lineno = bnch.lineno - 1
                 
                 start.set_line(lineno)
                 start.forward_chars(bnch.start)
