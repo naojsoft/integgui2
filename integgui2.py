@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Mar 15 22:52:51 HST 2011
+#  Last edit: Fri May 13 14:20:46 HST 2011
 #]
 
 # Standard library imports

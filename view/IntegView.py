@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 17:36:54 HST 2011
+#  Last edit: Fri May 13 14:44:22 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -40,6 +40,8 @@ class IntegView(object):
         self.lock = threading.RLock()
         # Used for tagging commands
         self.cmdcount = 0
+        # ugh--ugly race condition hack
+        common.set_view(self)
 
         self.gui_queue = Queue.Queue()
         self.placeholder = '--notdone--'
@@ -94,6 +96,8 @@ class IntegView(object):
         # Some attributes we force on our children
         self.ds.logger = self.logger
 
+        self.add_statusbar()
+        
         # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
         self.oiws = self.ds.addws('ur', 'obsinfo', "Upper Right Workspace")
@@ -130,12 +134,10 @@ class IntegView(object):
 
         # Populate "Command Executors" ws
         self.add_terminal(self.exws)
-        self.add_commands(self.exws)
+        self.new_source('command', self.exws, title='Commands')
         
-        self.add_menus(self.w.menubar)
         self.add_dialogs()
-
-        self.add_statusbar()
+        self.add_menus(self.w.menubar)
 
         self.w.root.show_all()
 
@@ -370,24 +372,42 @@ class IntegView(object):
                              "file.Load mon log")
         item.show()
         
+        # "New" submenu
         newmenu = gtk.Menu()
         item = gtk.MenuItem(label="New")
         filemenu.append(item)
         item.show()
         item.set_submenu(newmenu)
 
+        # New->Source sub-sub-menu
+        newsrcmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Source")
+        newmenu.append(item)
+        item.show()
+        item.set_submenu(newsrcmenu)
+
+        item = gtk.MenuItem(label="Command page")
+        newsrcmenu.append(item)
+        item.connect_object ("activate", lambda w: self.new_source('command',
+                                                                   ws.executers),
+                             "file.New command page")
+        item.show()
+
+        item = gtk.MenuItem(label="OPE file")
+        newsrcmenu.append(item)
+        item.connect_object ("activate", lambda w: self.new_source('ope',
+                                                                   ws.executers),
+                             "file.New ope page")
+        item.show()
+
+        # end of New->Source
+        
         item = gtk.MenuItem(label="Terminal page")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.add_terminal(ws.executers),
                              "file.New terminal")
         item.show()
         
-        item = gtk.MenuItem(label="Command page")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.add_commands(ws.executers),
-                             "file.New command page")
-        item.show()
-
         _get_ws(ws, 'queues', where)
 
         item = gtk.MenuItem(label="Queue ...")
@@ -695,13 +715,16 @@ class IntegView(object):
                            initialdir=initialdir)
 
 
-    def open_generic(self, workspace, buf, filepath, pageKlass):
+    def open_generic(self, workspace, buf, filepath, pageKlass,
+                     title=None):
         try:
             dirname, filename = os.path.split(filepath)
             #print pageKlass
 
             name = filename
-            page = workspace.addpage(name, name, pageKlass)
+            if not title:
+                title = name
+            page = workspace.addpage(name, title, pageKlass)
             page.load(filepath, buf)
 
             workspace.select(page.name)
@@ -834,16 +857,29 @@ class IntegView(object):
             return None
 
 
-    def add_commands(self, workspace):
-        try:
-            page = workspace.addpage('Commands', 'Commands', DDCommandPage)
-            workspace.select(page.name)
-            return page
+    def new_source(self, pagetype, workspace, title=None):
+        if pagetype == 'command':
+            buf = ":COMMAND\n# paste or type commands below\n\n"
+            ext = '.cd'
+            pageKlass = OpePage.OpePage
+        elif pagetype == 'ope':
+            buf = """
+:HEADER
+:PARAMETER
+# targets and definitions here
 
-        except Exception, e:
-            self.popup_error("Cannot load command page: %s" % (
-                    str(e)))
-            return None
+:COMMAND
+# paste or type commands below
+"""
+            ext = '.ope'
+            pageKlass = OpePage.OpePage
+
+        filename = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+        filename = filename + ext
+        filepath = os.path.join(self.procdir, filename)
+
+        return self.open_generic(workspace, buf, filepath, pageKlass,
+                                 title=title)
 
     def add_history(self, workspace):
         try:
