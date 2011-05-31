@@ -125,10 +125,10 @@ class IntegView(object):
         self.add_monitor(self.oiws)
         self.logpage = self.oiws.addpage('loginfo', "Logs",
                                          WorkspacePage.WorkspacePage)
-        self.fitspage = self.oiws.addpage('fitsview', "Fits",
-                                          WorkspacePage.WorkspacePage)
-        self.fitspage.addpage('viewer', 'Fits Viewer',
-                              FitsViewerPage)
+        # self.fitspage = self.oiws.addpage('fitsview', "Fits",
+        #                                   WorkspacePage.WorkspacePage)
+        # self.fitspage.addpage('viewer', 'Fits Viewer',
+        #                       FitsViewerPage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
@@ -203,7 +203,7 @@ class IntegView(object):
              'launchers': self.lws,
              'journals': self.ojws,
              'logs': self.logpage,
-             'fits': self.fitspage,
+             #'fits': self.fitspage,
              'handsets': self.handsets,
              'queues': self.queuepage,
             }
@@ -335,12 +335,12 @@ class IntegView(object):
                              "file.Load dir")
         item.show()
 
-        _get_ws(ws, 'fits', where)
-        item = gtk.MenuItem(label="fits")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
-                             "file.Load fits")
-        item.show()
+        # _get_ws(ws, 'fits', where)
+        # item = gtk.MenuItem(label="fits")
+        # loadmenu.append(item)
+        # item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
+        #                      "file.Load fits")
+        # item.show()
 
         _get_ws(ws, 'launchers', where)
 
@@ -1090,29 +1090,29 @@ class IntegView(object):
         filepath = os.path.join(os.environ['LOGHOME'], filename)
         return filepath
 
-    def gui_load_fits(self, workspace):
-        initialdir = os.environ['DATAHOME']
+    # def gui_load_fits(self, workspace):
+    #     initialdir = os.environ['DATAHOME']
         
-        self.filesel.popup("Load FITS file",
-                           lambda filepath: self.load_fits(workspace, filepath),
-                           initialdir=initialdir)
+    #     self.filesel.popup("Load FITS file",
+    #                        lambda filepath: self.load_fits(workspace, filepath),
+    #                        initialdir=initialdir)
         
-    def load_fits(self, workspace, filepath):
+    # def load_fits(self, workspace, filepath):
             
-        (filedir, filename) = os.path.split(filepath)
-        (filepfx, fileext) = os.path.splitext(filename)
-        try:
-            page = workspace.addpage(filepath, filepfx, FitsViewerPage)
-            page.load(filepath)
+    #     (filedir, filename) = os.path.split(filepath)
+    #     (filepfx, fileext) = os.path.splitext(filename)
+    #     try:
+    #         page = workspace.addpage(filepath, filepfx, FitsViewerPage)
+    #         page.load(filepath)
 
-            # Bring FITS tab to front
-            workspace.select(page.name)
-            return page
+    #         # Bring FITS tab to front
+    #         workspace.select(page.name)
+    #         return page
         
-        except Exception, e:
-            self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-            return None
+    #     except Exception, e:
+    #         self.popup_error("Cannot load '%s': %s" % (
+    #                 filepath, str(e)))
+    #         return None
 
     def gui_create_queue(self, workspace):
         

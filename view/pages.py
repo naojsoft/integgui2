@@ -23,7 +23,7 @@ from LauncherPage import *
 from ObsInfoPage import *
 from WorkspacePage import *
 from SkMonitorPage import *
-from FitsViewerPage import *
+#from FitsViewerPage import *
 from LogPage import *
 from DialogPage import *
 
