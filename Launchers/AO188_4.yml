@@ -1,0 +1,85 @@
+# 
+# AO188_4.yml -- AO188 launchers file 
+#
+# This is a YAML file
+
+tabname: "AO188 (Setup)"
+launchers:
+####################
+# Startup/Shutdown #
+####################
+    -
+        label: "Startup AO188"     # AO188 startup
+        cmd  : AO188_STARTUP OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE=$VAL01 INS=$VAL02
+        params:
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO","HICIAO"], ["AO","AO"]] , "Instrument"]
+
+    - sep
+
+    -
+        label: "Shutdown AO188"     # AO188 shutdown
+        cmd  : AO188_SHUTDOWN OBE_ID=AO188 OBE_MODE=AO188_SETUP
+
+    - sep
+
+#######################
+# DM flat sequence    #
+#######################
+    -
+        label: "Make DM flat"  
+        cmd  : AO188_MKDMFLAT OBE_ID=AO188 OBE_MODE=AO188_SETUP INS="$VAL01"
+        params:
+            - [ VAL01, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+
+    - sep
+
+################
+# LOOP MODE    #
+################
+    -
+        label: "Set Loop mode"  
+        cmd  : AO188_SETMODE OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE="$VAL01" INS="$VAL02"
+        params:
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+
+    - sep
+
+####################
+# Entrance shutter #
+####################
+    -
+        label: "Entrance shutter"     # AO188 entrance shutter
+        cmd  : AO188_ENT_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01
+        params:
+            - [ VAL01, LIST, [OPEN, CLOSE] ]
+
+    - sep
+
+#######
+# CAL #
+#######
+    -
+        label: "Move CALXZ stage"     # AO188 entrance shutter
+        cmd  : AO188_CALXZ OBE_ID=AO188 OBE_MODE=LAUNCHER POS=$VAL01 
+        params:
+            - [ VAL01, LIST, [["OUT", "OUT"], ["CENTER", "CENTER"], ["GASCELL", "GASCELL"]] ]
+
+    -
+        label: "Set CALLD power"
+        cmd  : AO188_CALLD_POWER OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+        params:
+            - [ VAL01, LIST, [["655nm", 1], ["1550nm", 2], ["589nm", 3]] ]
+            - [ VAL02, LIST, ["ON", "OFF"], "power" ]
+
+    -
+        label: "Set CALLD current"
+        cmd  : AO188_CALLD_ILD OBE_ID=AO188 OBE_MODE=LAUNCHER ID=$VAL01 VAL=$VAL02
+        params:
+            - [ VAL01, LIST, [["655nm", 1], ["1550nm", 2], ["589nm", 3]] ]
+            - [ VAL02, INPUT, 6, 0.0, "mA"]
+
+    - sep
+
+#END

@@ -53,7 +53,7 @@ launchers:
             - [ VAL09, INPUT, 6, 0.0, "ANG1" ]
             - [ VAL10, INPUT, 6, 0.0, "ANG2" ]
             - break
-            - [ VAL11, LIST, [["NORMAL", "NORMAL"], ["ADI","ADI"]], "MODE"]
+            - [ VAL11, LIST, [["SID", "NORMAL"], ["ADI","ADI"]], "MODE"]
             - [ VAL12, INPUT, 8, NOP, "TARGET" ]
 
     - sep

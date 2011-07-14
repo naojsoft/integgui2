@@ -161,6 +161,10 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 50.0, "AG_R" ]
 
+    -
+        label: "Prepare CAL"
+        cmd  : Prepare_CAL OBE_ID=HDS OBE_MODE=LAUNCHER
+
     - sep
 
     -
