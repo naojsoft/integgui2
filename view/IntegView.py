@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 13 14:44:22 HST 2011
+#  Last edit: Tue Aug 23 13:38:38 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -108,6 +108,7 @@ class IntegView(object):
 
         # Populate "Observation Journal" ws
         self.add_frameinfo(self.ojws)
+        #self.ojws.addpage('statmon', "StatMon", StatMonPage)
 
         # Populate "Lower Middle" ws
         self.handsets = self.lmws.addpage('handset', "Handset",

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 13 13:36:04 HST 2011
+#  Last edit: Mon Aug 22 16:17:56 HST 2011
 #]
 
 # meta import for all GUI object classes
@@ -26,6 +26,7 @@ from SkMonitorPage import *
 #from FitsViewerPage import *
 from LogPage import *
 from DialogPage import *
+from StatMonPage import *
 
 #END
 
