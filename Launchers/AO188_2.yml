@@ -5,56 +5,32 @@
 
 tabname: "AO188 (LGS)"
 launchers:
-#################
-# Image rotator #
-#################
+
+###########################
+# LGS initial calibration #
+###########################
     - 
-        label: "Image Rotator"
-        cmd  : AO188_IMGROT OBE_ID=AO188 OBE_MODE=LAUNCHER MOVE=$VAL01 COORD=$VAL02 RA=$VAL03 DEC=$VAL04 EQUINOX=$VAL05 PA=$VAL06 ANGLE=$VAL07 TARGET=$VAL08 TMODE=$VAL09
+        label: "Set LGS height" 
+        cmd  : AO188_SETLGSH OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 EL=$VAL02 AU1FOC=$VAL03 GSMODE="LGS"
         params:
-            - [ VAL01, LIST, [ LINK, FREE, SLEW, STOP ], "MOVE" ]
-            - [ VAL02, LIST, [ ABS, REL, FILE ], "COORD" ]
-            - break
-            - [ VAL03, INPUT, 9, NOP, "RA" ]
-            - [ VAL04, INPUT, 9, NOP, "Dec" ]
-            - [ VAL05, INPUT, 8, 2000.0, "EQUINOX" ]
-            - break
-            - [ VAL06, INPUT, 6, 0.0, "PA" ]
-            - [ VAL07, INPUT, 6, 90.0, "ANGLE" ]
-            - [ VAL08, INPUT, 8, NOP, "TARGET" ]
-            - [ VAL09, LIST, [["SID", "SID"], ["NON-SID","NON-SID"],["ADI", "ADI"]], "TMODE"]
+            - [ VAL01, LIST, [ "CURRENT", "INPUT", "DEFAULT" ], "Value"]
+            - [ VAL02, INPUT, 8, "!TSCS.EL", "EL(deg)" ]
+            - [ VAL03, INPUT, 8, "!AON.AU1.FOC", "AU1FOC(mm)" ]
+
+    - 
+        label: "Track LGS focus" 
+        cmd  : AO188_TRKLGSFOC OBE_ID=AO188 OBE_MODE=LAUNCHER GSMODE="LGS"
 
     - sep
 
-#######
-# ADC #
-#######
+###########################
+# LGS initial calibration #
+###########################
     - 
-        label: "ADC"
-        cmd  : AO188_ADC OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 CMD="$VAL02"
+        label: "LLT shutter" 
+        cmd  : LGS_LLTSHUT OBE_ID=LGS OBE_MODE=LAUNCHER CMD=$VAL01 GSMODE="LGS"
         params:
-            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
-            - [ VAL02, SELECT, [ "OUT", "IN" ]]
-
-    - 
-        label: "ADC tracking"
-        cmd  : AO188_ADCTRK OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 MOVE=$VAL02 COORD=$VAL03 RA=$VAL04 DEC=$VAL05 EQUINOX=$VAL06 PA=$VAL07 FC=$VAL08 ANG1=$VAL09 ANG2=$VAL10 MODE=$VAL11 TARGET=$VAL12
-        params:
-            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
-            - [ VAL02, LIST, [ LINK, FREE, SLEW, STOP ,BASE], "MOVE" ]
-            - [ VAL03, LIST, [ ABS, REL, FILE ], "COORD" ]
-            - break
-            - [ VAL04, INPUT, 9, NOP, "RA" ]
-            - [ VAL05, INPUT, 9, NOP, "Dec" ]
-            - [ VAL06, INPUT, 8, 2000.0, "EQUINOX" ]
-            - break
-            - [ VAL07, INPUT, 3, 0.0, "PA" ]
-            - [ VAL08, INPUT, 3, 1.0, "FC" ]
-            - [ VAL09, INPUT, 6, 0.0, "ANG1" ]
-            - [ VAL10, INPUT, 6, 0.0, "ANG2" ]
-            - break
-            - [ VAL11, LIST, [["SID", "NORMAL"], ["ADI","ADI"]], "MODE"]
-            - [ VAL12, INPUT, 8, NOP, "TARGET" ]
+            - [ VAL01, LIST, [ "CLOSE", "OPEN" ], "cmd"]
 
     - sep
 
@@ -62,30 +38,18 @@ launchers:
 # AU1 #
 #######
     - 
-        label: "Set HOWFS AO Point (pix)" # AO acquisition
-        cmd  : AO188_AOPSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 INSTRUMENT=$VAL04
+        label: "LGS acquisition"
+        cmd  : AO188_ACQLGS OBE_ID=AO188 OBE_MODE=AO188_SETUP EXPTIME=$VAL01 LGSAP=$VAL02 
         params:
-            - [ VAL01, INPUT, 6, 0.0, "X" ]
-            - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
-                "Pixel Scale" ]
-            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO] ],
-                "Instrument" ]
-
+            - [ VAL01, INPUT, 6, 15.0, "EXP. time" ]
+            - [ VAL02, LIST, [ ["4 arcsec", 4ASEC], ["2 arcsec", 2ASEC] , ["1 arcsec", 1ASEC]], "LGSAP" ]
+ 
     - 
-        label: "Offset pix by AU1" # AO acquisition offset
-        cmd  : AO188_AOOFFSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL04 INSTRUMENT=$VAL07 COORD=$VAL06 MODE=$VAL05 TTSTEP=$VAL03
+        label: "Acq. LGS on AQCAM" # AO acquisition
+        cmd  : AO188_WACQ OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 DEV=AU1
         params:
-            - [ VAL01, INPUT, 6, 0.0, "dX" ]
-            - [ VAL02, INPUT, 6, 0.0, "dY" ]
-            - [ VAL03, INPUT, 2, 1, "Step" ]
-            - break
-            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
-                "Pixel Scale" ]
-            - [ VAL05, LIST, [["TT", TT], ["TT NULL", TTNULL],
-                             ["AO POINT", AOP]], "Mode" ]
-            - [ VAL06, LIST, [["Sdrl", ABS], ["N-Sdrl", FILE]], "Type" ]
-            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO]], "Instrument" ]
+            - [ VAL01, INPUT, 6, 0.0, "X(AQCAM)" ]
+            - [ VAL02, INPUT, 6, 0.0, "Y(AQCAM)" ]
 
     - sep
 
@@ -94,19 +58,13 @@ launchers:
 #######
     - 
         label: "Set LOWFS AO Point (pix)" # AO acquisition
-        cmd  : AO188_AOPSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 INSTRUMENT=$VAL04 ACQ=$VAL05 COORD=$VAL06 RA_OFF=$VAL07 DEC_OFF=$VAL08 GSMODE="LGS"
+        cmd  : AO188_AOPSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 INSTRUMENT=$VAL04 GSMODE="LGS"
         params:
             - [ VAL01, INPUT, 6, 0.0, "X" ]
             - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - break
             - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ], "Pixel Scale" ]
             - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO] ], "Instrument" ]
-            - [ VAL05, LIST, [ ["OBJECT","OBJ"],["TT GS","TT"] ], "Acquisition" ]
-            - break
-            - [ VAL06, LIST, [ ["Relative","ABS"], ["Offset", "FILE"]], "Mode" ]
-            - [ VAL07, INPUT, 6, 0.0, "RA offset(asec)" ]
-            - [ VAL08, INPUT, 6, 0.0, "Dec offset(asec)" ]
-            
+           
     - 
         label: "Offset pix by AU2" # AO acquisition offset
         cmd  : AO188_AOOFFSET OBE_ID=AO188 OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL04 INSTRUMENT=$VAL07 COORD=$VAL06 MODE=$VAL05 TTSTEP=$VAL03 GSMODE="LGS"
@@ -153,55 +111,67 @@ launchers:
 
     - sep
 
-##################
+###########
 # Loop control   #
-##################
+###########
     - 
         label: "Set VMvolt"  # Set voltage
         cmd  : AO188_VMVOLT OBE_ID=AO188 OBE_MODE=LAUNCHER VOLT=$VAL01
         params:
             - [ VAL01, INPUT, 6, 0.1, "volt" ]
 
-    - 
-        label: "Set DMgain"  # Set Gain
-        cmd  : AO188_DMGAIN OBE_ID=AO188 OBE_MODE=LAUNCHER GAIN=$VAL01
+    -
+        label: "High-order LOOP"     # Close High order loop with LGS
+        cmd  : AO188_CLOSE_LGSLOOP OBE_ID=AO188 OBE_MODE=LAUNCHER WTT=$VAL01 DMG=$VAL02 LOOP=HO
         params:
-            - [ VAL01, INPUT, 6, 0, "gain" ]
+            - [ VAL01, INPUT, 6, 0.0, "WTT" ]
+            - [ VAL02, INPUT, 6, 0.0, "DMG" ]
+    -
+        label: "Low-order LOOP"     # Close High order loop with LGS
+        cmd  : AO188_CLOSE_LGSLOOP OBE_ID=AO188 OBE_MODE=LAUNCHER LTT=$VAL01 LDF=$VAL02 TTG=$VAL03 LOOP=LO
+        params:
+            - [ VAL01, INPUT, 6, 0.0, "LTT" ]
+            - [ VAL02, INPUT, 6, 0.0, "LDF" ]
+            - [ VAL03, INPUT, 6, 0.0, "TTG" ]
 
-    - 
-        label: "Set TTgain"  # Set Gain
-        cmd  : AO188_TTGAIN OBE_ID=AO188 OBE_MODE=LAUNCHER GAIN=$VAL01
+    -
+        label: "ADF LOOP"     # Close defocus offloading loop
+        cmd  : AO188_ADF OBE_ID=AO188 OBE_MODE=LAUNCHER LOOP=$VAL01 GAIN=$VAL02
         params:
-            - [ VAL01, INPUT, 6, 0.001, "gain" ]
+            - [ VAL01, SELECT, [ "ON", "OFF" ]]
+            - [ VAL02, INPUT, 6, 0.0, "Gain" ]
 
     - 
         label: "Set Loop"     # AO188 loop
-        cmd  : AO188_LOOP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 TIME=$VAL02
+        cmd  : AO188_LOOP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 GSMODE="LGS"
         params:
-            - [ VAL01, LIST, [["ON", "ON"], ["STOP", STOP], ["OFF(DECAY)", "OFF"]],
-               "state" ]
-            - [ VAL02, INPUT, 6, 10, "t_decay" ]
+            - [ VAL01, LIST, ["STOP", "PAUSE", "RESUME", "HPAUSE", "HRESUME", "LPAUSE", "LRESUME"], "state" ]
 
     - 
-        label: "Gain (LGS mode)"     # AO188 loop gain for LGS mode
+        label: "Gain"     # AO188 loop gain for LGS mode
         cmd  : AO188_SETGAIN OBE_ID=AO188 OBE_MODE=LAUNCHER TARGET=$VAL01 GAIN=$VAL02
         params:
             - [ VAL01, LIST, ["CLEAR", "WTT", "LTT", "LDF", "HTT", "HDF", "DMG", "TTG", "PSS"], "Target" ]
             - [ VAL02, INPUT, 6, 0.0, "Gain" ]
     - sep
 
-#######################
-# TT null (AUTO FEED) #
-#######################
+###############
+# TT null (AUTO FEED)   #
+###############
 #
-# AO TT Nulling with automatic parameter feed
+# AO TT Nulling with automatic parameter feed 
 #
     - 
         label: "TToffload" # Correction of AO TT mirror by moving telescope
-        cmd  : AO188_TTNULL_AUTO OBE_ID=AO188 OBE_MODE=LAUNCHER COORD=$VAL01 
+        cmd  : AO188_TTNULL_AUTO_STEP OBE_ID=AO188 OBE_MODE=LAUNCHER COORD=$VAL01 STEP=$VAL02 SLEEP=$VAL03 
         params:
-            - [ VAL01, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]],
-                "Type" ]
+            - [ VAL01, LIST, [["Sidereal", ABS], ["Non-Sidereal", FILE]], "Type" ]
+            - [ VAL02, INPUT, 6, 1, "step"]
+            - [ VAL03, INPUT, 6, 3, "sleep"]
+
+    - 
+        label: "WTT flat" # Correction of AO WTT mirror by moving AU1
+        cmd  : AO188_WTTFLAT OBE_ID=AO188 OBE_MODE=LAUNCHER
 
     - sep
 

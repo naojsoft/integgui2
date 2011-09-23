@@ -46,6 +46,23 @@ launchers:
 
     - sep
 
+########
+# LTCS #
+########
+    -
+        label: "Set Obs. mode for LTCS"  
+        cmd  : LGS_SETLTCS OBE_ID=LGS OBE_MODE=LAUNCHER CMD=OBS OBS="$VAL01"
+        params:
+            - [ VAL01, LIST, ["SCIENCE", "ENGINEERING"], "Obs. mode" ]
+
+    -
+        label: "Set LTCS status"  
+        cmd  : LGS_SETLTCS OBE_ID=LGS OBE_MODE=LAUNCHER CMD=STAT STAT="$VAL01"
+        params:
+            - [ VAL01, LIST, ["OFF", "ON", "ONSKY"], "Status" ]
+
+    - sep
+
 ####################
 # Entrance shutter #
 ####################

@@ -100,7 +100,9 @@ launchers:
 
     -
         label: "Gen2 Precheck"
-        cmd  : AG_PRECHECK OBE_ID=COMMON OBE_MODE=PRECHECK
+        cmd  : AG_PRECHECK OBE_ID=COMMON OBE_MODE=PRECHECK CHECK_ANA=$VAL01
+        params:
+            - { name: VAL01, type: LIST, values: ["YES", "NO"], label: "Check ANA" }
 
 
     -   sep

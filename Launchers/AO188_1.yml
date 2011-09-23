@@ -5,58 +5,6 @@
 
 tabname: "AO188 (NGS)"
 launchers:
-#################
-# Image rotator #
-#################
-    - 
-        label: "Image Rotator"
-        cmd  : AO188_IMGROT OBE_ID=AO188 OBE_MODE=LAUNCHER MOVE=$VAL01 COORD=$VAL02 RA=$VAL03 DEC=$VAL04 EQUINOX=$VAL05 PA=$VAL06 ANGLE=$VAL07 TARGET=$VAL08 TMODE=$VAL09
-        params:
-            - [ VAL01, LIST, [ LINK, FREE, SLEW, STOP ], "MOVE" ]
-            - [ VAL02, LIST, [ ABS, REL, FILE ], "COORD" ]
-            - break
-            - [ VAL03, INPUT, 9, NOP, "RA" ]
-            - [ VAL04, INPUT, 9, NOP, "Dec" ]
-            - [ VAL05, INPUT, 8, 2000.0, "EQUINOX" ]
-            - break
-            - [ VAL06, INPUT, 6, 0.0, "PA" ]
-            - [ VAL07, INPUT, 6, 90.0, "ANGLE" ]
-            - [ VAL08, INPUT, 8, NOP, "TARGET" ]
-            - [ VAL09, LIST, [["SID", "SID"], ["NON-SID","NON-SID"],["ADI", "ADI"]], "TMODE"]
-
-    - sep
-
-#######
-# ADC #
-#######
-    - 
-        label: "ADC"
-        cmd  : AO188_ADC OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 CMD="$VAL02"
-        params:
-            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
-            - [ VAL02, SELECT, [ "OUT", "IN" ]]
-
-    - 
-        label: "ADC tracking"
-        cmd  : AO188_ADCTRK OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 MOVE=$VAL02 COORD=$VAL03 RA=$VAL04 DEC=$VAL05 EQUINOX=$VAL06 PA=$VAL07 FC=$VAL08 ANG1=$VAL09 ANG2=$VAL10 MODE=$VAL11 TARGET=$VAL12
-        params:
-            - [ VAL01, LIST, [ ["SciPath","SADC"], ["HOWFS","HWADC"], ["LOWFS","LWADC"] ], "Device" ]
-            - [ VAL02, LIST, [ LINK, FREE, SLEW, STOP ,BASE], "MOVE" ]
-            - [ VAL03, LIST, [ ABS, REL, FILE ], "COORD" ]
-            - break
-            - [ VAL04, INPUT, 9, NOP, "RA" ]
-            - [ VAL05, INPUT, 9, NOP, "Dec" ]
-            - [ VAL06, INPUT, 8, 2000.0, "EQUINOX" ]
-            - break
-            - [ VAL07, INPUT, 3, 0.0, "PA" ]
-            - [ VAL08, INPUT, 3, 1.0, "FC" ]
-            - [ VAL09, INPUT, 6, 0.0, "ANG1" ]
-            - [ VAL10, INPUT, 6, 0.0, "ANG2" ]
-            - break
-            - [ VAL11, LIST, [["SID", "NORMAL"], ["ADI","ADI"]], "MODE"]
-            - [ VAL12, INPUT, 8, NOP, "TARGET" ]
-
-    - sep
 
 #######
 # AU1 #
