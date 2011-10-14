@@ -25,6 +25,8 @@ frame_tags = [
     ('X', 'transfer', Bunch.Bunch(background='palegreen')),
     ('R', 'received', Bunch.Bunch(foreground='dark green', background='white')),
     ('RS', 'stars', Bunch.Bunch(foreground='blue2', background='white')),
+    ('RT', 'starstrans', Bunch.Bunch(foreground='darkgreen', background='white')),
+    ('RE', 'starserror', Bunch.Bunch(foreground='orange', background='white')),
     ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow')),
     ]
 

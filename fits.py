@@ -116,12 +116,12 @@ class IntegGUINotify(object):
             return ro.OK
 
 
-    def in_stars(self, frameid):
-        """Called when the _frameid_ is registered in STARS."""
+    def in_stars(self, frameid, status):
+        """Called when the _frameid_ is finished a transaction with STARS."""
 
         with self.lock:
             d = self._getframe(frameid)
-            d.status = 'RS'
+            d.status = 'R' + status[0]
 
             self.output_line(d)
             return ro.OK
@@ -158,12 +158,17 @@ class IntegGUINotify(object):
 
         # TODO: integgui shouldn't have to understand this level of
         # the stars protocol
-        if Monitor.has_keys(vals, ['done', 'time_done', 'end_result',
-                                   'end_status1', 'end_status2']) \
-               and ((vals['end_result'] == 0) and (vals['end_status1'] == 0) \
-                    and (vals['end_status2'] == 0)):
-            # --> STARS may have the file
-            self.in_stars(frameid)
+        if Monitor.has_keys(vals, ['done', 'time_done']):
+            if Monitor.has_keys(vals, ['errorclass', 'msg']):
+                # --> there was an error in the STARS interface
+                self.in_stars(frameid, 'E')
+            elif (Monitor.has_keys(vals, ['end_result', 'end_status1',
+                                       'end_status2']) and
+                (vals['end_result'] == 0) and
+                (vals['end_status1'] == 0) and
+                (vals['end_status2'] == 0)):
+                # --> STARS may have the file
+                self.in_stars(frameid, 'T')
 
 
 # END
