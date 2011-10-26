@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Apr 16 11:27:32 HST 2011
+#  Last edit: Wed Oct 19 16:55:16 HST 2011
 #]
 
 # Standard library imports
@@ -260,7 +260,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         info = bnch.info
         page = info.page
         vals = bnch.state
-        #print "vals = %s" % str(vals)
+        print "update_page: vals = %s" % str(vals)
         tagname = bnch.tag
 
         cmd_str = None
