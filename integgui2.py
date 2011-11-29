@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri May 13 14:20:46 HST 2011
+#  Last edit: Wed Nov 23 17:19:18 HST 2011
 #]
 
 # Standard library imports
@@ -48,6 +48,8 @@ def main(options, args):
     mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
     #mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
 
+    threadPool = mymon.get_threadPool()
+        
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
                                                             logger), )
@@ -136,7 +138,7 @@ def main(options, args):
                                              'obs_userinput'],
                                 port=options.port,
                                 ev_quit=ev_quit,
-                                usethread=True)
+                                usethread=True, threadPool=threadPool)
     
     # Load any files specified on the command line
     for opefile in args:
