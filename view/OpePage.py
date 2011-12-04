@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed May  4 10:58:46 HST 2011
+#  Last edit: Thu Dec  1 17:22:51 HST 2011
 #]
 import sys, traceback
 
@@ -37,6 +37,20 @@ Please choose one of the following options:
 2) Unlink queued commands from this page and reload page.
 3) Remove the commands from the queue and reload page.
 4) Open the OPE file again in a new page.
+
+"""
+
+warning_queued = """
+WARNING:        
+There are queued commands.
+
+Please choose one of the following options:
+
+1) Prepend these commands to the queue along with a breakpoint and execute.
+2) Prepend these commands to the queue, but don't execute.
+2) Append these commands to the queue, but don't execute.
+3) Replace queued commands with these commands and execute.
+4) Cancel this execute request.
 
 """
 
@@ -232,6 +246,20 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             common.view.load_generic(self.filepath, OpePage)
 
         return True
+
+    def queued_check(self, fn_res):
+        num = len(self.my_queued_commands())
+        if num == 0:
+            return True
+        w = self.build_dialog("%d commands are queued" % num,
+                              warning_queued, fn_res)
+        w.add_button("Prepend w/Break and Exec", 1)
+        w.add_button("Prepend", 2)
+        w.add_button("Append", 3)
+        w.add_button("Replace and Exec", 4)
+        w.add_button("Cancel", 5)
+        w.show()
+        return False
 
     def close_check(self):
         num = len(self.my_queued_commands())
@@ -823,37 +851,48 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         #------------------
         # Code to do if we have a selection
-        def _execute_2():
+        def _execute_2(w, rsp):
+            if w:
+                w.destroy()
+                self._restore_selection()
+
             try:
                 cmds = self._get_commands_from_selection(copytext=copytext)
 
-                queue.replace(cmds)
-                common.controller.execQueue(self.queueName,
-                                            tm_queueName=self.tm_queueName)
+                if rsp == 1:
+                    cmdobj = CommandObject.BreakCommandObject('brk%d',
+                                                              self.queueName,
+                                                              self.logger, self)
+                    queue.prepend(cmdobj)
+                    queue.insert(0, cmds)
+                    common.controller.execQueue(self.queueName,
+                                                tm_queueName=self.tm_queueName)
+                elif rsp == 2:
+                    queue.insert(0, cmds)
+                elif rsp == 3:
+                    queue.extend(cmds)
+                elif rsp == 4:
+                    queue.replace(cmds)
+                    common.controller.execQueue(self.queueName,
+                                                tm_queueName=self.tm_queueName)
 
             except Exception, e:
                 common.view.popup_error(str(e))
+            return True
+
         #------------------
 
         # <== There is a selection
         if num_queued > 0:
             if common.view.suppress_confirm_exec:
-                _execute_2()
+                #_execute_2(None, 1)
+                _execute_2(None, 4)
             else:
                 self._save_selection()
-                #------------------
-                def _execute_3(res):
-                    self._restore_selection()
-                    if res == 'yes':
-                        _execute_2()
-                #------------------
-                common.view.popup_confirm("Confirm execute",
-                                          "Replace %s queued commands with selection?" % (
-                    self.queueName),
-                                          _execute_3)
+                self.queued_check(_execute_2)
 
         else:
-            _execute_2()
+            _execute_2(None, 4)
 
 
     def insert(self, loc=None, copytext=None):
