@@ -1,10 +1,7 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Aug 23 13:38:38 HST 2011
+#  Last edit: Sun Dec  4 16:49:33 HST 2011
 #]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
 
 # Standard library imports
 import sys, os, glob
@@ -27,6 +24,11 @@ from pages import *
 import Page as PG
 import Workspace as WS
 import dialogs
+
+# Parse our gtk resource file
+thisDir = os.path.split(sys.modules[__name__].__file__)[0]
+rc_file = os.path.join(thisDir, "gtk_rc")
+gtk.rc_parse(rc_file) 
 
 
 class IntegView(object):
@@ -1209,13 +1211,13 @@ class IntegView(object):
 
     def delete_event(self, widget, event, data=None):
         self.ev_quit.set()
-        gtk.main_quit()
+        #gtk.main_quit()
         return False
 
     # callback to quit the program
     def quit(self, widget):
         self.ev_quit.set()
-        gtk.main_quit()
+        #gtk.main_quit()
         return False
 
     def reset_pause(self):
@@ -1301,8 +1303,16 @@ class IntegView(object):
         """General method for calling into the GUI.
         """
         #gobject.idle_add(method, *args, **kwdargs)
-        self.gui_queue.put((method, args, kwdargs))
+        future = Future.Future()
+        future.freeze(method, *args, **kwdargs)
+        self.gui_queue.put(future)
+        return future
    
+    def gui_do_future(self, future):
+        """General method for calling into the GUI.
+        """
+        self.gui_queue.put(future)
+
     def gui_do_res(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
         """
@@ -1310,10 +1320,8 @@ class IntegView(object):
         # to create one of these, but better safe than sorry...
         self.assert_nongui_thread()
         
-        future = Future.Future()
-        self.gui_queue.put((future, method, args, kwdargs))
-        return future
-
+        return self.gui_do(method, *args, **kwdargs)
+    
     def assert_gui_thread(self):
         my_id = thread.get_ident() 
         assert my_id == self.gui_thread_id, \
@@ -1326,150 +1334,76 @@ class IntegView(object):
                Exception("GUI thread (%d) is executing non-GUI code!" % (
             my_id))
         
-    def mainloop(self):
-        # Mark our thread id
-        self.gui_thread_id = thread.get_ident()
 
-        while not self.ev_quit.isSet():
+    def update_pending(self, timeout=0.0):
+        
+        # Process "out-of-band" GTK events
+        #print "PROCESSING OUT-BAND"
+        #gtk.gdk.threads_enter()
+        try:
+            while gtk.events_pending():
+                gtk.main_iteration(False)
+        finally:
+            #gtk.gdk.threads_leave()
+            pass
+
+        done = False
+        while not done:
+            #print "PROCESSING IN-BAND"
             # Process "in-band" GTK events
             try:
-                tup = self.gui_queue.get(block=True, timeout=0.01)
-                if len(tup) == 4:
-                    (future, method, args, kwdargs) = tup
-                elif len(tup) == 3:
-                    (method, args, kwdargs) = tup
-                    future = None
-                else:
-                    raise Exception("Don't understand contents of queue: %s" % (
-                        str(tup)))
+                future = self.gui_queue.get(block=True, 
+                                            timeout=timeout)
 
                 # Execute the GUI method
-                gtk.gdk.threads_enter()
+                #gtk.gdk.threads_enter()
                 try:
                     try:
-                        res = method(*args, **kwdargs)
+                        res = future.thaw(suppress_exception=False)
 
                     except Exception, e:
-                        res = e
+                        future.resolve(e)
+
                         self.logger.error("gui error: %s" % str(e))
                         try:
                             (type, value, tb) = sys.exc_info()
                             tb_str = "".join(traceback.format_tb(tb))
-                            print "Traceback:\n%s" % (tb_str)
                             self.logger.error("Traceback:\n%s" % (tb_str))
 
                         except Exception, e:
                             self.logger.error("Traceback information unavailable.")
 
                 finally:
-                    gtk.gdk.threads_leave()
+                    #gtk.gdk.threads_leave()
+                    pass
 
-                # Store results to future if this was a call to gui_do_res()
-                if future:
-                    future.resolve(res)
                     
             except Queue.Empty:
-                pass
+                done = True
                 
             except Exception, e:
                 self.logger.error("Main GUI loop error: %s" % str(e))
                 #pass
                 
             # Process "out-of-band" GTK events
-            gtk.gdk.threads_enter()
+            #print "PROCESSING OUT-BAND"
+            #gtk.gdk.threads_enter()
             try:
                 while gtk.events_pending():
                     gtk.main_iteration(False)
             finally:
-                gtk.gdk.threads_leave()
+                #gtk.gdk.threads_leave()
+                pass
+            
 
-rc = """
-style "window"
-{
-}
+    def mainloop(self, timeout=0.001):
+        # Mark our thread id
+        self.gui_thread_id = thread.get_ident()
 
-style "button"
-{
-  # This shows all the possible states for a button.  The only one that
-  # doesn't apply is the SELECTED state.
-  
-  #fg[PRELIGHT] = {255, 255, 0}
-  fg[PRELIGHT] = 'yellow'
-  #bg[PRELIGHT] = "#089D20"
-  #bg[PRELIGHT] = {8, 157, 32}
-  bg[PRELIGHT] = 'forestgreen'
-  #bg[PRELIGHT] = {1.0, 0, 0}
-#  bg[ACTIVE] = { 1.0, 0, 0 }
-#  fg[ACTIVE] = { 0, 1.0, 0 }
-#  bg[NORMAL] = { 1.0, 1.0, 0 }
-#  fg[NORMAL] = { .99, 0, .99 }
-#  bg[INSENSITIVE] = { 1.0, 1.0, 1.0 }
-#  fg[INSENSITIVE] = { 1.0, 0, 1.0 }
+        while not self.ev_quit.isSet():
+            self.update_pending(timeout=timeout)
 
-#GtkButton::focus-line-width = 1
-#GtkButton::focus-padding = 0
-#GtkLabel::width-chars = 20
-}
+        #gtk.main_quit()
 
-# In this example, we inherit the attributes of the "button" style and then
-# override the font and background color when prelit to create a new
-# "main_button" style.
-
-style "main_button" = "button"
-{
-  font = "-adobe-helvetica-medium-r-normal--*-100-*-*-*-*-*-*"
-  bg[PRELIGHT] = { 0.75, 0, 0 }
-}
-
-style "launcher_button" = "button"
-{
-  font_name = "Monospace 10"
-}
-
-style "menubar-style"
-{
-GtkMenuBar::shadow_type = none
-}
-
-style "statusbar-style"
-{
-GtkStatusbar::shadow_type = none
-}
-
-style "toggle_button" = "button"
-{
-  fg[NORMAL] = { 1.0, 0, 0 }
-  fg[ACTIVE] = { 1.0, 0, 0 }
-
-}
-
-style "text"
-{
-  fg[NORMAL] = { 1.0, 1.0, 1.0 }
-  font_name = "Monospace 10"
-##  gtk-key-theme-name = "Emacs" 
-}
-
-# These set the widget types to use the styles defined above.
-# The widget types are listed in the class hierarchy, but could probably be
-# just listed in this document for the users reference.
-
-widget_class "*GtkMenuBar" style "menubar-style"
-widget_class "*GtkStatusbar" style "statusbar-style"
-widget_class "GtkWindow" style "window"
-widget_class "GtkDialog" style "window"
-widget_class "GtkFileSelection" style "window"
-## widget_class "*GtkToggleButton*" style "toggle_button"
-## widget_class "*GtkCheckButton*" style "toggle_button"
-## widget_class "*GtkRadioButton*" style "toggle_button"
-widget_class "launcher.GtkButton*" style "launcher_button"
-widget_class "*GtkButton*" style "button"
-widget_class "*GtkTextView" style "text"
-
-# This sets all the buttons that are children of the "main window" to
-# the main_button style.  These must be documented to be taken advantage of.
-widget "main window.*GtkButton*" style "main_button"
-"""
-gtk.rc_parse_string(rc) 
 
 #END

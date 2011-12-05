@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Nov 23 17:19:18 HST 2011
+#  Last edit: Sun Dec  4 16:44:56 HST 2011
 #]
 
 # Standard library imports
@@ -170,7 +170,7 @@ def main(options, args):
         ro_server_started = True
 
         try:
-            gui.mainloop()
+            gui.mainloop(timeout=0.001)
 
         except KeyboardInterrupt:
             logger.error("Received keyboard interrupt!")
