@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Apr 16 10:37:21 HST 2011
+#  Last edit: Wed Dec 14 13:17:04 HST 2011
 #]
 
 import re
@@ -38,8 +38,6 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
 
 opefile_host = 'ana.sum.subaru.nao.ac.jp'
 
-# Formatting string used to format History table
-fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed) 7.2fs %(result)s %(queue)8.8s  %(cmdstr)s"
 
 valid_monlogs = set(['taskmgr0', 'TSC', 'status', 
                      'sessions', 'frames',
@@ -80,6 +78,7 @@ class IntegController(object):
         self.soundsink = soundsink
         self.options = options
         self.logtype = logtype
+        self.histidx = 0
 
         # TODO: improve this
         self.valid_monlogs = valid_monlogs
@@ -683,13 +682,19 @@ class IntegController(object):
         d = {'cmdstr': cmdstr,
              't_start': time.strftime('%H:%M:%S', time.localtime(time_start)),
              't_end': time.strftime('%H:%M:%S', time.localtime(time_end)),
-             't_elapsed': elapsed,
+             't_elapsed': "%.3f" % elapsed,
              'queue': tm_queueName.capitalize(),
              'result': result,
              }
+        if result == 'OK':
+            d['icon'] = "face-cool.svg"
+        elif result == 'CN':
+            d['icon'] = "face-raspberry.svg"
+        elif result == 'NG':
+            d['icon'] = "face-angry.svg"
         
-        msgstr = fmt_history % d
-        self.gui.update_history(msgstr)
+        self.histidx += 1
+        self.gui.update_history(self.histidx, d)
         
 
     def get_sound_failure(self, res, cmdstr, sound_failure):

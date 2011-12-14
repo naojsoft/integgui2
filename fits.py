@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 16:02:05 HST 2011
+#  Last edit: Tue Dec 13 11:20:18 HST 2011
 #]
 
 # remove once we're certified on python 2.6
@@ -33,6 +33,7 @@ class IntegGUINotify(object):
             return self.gui.update_frames(self.framelist)
 
     def output_line(self, frameinfo):
+        print "output line: %s" % str(frameinfo)
         self.gui.update_frame(frameinfo)
 
     def clear(self):
@@ -129,7 +130,8 @@ class IntegGUINotify(object):
     
     def frameSvc_hdlr(self, frameid, vals):
         """Called with information provided by the frame service."""
-        
+
+        print "frame handler"
         if vals.has_key('time_alloc'):
             self.frame_allocated(frameid)
 

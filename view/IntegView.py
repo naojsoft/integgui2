@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Dec  4 16:49:33 HST 2011
+#  Last edit: Wed Dec 14 13:28:12 HST 2011
 #]
 
 # Standard library imports
@@ -884,20 +884,42 @@ class IntegView(object):
         return self.open_generic(workspace, buf, filepath, pageKlass,
                                  title=title)
 
+    ## def add_history(self, workspace):
+    ##     try:
+    ##         page = workspace.addpage('history', "History", LogPage)
+    ##         # TODO: add toggling of editing
+    ##         page.set_editable(True)
+
+    ##         # mark command errors
+    ##         regexes = [
+    ##             (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
+    ##              ['cancel']),
+    ##             (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
+    ##              ['error']),
+    ##             ]
+    ##         page.add_regexes(regexes)
+
+    ##         # Global side effect--for now we can only have one history page
+    ##         self.history = page
+    ##         workspace.select(page.name)
+    ##         return page
+
+    ##     except Exception, e:
+    ##         self.popup_error("Cannot load history page: %s" % (
+    ##                 str(e)))
+    ##         return None
+        
     def add_history(self, workspace):
         try:
-            page = workspace.addpage('history', "History", LogPage)
-            # TODO: add toggling of editing
-            page.set_editable(True)
-
-            # mark command errors
-            regexes = [
-                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
-                 ['cancel']),
-                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
-                 ['error']),
-                ]
-            page.add_regexes(regexes)
+            page = workspace.addpage('history', "History", TablePage.TablePage)
+            columns = [("Time start", 't_start', 'text'),
+                       ("Time stop", 't_end', 'text'),
+                       ("Elapsed", 't_elapsed', 'text'),
+                       ("TM Queue", 'queue', 'text'),
+                       ("", 'icon', 'icon'),
+                       ("Result", 'result', 'text'),
+                       ("Command", 'cmdstr', 'text'),]
+            page.set_columns(columns)
 
             # Global side effect--for now we can only have one history page
             self.history = page
@@ -927,7 +949,7 @@ class IntegView(object):
         try:
             page = workspace.addpage('frames', "Frames", FrameInfoPage)
             # TODO: add toggling of editing
-            page.set_editable(True)
+            #page.set_editable(True)
 
             # Global side effect--for now we can only have one frame info page
             self.framepage = page
@@ -1268,9 +1290,9 @@ class IntegView(object):
         if hasattr(self, 'obsinfo'):
             self.gui_do(self.obsinfo.update_obsinfo, infodict)
    
-    def update_history(self, data):
+    def update_history(self, key, info):
         if hasattr(self, 'history'):
-            self.gui_do(self.history.push, data)
+            self.gui_do(self.history.update_table, key, info)
    
     def update_loginfo(self, logname, infodict):
         if hasattr(self, 'logpage'):

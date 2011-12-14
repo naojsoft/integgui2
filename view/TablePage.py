@@ -2,7 +2,7 @@
 # TablePage.py -- an integgui2 page that shows a table
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Dec 14 13:09:46 HST 2011
+#  Last edit: Wed Dec 14 13:27:13 HST 2011
 #]
 import sys
 import os.path
@@ -149,6 +149,7 @@ class TablePage(Page.ButtonPage):
                 self.listmodel.append([bnch])
 
             # this forces a refresh of the widget
+            self.treeview.columns_autosize()
             self.treeview.queue_draw()
 
 #END
