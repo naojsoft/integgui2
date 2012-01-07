@@ -58,6 +58,31 @@ launchers:
 
     - sep
 
+#########
+# AU tracking #
+#########
+
+    -
+        label: "AU tracking"
+        cmd  : AO188_AUTRACK OBE_ID=AO188 OBE_MODE=LAUNCHER DEV=$VAL01 MOVE=$VAL02 MODE=$VAL03 RA=$VAL04 DEC=$VAL05 EQUINOX=$VAL06 REFWL=$VAL07 OBSWL=$VAL08 FILE=$VAL09 FILE_TYPE=$VAL10
+        params:
+            - [ VAL01, LIST, [ "AU1", "AU2"], "Device" ]
+            - [ VAL02, LIST, [ "LINK", "FREE"], "MOVE" ]
+            - [ VAL03, LIST, [ "DAR","POS","BOTH"], "MODE" ]
+            - break
+            - [ VAL04, INPUT, 9, NOP, "RA" ]
+            - [ VAL05, INPUT, 9, NOP, "Dec" ]
+            - [ VAL06, INPUT, 8, 2000.0, "EQUINOX" ]
+            - break
+            - [ VAL07, INPUT, 6, "NGS", "Ref. WL" ]
+            - [ VAL08, INPUT, 6, "K", "Obs. WL" ]
+            - break
+            - [ VAL09, INPUT, 8, NOP, "TARGET" ]
+            - [ VAL10, SELECT, [["Relative", "REL"], ["Absolute","ABS"]], "Type" ]
+
+    - sep
+
+
 ######
 # AU #
 ######

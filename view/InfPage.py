@@ -40,6 +40,8 @@ class InfPage(CodePage.CodePage):
             proc.stdin.write(buf)
             proc.stdin.close()
 
+            # This will force a reap
+            proc.status()
             output = proc.output()
             #print output
 

@@ -22,7 +22,7 @@ launchers:
             - break
             - [ VAL06, INPUT, 6, "NO", "Fimage?" ]
             - [ VAL07, INPUT, 6, "NO", "Cimage?" ]
-            - [ VAL08, LIST, [["YES", "YES"], ["NO", "NO"]], "Archive" ]
+            - [ VAL08, INPUT, 6, "NO", "Archive" ]
             - break
             - [ VAL09, INPUT, 6, 1, "X1" ]
             - [ VAL10, INPUT, 6, 2048, "X2" ]

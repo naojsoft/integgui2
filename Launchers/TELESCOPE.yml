@@ -79,7 +79,7 @@ launchers:
 
     -
         label: "NonSiderealTracking"
-        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL Target=$VAL01 INSROT_PA=$VAL02 Object="$VAL03" Coord=file
+        cmd  : SetupField OBE_ID=COMMON OBE_Mode=TOOL Target="$VAL01" INSROT_PA=$VAL02 Object="$VAL03" Coord=file
         params:
             - [ VAL01, INPUT, 16, "08###.dat", "TargetFile" ]
             - [ VAL02, INPUT, 8, 0.00, "Insrot_PA" ]

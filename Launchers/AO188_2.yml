@@ -91,7 +91,7 @@ launchers:
         cmd  : AO188_LAFW_GO OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 DEV="$VAL02"
         params:
             - [ VAL01, LIST, [["Close", CLOSE], ["Auto", "AUTO"], "ND0.01", "ND0.03", "ND0.1",  "ND0.3", "ND1", "ND3", "ND10", "ND30", ["Open", OPEN]] , "FW"]
-            - [ VAL02, LIST, ["HOWFS","LOWFS","ALL"], "WFS"]
+            - [ VAL02, SELECT, ["HOWFS","LOWFS","ALL"], "WFS"]
 
 # LA filter wheel (step)
     - 
@@ -99,7 +99,7 @@ launchers:
         cmd  : AO188_LAFW_STEP OBE_ID=AO188 OBE_MODE=LAUNCHER VAL="$VAL01" DEV="$VAL02"
         params:
             - [ VAL01, LIST, [["10 times darker", "STEP10-"], ["3 times darker", "STEP3-"], ["3 times brighter", "STEP3+"], ["10 times brighter", "STEP10+"]], "Step" ]
-            - [ VAL02, LIST, ["HOWFS","LOWFS"], "WFS"]
+            - [ VAL02, SELECT, ["HOWFS","LOWFS"], "WFS"]
 
 # APDshutter
     - 
@@ -107,7 +107,7 @@ launchers:
         cmd  : AO188_APD_SHUT OBE_ID=AO188 OBE_MODE=LAUNCHER VAL=$VAL01 DEV="$VAL02"
         params:
             - [ VAL01, LIST, [ ["Close", CLOSE] , ["Open", OPEN] ] ]
-            - [ VAL02, LIST, ["HOWFS","LOWFS","ALL"], "WFS"]
+            - [ VAL02, SELECT, ["HOWFS","LOWFS","ALL"], "WFS"]
 
     - sep
 

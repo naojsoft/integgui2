@@ -59,7 +59,7 @@ launchers:
         label: "Set LTCS status"  
         cmd  : LGS_SETLTCS OBE_ID=LGS OBE_MODE=LAUNCHER CMD=STAT STAT="$VAL01"
         params:
-            - [ VAL01, LIST, ["OFF", "ON", "ONSKY"], "Status" ]
+            - [ VAL01, LIST, ["OFF", "ON", "ON-SKY"], "Status" ]
 
     - sep
 

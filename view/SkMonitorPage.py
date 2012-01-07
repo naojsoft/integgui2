@@ -424,6 +424,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             curvals = common.controller.getvals(subpath)
             if isinstance(curvals, dict):
                 state.update(curvals)
+            print "What we know is: %s" % str(state)
 
             # Figure out the text tag of the last subcommand under this
             # command based on the count
@@ -438,6 +439,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             cmd_str = 'SUBCOMMAND'
 
             # Insert a new line for the subcommand
+            print "inserting new line: lasttag=%s" % (lasttag)
             self.insert_line(page, lasttag, tagname, level, cmd_str)
             
             bnch = Bunch.Bunch(info=p_bnch.info, state=state, tag=tagname,
@@ -448,7 +450,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def process_task(self, path, vals):
-        #print path, vals
+        print "process_task: ", path, vals
 
         with self.lock:
             try:
