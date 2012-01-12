@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Dec  4 16:44:56 HST 2011
+#  Last edit: Wed Jan 11 19:24:44 HST 2012
 #]
 
 # Standard library imports
@@ -159,7 +159,7 @@ def main(options, args):
             mymon.subscribe_remote(options.monitor, sub_channels, {})
         # publish to central monitor hub
         if pub_channels:
-            mymon.subscribe(options.monitor, pub_channels, {})
+            mymon.publish_to(options.monitor, pub_channels, {})
 
         if options.logmon:
             mymon.subscribe_remote(options.logmon, ['logs'], {})

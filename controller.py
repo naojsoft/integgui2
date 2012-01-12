@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Dec 14 13:17:04 HST 2011
+#  Last edit: Wed Jan 11 11:02:47 HST 2012
 #]
 
 import re
@@ -198,8 +198,8 @@ class IntegController(object):
 #############
 
     def tm_cancel(self, queueName):
+        self.playSound(common.sound.tm_cancel, priority=16)
         def cancel():
-            self.playSound(common.sound.tm_cancel)
             self.tm2.cancel(queueName)
 
         #self.tm2.cancel(queueName)
@@ -223,7 +223,7 @@ class IntegController(object):
 
     def tm_restart(self):
         def kill():
-            self.playSound(common.sound.tm_kill)
+            self.playSound(common.sound.tm_kill, priority=16)
 
             # ask Boot Manager to restart the Task Manager
             self.bm.restart(self.options.taskmgr)
@@ -510,7 +510,7 @@ class IntegController(object):
         elif vals.has_key('ready'):
             self.gui.update_statusMsg("TaskManager is ready.")
 
-            self.playSound(common.sound.tm_ready)
+            self.playSound(common.sound.tm_ready, priority=22)
             
         
     # this one is called if new log data becomes available
@@ -625,16 +625,16 @@ class IntegController(object):
         else:
             subsys = match.group(1)
 
-        #soundfile = 'g2_err_%s.au' % subsys
-        soundfile = 'E_ERR%s.au' % subsys.upper()
-        self.playSound(soundfile)
+        soundfile = 'ogg/en/%s_error.ogg' % subsys
+        #soundfile = 'E_ERR%s.au' % subsys.upper()
+        self.playSound(soundfile, priority=20)
 
 
-    def playSound(self, soundfile):
+    def playSound(self, soundfile, priority=20):
         soundpath = os.path.join(g2soss.producthome,
                                  'file/Sounds', soundfile)
         if os.path.exists(soundpath):
-            self.soundsink.playFile(soundpath)
+            self.soundsink.playFile(soundpath, priority=priority)
             
         else:
             self.logger.error("No such audio file: %s" % soundpath)
@@ -650,7 +650,7 @@ class IntegController(object):
         cmdObj.mark_status('done')
 
         if soundfile:
-            self.playSound(soundfile)
+            self.playSound(soundfile, priority=18)
 
     def feedback_error(self, tm_queueName, cmdstr, cmdObj, res,
                        e, soundfile, time_start, time_end):
@@ -668,12 +668,12 @@ class IntegController(object):
         cmdObj.mark_status('error')
 
         if soundfile:
-            self.playSound(soundfile)
+            self.playSound(soundfile, priority=18)
             
     def feedback_break(self):
         self.logger.info("-- Break --")
         soundfile = common.sound.break_executer
-        self.playSound(soundfile)
+        self.playSound(soundfile, priority=22)
 
 
     def log_history(self, cmdstr, time_start, time_end, tm_queueName,
@@ -687,11 +687,14 @@ class IntegController(object):
              'result': result,
              }
         if result == 'OK':
-            d['icon'] = "face-cool.svg"
+            #d['icon'] = "face-cool.svg"
+            d['icon'] = "ok.svg"
         elif result == 'CN':
-            d['icon'] = "face-raspberry.svg"
+            #d['icon'] = "face-raspberry.svg"
+            d['icon'] = "warning.svg"
         elif result == 'NG':
-            d['icon'] = "face-angry.svg"
+            #d['icon'] = "face-angry.svg"
+            d['icon'] = "error.svg"
         
         self.histidx += 1
         self.gui.update_history(self.histidx, d)
@@ -778,7 +781,7 @@ class IntegController(object):
                              time_start, time_end)
 
         # When queue is empty and no errors then play success sound
-        self.playSound(sound_success)
+        self.playSound(sound_success, priority=22)
 
 
     def exec_one(self, cmdObj, tm_queueName, sound_success, sound_failure):
