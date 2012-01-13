@@ -2,7 +2,7 @@
 # common.py -- common module for IntegGUI view
 #
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 10:05:21 HST 2011
+#  Last edit: Wed Jan 11 22:27:57 HST 2012
 #]
 import os.path
 import re
@@ -102,28 +102,33 @@ monitor_tags = Bunch.Bunch(
     )
 
 # Define sounds used in IntegGUI
-sound = Bunch.Bunch(success_executer='doorbell.au',
+sound = Bunch.Bunch(#success_executer='doorbell.au',
+                    success_executer='ogg/ocs/doorbell-1.ogg',
                     #success_executer='beep-09.au',
-                    success_launcher='beep-02.au',
+                    success_launcher='ogg/ocs/beep-02.ogg',
                     #success_launcher='LAUNCHER_COMPLETE.au',
                     #cancel_launcher='E_CANCEL.au',
                     #cancel_executer='E_CANCEL.au',
-                    cancel_launcher='tos-computer-05.au',
-                    cancel_executer='tos-computer-05.au',
-                    tm_cancel='tos-computer-04.au',
-                    #tm_cancel='tos-computer-02.au',
-                    tm_kill='photon-torpedo.au',
-                    tm_ready='tos-computer-03.au',
+                    ## cancel_launcher='tos-computer-05.au',
+                    ## cancel_executer='tos-computer-05.au',
+                    cancel_launcher='ogg/ocs/taskmgr_cancelled.ogg',
+                    cancel_executer='ogg/ocs/taskmgr_cancelled.ogg',
+                    #tm_cancel='tos-computer-04.au',
+                    tm_cancel='ogg/ocs/integgui2_cancel.ogg',
+                    ## tm_kill='ogg/ocs/photon-torpedo.ogg',
+                    ## tm_ready='ogg/ocs/tos-computer-03.ogg',
+                    tm_kill='ogg/ocs/integgui2_kill.ogg',
+                    tm_ready='ogg/ocs/taskmgr_ready.ogg',
                     #fail_executer='splat.au',
-                    failure_executer='hit-02.au',
-                    failure_launcher='dishes-break-01.au',
-                    break_executer='beep-04.au',
-                    #open_panel='tos-turboliftdoor.au',
-                    open_panel='beep-05.au',
-                    #close_panel='tos-turboliftdoor.au',
-                    close_panel='beep-05.au',
-                    pause_toggle='beep-05.au',
-                    bad_keystroke='beep-07.au',
+                    failure_executer='ogg/ocs/hit-02.ogg',
+                    failure_launcher='ogg/ocs/dishes-break-01.ogg',
+                    break_executer='ogg/ocs/beep-04.ogg',
+                    #open_panel='ogg/ocs/tos-turboliftdoor.ogg',
+                    open_panel='ogg/ocs/beep-05.ogg',
+                    #close_panel='ogg/ocs/tos-turboliftdoor.ogg',
+                    close_panel='ogg/ocs/beep-05.ogg',
+                    pause_toggle='ogg/ocs/beep-05.ogg',
+                    bad_keystroke='ogg/ocs/beep-07.ogg',
                     )
 
 # YUK...MODULE-LEVEL GLOBAL VARIABLES

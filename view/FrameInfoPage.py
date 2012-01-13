@@ -2,7 +2,7 @@
 # FrameInfoPage.py -- an integgui2 page that shows information about frames
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Dec 21 13:11:46 HST 2011
+#  Last edit: Tue Jan 10 14:06:53 HST 2012
 #]
 
 import os, time
@@ -13,23 +13,34 @@ import common
 
 import Bunch
 
-
 header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
 
 frame_tags = [
     ('A', 'normal', Bunch.Bunch(foreground='black', background='white',
-                                icon='face-uncertain.svg')),
+                                #icon='face-uncertain.svg')
+                                icon='warning.svg')
+     ),
     ('X', 'transfer', Bunch.Bunch(background='palegreen',
-                                icon='face-uncertain.svg')),
+                                  #icon='face-uncertain.svg')
+                                  icon='warning.svg')
+     ),
     ('R', 'received', Bunch.Bunch(foreground='dark green', background='white',
-                                  icon='face-smile.svg')),
+                                  #icon='face-smile.svg')
+                                  icon='ok.svg')
+     ),
     ('RS', 'stars', Bunch.Bunch(foreground='blue2', background='white',
-                                icon='face-laugh.svg')),
+                                #icon='face-laugh.svg')
+                                icon='ok.svg')
+     ),
     ('RT', 'starstrans', Bunch.Bunch(foreground='darkgreen', background='white',
-                                     icon='face-cool.svg')),
+                                     #icon='face-cool.svg')
+                                     icon='ok.svg')
+     ),
     ('RE', 'starserror', Bunch.Bunch(foreground='orange', background='white')),
     ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow',
-                               icon='face-angry.svg')),
+                               #icon='face-angry.svg')
+                               icon='error.svg')
+     ),
     ]
 
 ## frame_colors = {
