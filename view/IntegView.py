@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Dec 14 13:28:12 HST 2011
+#  Last edit: Thu Jan 19 15:54:23 HST 2012
 #]
 
 # Standard library imports
@@ -1088,18 +1088,25 @@ class IntegView(object):
     def clear_observation(self):
 
         # Clear some pages
-        for name in ('history', 'moninfo'):
+        for name in ('history', 'frames'):
+            try:
+                ws, page = self.ds.getPage(name)
+                page.clear_all()
+            except:
+                # possibly they don't have this page open
+                pass
+
+        for name in ('tags', 'moninfo'):
             try:
                 ws, page = self.ds.getPage(name)
                 page.clear()
             except:
-                # possibly they don't have a history page up
+                # possibly they don't have this page open
                 pass
-
-        # Clear frame info page
+            
         # TODO: breaks abstraction to know that the controller has this.
         # Fix!
-        common.controller.fits.clear()
+        #common.controller.fits.clear()
 
 
     def get_handset_paths(self, insname):

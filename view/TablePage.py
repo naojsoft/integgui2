@@ -2,7 +2,7 @@
 # TablePage.py -- an integgui2 page that shows a table
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Dec 21 13:11:47 HST 2011
+#  Last edit: Thu Jan 19 15:42:46 HST 2012
 #]
 import sys
 import os.path
@@ -153,5 +153,11 @@ class TablePage(Page.ButtonPage):
             # this forces a refresh of the widget
             #self.treeview.columns_autosize()
             self.treeview.queue_draw()
+
+    def clear_all(self):
+        # Delete all current items
+        self.listmodel = gtk.ListStore(object)
+        self.treeview.set_model(self.listmodel)
+        self.index = {}
 
 #END

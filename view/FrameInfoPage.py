@@ -2,7 +2,7 @@
 # FrameInfoPage.py -- an integgui2 page that shows information about frames
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Jan 10 14:06:53 HST 2012
+#  Last edit: Thu Jan 19 15:42:44 HST 2012
 #]
 
 import os, time
@@ -103,11 +103,6 @@ class FrameInfoPage(TablePage.TablePage):
         for frameinfo in framelist:
             #del frameinfo['row']
             self.update_frame(frameinfo)
-
-    def clear_all(self):
-        # Delete all current frames
-        self.listmodel = gtk.ListStore(object)
-        self.treeview.set_model(self.listmodel)
 
 ##     def select_frame(self, w, evt):
 ##         with self.lock:
