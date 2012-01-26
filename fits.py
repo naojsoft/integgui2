@@ -50,11 +50,11 @@ class IntegGUINotify(object):
                 return d
 
             # Create a new entry
-            d = Bunch.Bunch(frameid=frameid,
-                            status='A')
-
-            for key in headers:
-                d[key] = ""
+            dct = dict.fromkeys(headers, '')
+            dct['frameid'] = frameid
+            dct['status'] = 'A'
+            
+            d = Bunch.Bunch(dct)
             d.update(kwdargs)
 
             self.framecache[frameid] = d

@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Jan 19 15:54:23 HST 2012
+#  Last edit: Fri Jan 20 13:30:46 HST 2012
 #]
 
 # Standard library imports
@@ -29,6 +29,9 @@ import dialogs
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 rc_file = os.path.join(thisDir, "gtk_rc")
 gtk.rc_parse(rc_file) 
+
+# Formatting string used to format History table
+fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed)7.7s %(result)s %(queue)8.8s  %(cmdstr)s"
 
 
 class IntegView(object):
@@ -884,42 +887,20 @@ class IntegView(object):
         return self.open_generic(workspace, buf, filepath, pageKlass,
                                  title=title)
 
-    ## def add_history(self, workspace):
-    ##     try:
-    ##         page = workspace.addpage('history', "History", LogPage)
-    ##         # TODO: add toggling of editing
-    ##         page.set_editable(True)
-
-    ##         # mark command errors
-    ##         regexes = [
-    ##             (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
-    ##              ['cancel']),
-    ##             (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
-    ##              ['error']),
-    ##             ]
-    ##         page.add_regexes(regexes)
-
-    ##         # Global side effect--for now we can only have one history page
-    ##         self.history = page
-    ##         workspace.select(page.name)
-    ##         return page
-
-    ##     except Exception, e:
-    ##         self.popup_error("Cannot load history page: %s" % (
-    ##                 str(e)))
-    ##         return None
-        
     def add_history(self, workspace):
         try:
-            page = workspace.addpage('history', "History", TablePage.TablePage)
-            columns = [("Time start", 't_start', 'text'),
-                       ("Time stop", 't_end', 'text'),
-                       ("Elapsed", 't_elapsed', 'text'),
-                       ("TM Queue", 'queue', 'text'),
-                       ("", 'icon', 'icon'),
-                       ("Result", 'result', 'text'),
-                       ("Command", 'cmdstr', 'text'),]
-            page.set_columns(columns)
+            page = workspace.addpage('history', "History", LogPage)
+            # TODO: add toggling of editing
+            page.set_editable(True)
+
+            # mark command errors
+            regexes = [
+                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
+                 ['cancel']),
+                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
+                 ['error']),
+                ]
+            page.add_regexes(regexes)
 
             # Global side effect--for now we can only have one history page
             self.history = page
@@ -930,6 +911,28 @@ class IntegView(object):
             self.popup_error("Cannot load history page: %s" % (
                     str(e)))
             return None
+        
+    ## def add_history(self, workspace):
+    ##     try:
+    ##         page = workspace.addpage('history', "History", TablePage.TablePage)
+    ##         columns = [("Time start", 't_start', 'text'),
+    ##                    ("Time stop", 't_end', 'text'),
+    ##                    ("Elapsed", 't_elapsed', 'text'),
+    ##                    ("TM Queue", 'queue', 'text'),
+    ##                    ("", 'icon', 'icon'),
+    ##                    ("Result", 'result', 'text'),
+    ##                    ("Command", 'cmdstr', 'text'),]
+    ##         page.set_columns(columns)
+
+    ##         # Global side effect--for now we can only have one history page
+    ##         self.history = page
+    ##         workspace.select(page.name)
+    ##         return page
+
+    ##     except Exception, e:
+    ##         self.popup_error("Cannot load history page: %s" % (
+    ##                 str(e)))
+    ##         return None
         
     def add_tagpage(self, workspace):
         try:
@@ -1088,15 +1091,7 @@ class IntegView(object):
     def clear_observation(self):
 
         # Clear some pages
-        for name in ('history', 'frames'):
-            try:
-                ws, page = self.ds.getPage(name)
-                page.clear_all()
-            except:
-                # possibly they don't have this page open
-                pass
-
-        for name in ('tags', 'moninfo'):
+        for name in ('history', 'frames', 'tags', 'moninfo'):
             try:
                 ws, page = self.ds.getPage(name)
                 page.clear()
@@ -1299,7 +1294,11 @@ class IntegView(object):
    
     def update_history(self, key, info):
         if hasattr(self, 'history'):
-            self.gui_do(self.history.update_table, key, info)
+            #self.gui_do(self.history.update_table, key, info)
+            print "INFO IS", info
+            msgstr = fmt_history % info
+            self.gui_do(self.history.push, msgstr)
+           
    
     def update_loginfo(self, logname, infodict):
         if hasattr(self, 'logpage'):
