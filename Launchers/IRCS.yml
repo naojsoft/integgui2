@@ -48,40 +48,5 @@ launchers:
 
     - sep
 
-    -
-        label: "Set AO Point (IRCS pix)" # AO acquisition
-        cmd  : AOPSET OBE_ID=IRCS OBE_MODE=LAUNCHER X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03
-        params:
-            - [ VAL01, INPUT, 6, 0.0, "X" ]
-            - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - [ VAL03, LIST, [["52MAS", "52MAS"],["20MAS", "20MAS"]], "Pixel Scale" ]
-
-    - sep
-
-    -
-        label: "Offset(IRCS pix)" # AO acquisition offset
-        cmd  : AOOFFSET OBE_ID=IRCS OBE_MODE=IRCS_SUBROUTINE X_PIX=$VAL01 Y_PIX=$VAL02 PIXSCALE=$VAL03 COORD=$VAL04 MODE=$VAL05 TTSTEP=$VAL06 PA=$VAL07
-        params:
-            - [ VAL01, INPUT, 6, 0.0, "dX" ]
-            - [ VAL02, INPUT, 6, 0.0, "dY" ]
-            - [ VAL03, LIST, [["52MAS", "52MAS"],["20MAS", "20MAS"]], "Scale" ]
-            - [ VAL04, LIST, [["Sdrl", "ABS"],["N-Sdrl", "FILE"]], "Type" ]
-            - [ VAL05, LIST, [["TT", "TT"],["TT NULL", "TTNULL"],["AO POINT","AOP"]],
-                  "Mode" ]
-            - [ VAL06, INPUT, 2, 1, "Step" ]
-            - [ VAL07, INPUT, 6, 0.0, "PA" ]
-
-    - sep
-
-    -
-        label:  "TT Off-load" # TT nulling
-        cmd  : AO_TTNULL OBE_ID=IRCS OBE_MODE=LAUNCHER TT_X=$VAL01 TT_Y=$VAL02 PA=$VAL03 COORD=$VAL04
-        params:
-            - [ VAL01, INPUT, 6, 0.0, "TT X" ]
-            - [ VAL02, INPUT, 6, 0.0, "TT Y" ]
-            - [ VAL03, INPUT, 6, 0.0, "PA" ]
-            - [ VAL04, LIST, [["Sidereal", "ABS"],["Non-Sidereal", "FILE"]], "Type" ]
-
-    - sep
 
 #END
