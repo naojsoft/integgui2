@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:57:45 HST 2011
+#  Last edit: Fri Feb  3 15:04:43 HST 2012
 #]
 import os.path
 import string
@@ -11,6 +11,17 @@ import dialogs
 
 import gtk
 import gtksourceview2
+
+warning_close = """
+WARNING: Buffer is modified
+
+Please choose one of the following options:
+
+1) Don't close page.
+2) Close without saving.
+3) Save buffer and close page.
+
+"""
 
 class CodePage(Page.ButtonPage, Page.TextPage):
 
@@ -181,12 +192,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         self.loadbuf(buf)
 
-
-    def save(self):
-        def _save(res):
-            if res != 'yes':
-                return
-
+    def _do_save(self):
             # TODO: make backup?
 
             # get text to save
@@ -204,19 +210,37 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
             self.buf.set_modified(False)
 
+    def save(self):
+        def _save(res):
+            if res != 'yes':
+                return
+            self._do_save()
+
         dirname, filename = os.path.split(self.filepath)
         common.view.popup_confirm("Save file", 
                                   'Really save "%s"?' % filename,
                                   _save)
-
         
     def close(self):
-        def _close(res):
-            if res != 'yes':
-                return
+        w = self.build_dialog("Close file",
+                              warning_close, self._close_check_res)
+        w.add_button("Cancel", 1)
+        w.add_button("Close", 2)
+        w.add_button("Save and Close", 3)
+        w.show()
+        return False
 
+    def _close_check_res(self, w, rsp):
+        w.destroy()
+        if rsp == 2:
             super(CodePage, self).close()
             
+        elif rsp == 3:
+            self._do_save()
+            super(CodePage, self).close()
+            
+        return True
+
         if self.buf.get_modified():
             common.view.popup_confirm("Close file", 
                                       "File is modified. Really close?",
