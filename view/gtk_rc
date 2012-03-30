@@ -2,42 +2,25 @@ style "window"
 {
 }
 
-style "button"
+style "mybutton_bg"
 {
-  # This shows all the possible states for a button.  The only one that
-  # doesn't apply is the SELECTED state.
-  
-  #fg[PRELIGHT] = {255, 255, 0}
-  fg[PRELIGHT] = 'yellow'
-  #bg[PRELIGHT] = "#089D20"
-  #bg[PRELIGHT] = {8, 157, 32}
   bg[PRELIGHT] = 'forestgreen'
-  #bg[PRELIGHT] = {1.0, 0, 0}
-#  bg[ACTIVE] = { 1.0, 0, 0 }
-#  fg[ACTIVE] = { 0, 1.0, 0 }
-#  bg[NORMAL] = { 1.0, 1.0, 0 }
-#  fg[NORMAL] = { .99, 0, .99 }
-#  bg[INSENSITIVE] = { 1.0, 1.0, 1.0 }
-#  fg[INSENSITIVE] = { 1.0, 0, 1.0 }
+}
+
+style "mybutton"
+{
+  fg[PRELIGHT] = 'yellow'
+# text[PRELIGHT] = 'yellow'
 
 #GtkButton::focus-line-width = 1
 #GtkButton::focus-padding = 0
 #GtkLabel::width-chars = 20
 }
 
-# In this example, we inherit the attributes of the "button" style and then
-# override the font and background color when prelit to create a new
-# "main_button" style.
-
-style "main_button" = "button"
+style "mycombobox"
 {
-  font = "-adobe-helvetica-medium-r-normal--*-100-*-*-*-*-*-*"
-  bg[PRELIGHT] = { 0.75, 0, 0 }
-}
-
-style "launcher_button" = "button"
-{
-  font_name = "Monospace 10"
+  fg[PRELIGHT] = 'yellow'
+  text[PRELIGHT] = 'yellow'
 }
 
 style "menubar-style"
@@ -45,16 +28,14 @@ style "menubar-style"
 GtkMenuBar::shadow_type = none
 }
 
+style "paned-style"
+{
+GtkPaned::handle_size = 5
+}
+
 style "statusbar-style"
 {
 GtkStatusbar::shadow_type = none
-}
-
-style "toggle_button" = "button"
-{
-  fg[NORMAL] = { 1.0, 0, 0 }
-  fg[ACTIVE] = { 1.0, 0, 0 }
-
 }
 
 style "text"
@@ -73,15 +54,10 @@ widget_class "*GtkStatusbar" style "statusbar-style"
 widget_class "GtkWindow" style "window"
 widget_class "GtkDialog" style "window"
 widget_class "GtkFileSelection" style "window"
-## widget_class "*GtkToggleButton*" style "toggle_button"
-## widget_class "*GtkCheckButton*" style "toggle_button"
-## widget_class "*GtkRadioButton*" style "toggle_button"
-widget_class "launcher.GtkButton*" style "launcher_button"
-widget_class "*GtkButton*" style "button"
-widget_class "*GtkTextView" style "text"
-
-# This sets all the buttons that are children of the "main window" to
-# the main_button style.  These must be documented to be taken advantage of.
-widget "main window.*GtkButton*" style "main_button"
+widget_class "*GtkButton*" style "mybutton_bg"
+widget_class "*GtkButton.GtkLabel" style "mybutton"
+widget_class "*GtkComboBox*" style "mybutton_bg"
+widget_class "*GtkComboBox*GtkCellView*" style "mycombobox"
+widget_class "*GtkTextView*" style "text"
 
 #END

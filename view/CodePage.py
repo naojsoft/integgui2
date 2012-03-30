@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Feb  3 15:04:43 HST 2012
+#  Last edit: Wed Mar 28 14:17:14 HST 2012
 #]
 import os.path
 import string
@@ -221,14 +221,26 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                   'Really save "%s"?' % filename,
                                   _save)
         
+    def build_dialog(self, title, text, func):
+        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=gtk.MESSAGE_WARNING,
+                                   message_format=text)
+        dialog.set_title(title)
+        dialog.connect("response", func)
+        return dialog
+
     def close(self):
-        w = self.build_dialog("Close file",
-                              warning_close, self._close_check_res)
-        w.add_button("Cancel", 1)
-        w.add_button("Close", 2)
-        w.add_button("Save and Close", 3)
-        w.show()
-        return False
+        if self.buf.get_modified():
+            w = self.build_dialog("Close file",
+                                  warning_close, self._close_check_res)
+            w.add_button("Cancel", 1)
+            w.add_button("Close", 2)
+            w.add_button("Save and Close", 3)
+            w.show()
+            return False
+        
+        super(CodePage, self).close()
+        return True
 
     def _close_check_res(self, w, rsp):
         w.destroy()
@@ -240,13 +252,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             super(CodePage, self).close()
             
         return True
-
-        if self.buf.get_modified():
-            common.view.popup_confirm("Close file", 
-                                      "File is modified. Really close?",
-                                      _close)
-        else:
-            _close('yes')
 
     def get_filepath(self):
         return self.filepath
