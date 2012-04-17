@@ -10,10 +10,10 @@ launchers:
 ####################
     -
         label: "Startup AO188"     # AO188 startup
-        cmd  : AO188_STARTUP OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE=$VAL01 INS=$VAL02
+        cmd  : AO188_STARTUP OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE="$VAL01" INS="$VAL02"
         params:
-            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
-            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO","HICIAO"], ["AO","AO"]] , "Instrument"]
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"], ["OPT-LGS","OPT-LGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO","HICIAO"], ["Kyoto-3DII", K3D], ["AO","AO"]] , "Instrument"]
 
     - sep
 
@@ -30,7 +30,7 @@ launchers:
         label: "Make DM flat"  
         cmd  : AO188_MKDMFLAT OBE_ID=AO188 OBE_MODE=AO188_SETUP INS="$VAL01"
         params:
-            - [ VAL01, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+            - [ VAL01, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["Kyoto-3DII", K3D], ["AO", "AO"]], "Instrument" ]
 
     - sep
 
@@ -41,8 +41,8 @@ launchers:
         label: "Set Loop mode"  
         cmd  : AO188_SETMODE OBE_ID=AO188 OBE_MODE=AO188_SETUP MODE="$VAL01" INS="$VAL02"
         params:
-            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"]], "Mode" ]
-            - [ VAL02, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+            - [ VAL01, LIST, [["NGS", "NGS"], ["NGS-BS589", "NGS-BS589"], ["LGS", "LGS"], ["LGS-MIRROR","LGS-MIRROR"], ["OPT-NGS","OPT-NGS"], ["OPT-LGS", "OPT-LGS"]], "Mode" ]
+            - [ VAL02, LIST, [["IRCS", "IRCS"], ["HiCIAO", "HICIAO"], ["Kyoto-3DII", K3D], ["AO", "AO"]], "Instrument" ]
 
     - sep
 

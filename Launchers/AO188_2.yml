@@ -62,8 +62,8 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 0.0, "X" ]
             - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ], "Pixel Scale" ]
-            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO] ], "Instrument" ]
+            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ], "Pixel Scale" ]
+            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D] ], "Instrument" ]
            
     - 
         label: "Offset pix by AU2" # AO acquisition offset
@@ -73,12 +73,12 @@ launchers:
             - [ VAL02, INPUT, 6, 0.0, "dY" ]
             - [ VAL03, INPUT, 2, 1, "Step" ]
             - break
-            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
+            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ],
                 "Pixel Scale" ]
             - [ VAL05, LIST, [["TT", TT], ["TT NULL", TTNULL],
                              ["AO POINT", AOP]], "Mode" ]
             - [ VAL06, LIST, [["Sdrl", ABS], ["N-Sdrl", FILE]], "Type" ]
-            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO]], "Instrument" ]
+            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D]], "Instrument" ]
 
     - sep
 
@@ -132,7 +132,7 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 0.0, "LTT" ]
             - [ VAL02, INPUT, 6, 0.0, "LDF" ]
-            - [ VAL03, INPUT, 6, 0.0, "TTG" ]
+            - [ VAL03, INPUT, 6, 0.001, "TTG" ]
 
     -
         label: "ADF LOOP"     # Close defocus offloading loop

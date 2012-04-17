@@ -111,7 +111,7 @@ launchers:
         cmd  : AO188_AU_MOVE OBE_ID=AO188 OBE_MODE=LAUNCHER CMD=BASE INS=$VAL02 DEV=$VAL01
         params:
             - [ VAL01, LIST, ["AU1", "AU2"], "Device"]
-            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO", "HICIAO"], ["AO", "AO"]], "Instrument" ]
+            - [ VAL02, LIST, [["IRCS","IRCS"], ["HiCIAO", "HICIAO"], ["Kyoto-3DII", K3D], ["AO", "AO"]], "Instrument" ]
  
     - sep
 

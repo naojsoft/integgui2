@@ -15,9 +15,9 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 0.0, "X" ]
             - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
+            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ],
                 "Pixel Scale" ]
-            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO] ],
+            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D] ],
                 "Instrument" ]
 
     - 
@@ -28,12 +28,12 @@ launchers:
             - [ VAL02, INPUT, 6, 0.0, "dY" ]
             - [ VAL03, INPUT, 2, 1, "Step" ]
             - break
-            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
+            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ],
                 "Pixel Scale" ]
             - [ VAL05, LIST, [["TT", TT], ["TT NULL", TTNULL],
                              ["AO POINT", AOP]], "Mode" ]
             - [ VAL06, LIST, [["Sdrl", ABS], ["N-Sdrl", FILE]], "Type" ]
-            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO]], "Instrument" ]
+            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D]], "Instrument" ]
 
     - sep
 
