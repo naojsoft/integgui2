@@ -39,10 +39,16 @@ launchers:
 #######
     - 
         label: "LGS acquisition"
-        cmd  : AO188_ACQLGS OBE_ID=AO188 OBE_MODE=AO188_SETUP EXPTIME=$VAL01 LGSAP=$VAL02 
+        cmd  : AO188_ACQLGS OBE_ID=AO188 OBE_MODE=AO188_SETUP EXPTIME=$VAL01 LGSAP=$VAL02 SELECT_MODE=$VAL03 X1=$VAL04 Y1=$VAL05 X2=$VAL06 Y2=$VAL07 
         params:
             - [ VAL01, INPUT, 6, 15.0, "EXP. time" ]
             - [ VAL02, LIST, [ ["4 arcsec", 4ASEC], ["2 arcsec", 2ASEC] , ["1 arcsec", 1ASEC]], "LGSAP" ]
+            - [ VAL03, LIST, [ ["Override", OVERRIDE], ["Semiauto", SEMIAUTO], ["Manual", MANUAL]], "Sel Mode" ]
+            - break
+            - [ VAL04, INPUT, 6, NOP, "X1" ]
+            - [ VAL05, INPUT, 6, NOP, "Y1" ]
+            - [ VAL06, INPUT, 6, NOP, "X2" ]
+            - [ VAL07, INPUT, 6, NOP, "Y2" ]
  
     - 
         label: "Acq. LGS on AQCAM" # AO acquisition
@@ -62,8 +68,8 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 0.0, "X" ]
             - [ VAL02, INPUT, 6, 0.0, "Y" ]
-            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ], "Pixel Scale" ]
-            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO] ], "Instrument" ]
+            - [ VAL03, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ], "Pixel Scale" ]
+            - [ VAL04, LIST, [ ["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D] ], "Instrument" ]
            
     - 
         label: "Offset pix by AU2" # AO acquisition offset
@@ -73,12 +79,12 @@ launchers:
             - [ VAL02, INPUT, 6, 0.0, "dY" ]
             - [ VAL03, INPUT, 2, 1, "Step" ]
             - break
-            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS" ],
+            - [ VAL04, LIST, [ "52MAS", "20MAS", "12MAS", "10MAS", "MLA", "FP" ],
                 "Pixel Scale" ]
             - [ VAL05, LIST, [["TT", TT], ["TT NULL", TTNULL],
                              ["AO POINT", AOP]], "Mode" ]
             - [ VAL06, LIST, [["Sdrl", ABS], ["N-Sdrl", FILE]], "Type" ]
-            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO]], "Instrument" ]
+            - [ VAL07, LIST, [["IRCS", IRCS], ["HiCIAO", HICIAO], ["Kyoto-3DII", K3D]], "Instrument" ]
 
     - sep
 
@@ -132,7 +138,7 @@ launchers:
         params:
             - [ VAL01, INPUT, 6, 0.0, "LTT" ]
             - [ VAL02, INPUT, 6, 0.0, "LDF" ]
-            - [ VAL03, INPUT, 6, 0.0, "TTG" ]
+            - [ VAL03, INPUT, 6, 0.001, "TTG" ]
 
     -
         label: "ADF LOOP"     # Close defocus offloading loop
