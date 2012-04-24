@@ -39,10 +39,16 @@ launchers:
 #######
     - 
         label: "LGS acquisition"
-        cmd  : AO188_ACQLGS OBE_ID=AO188 OBE_MODE=AO188_SETUP EXPTIME=$VAL01 LGSAP=$VAL02 
+        cmd  : AO188_ACQLGS OBE_ID=AO188 OBE_MODE=AO188_SETUP EXPTIME=$VAL01 LGSAP=$VAL02 SELECT_MODE=$VAL03 X1=$VAL04 Y1=$VAL05 X2=$VAL06 Y2=$VAL07 
         params:
             - [ VAL01, INPUT, 6, 15.0, "EXP. time" ]
             - [ VAL02, LIST, [ ["4 arcsec", 4ASEC], ["2 arcsec", 2ASEC] , ["1 arcsec", 1ASEC]], "LGSAP" ]
+            - [ VAL03, LIST, [ ["Override", OVERRIDE], ["Semiauto", SEMIAUTO], ["Manual", MANUAL]], "Sel Mode" ]
+            - break
+            - [ VAL04, INPUT, 6, NOP, "X1" ]
+            - [ VAL05, INPUT, 6, NOP, "Y1" ]
+            - [ VAL06, INPUT, 6, NOP, "X2" ]
+            - [ VAL07, INPUT, 6, NOP, "Y2" ]
  
     - 
         label: "Acq. LGS on AQCAM" # AO acquisition
