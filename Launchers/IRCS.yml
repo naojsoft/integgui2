@@ -10,7 +10,7 @@ launchers:
 #
     -
        label:   "SNAP" # IRCS CAM SNAP
-       cmd  : Exec IRCS SNAP ID=$VAL01 IT=$VAL02 COADDS=$VAL03 NDR=$VAL04 NFRAME=$VAL09 AP=$VAL05 AS=$VAL06 QL=$VAL07 SAVE=$VAL08
+       cmd  : Exec IRCS SNAP ID=$VAL01 IT=$VAL02 COADDS=$VAL03 NDR=$VAL04 AP=$VAL05 AS=$VAL06 QL=$VAL07 SAVE=$VAL08
        params:
            - [ VAL01, LIST, [["CAM", "CAM"],["SPG","SPG"]], "MODE" ]
            - [ VAL02, INPUT,6,"nop","Exptime" ]
