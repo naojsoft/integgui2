@@ -114,8 +114,8 @@ class ObsInfoPage(Page.ButtonPage):
         self._draw_text(cr, 300, 20, self.obsdict['PROP-ID'])
 
         cr.set_source_rgb(*self.orange)
-        cr.set_font_size(80.0)
-        self._draw_text(cr, 600, 270, self.obsdict['TIMER'])
+        cr.set_font_size(150.0)
+        self._draw_text(cr, 550, 270, self.obsdict['TIMER'])
 
         cr.set_source_rgb(*self.blue)
         cr.select_font_face("Georgia",

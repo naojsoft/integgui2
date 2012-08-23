@@ -72,6 +72,15 @@ launchers:
     - sep
 
     -
+        label: "Rotator Sync" 
+        cmd  : ROTATORSYNC OBE_ID=SPCAM OBE_MODE=LAUNCHER INSROT_PA=$VAL01
+        params:
+            - { name: VAL01, type: INPUT, width: 7, value: 0.0,
+                label: Degree }
+
+    - sep
+
+    -
         label: "AG Probe  (X, Y, Z)"
         cmd  : AGPROBE OBE_ID=SPCAM OBE_MODE=LAUNCHER AG_X=$VAL01 AG_Y=$VAL02 AG_Z=$VAL03
         params:
