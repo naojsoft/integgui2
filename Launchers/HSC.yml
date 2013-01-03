@@ -1,0 +1,32 @@
+# 
+# HSC.yml -- HSC launchers file 
+#
+# This is a YAML file
+
+tabname: "HSC"
+launchers:
+    - sep
+
+    -
+        label: "Erase+Wipe"
+        cmd  : ERASEWIPE OBE_ID=HSC OBE_MODE=LAUNCHER
+    -
+        label: "Erase"
+        cmd  : ERASE OBE_ID=HSC OBE_MODE=LAUNCHER
+    -
+        label: "Wipe"
+        cmd  : WIPE OBE_ID=HSC OBE_MODE=LAUNCHER
+
+    - sep
+
+    -
+        label: "Bias"
+        cmd  : GETBIAS OBE_ID=HSC OBE_MODE=LAUNCHER
+
+    -
+        label: "Dark"
+        cmd  : GETDARK OBE_ID=HSC OBE_MODE=LAUNCHER EXPTIME="$VAL01"
+        params:
+           - [ VAL01, INPUT, 8, 1.0, EXP (s)  ]
+
+#END

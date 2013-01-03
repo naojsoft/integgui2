@@ -61,7 +61,7 @@ launchers:
         cmd  : SAVE_VLAN OBE_ID=COMMON OBE_MODE=LAUNCHER SAVE_MODE=$VAL01 VLAN=$VAL02 NFRAME=$VAL03
         params:
             - [ VAL01, LIST, [ Current, NFrame ], "SaveMode" ]
-            - [ VAL02, LIST, [ AG, SV, SH ] ]
+            - [ VAL02, LIST, [ AG, SV, SH, FMOS, HSCSCAG, HSCSHAG, HSCSH ] ]
             - [ VAL03, INPUT, 6, 1, "NFrame" ]
 
     - sep
