@@ -260,7 +260,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         info = bnch.info
         page = info.page
         vals = bnch.state
-        print "update_page: vals = %s" % str(vals)
+        ## print "update_page: vals = %s" % str(vals)
         tagname = bnch.tag
 
         cmd_str = None
@@ -450,7 +450,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def process_task(self, path, vals):
-        print "process_task: ", path, vals
+        ## print "process_task: ", path, vals
 
         with self.lock:
             try:
