@@ -13,6 +13,9 @@ import CommandObject
 
 import SOSS.parse.ope as ope
 
+thisDir = os.path.split(sys.modules[__name__].__file__)[0]
+icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
+
 warning_close = """
 WARNING:        
 You are attempting to delete text in this buffer that is needed
@@ -75,14 +78,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.set_insert_spaces_instead_of_tabs(True)
 
         # add marker pixbufs
-        # TODO: maybe design a custom pixmap and put it in the Gen2 area
-        DATADIR = '/usr/share'
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
-                                                           'pixmaps/apple-green.png'))
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
+                                                           'apple-green.png'))
         if pixbuf:
             self.tw.set_mark_category_pixbuf('executing', pixbuf)
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
-                                                           'pixmaps/apple-red.png'))
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
+                                                           'apple-red.png'))
         if pixbuf:
             self.tw.set_mark_category_pixbuf('error', pixbuf)
 
