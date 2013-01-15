@@ -1,10 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Dec 13 11:20:18 HST 2011
-#]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
+# Eric Jeschke (eric@naoj.org)
+#
 
 import threading
 

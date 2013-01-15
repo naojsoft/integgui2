@@ -1,12 +1,6 @@
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Nov  6 12:19:55 HST 2008
-#]
+# Eric Jeschke (eric@naoj.org)
 #
-#
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
 import threading
 
 class TimeoutError(Exception):

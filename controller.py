@@ -1,7 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan 11 11:02:47 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org)
+#
 
 import re
 import os, time
@@ -310,12 +309,13 @@ class IntegController(object):
         propid = info.get('propid', 'xxxxx')
         observers = info.get('observers', 'N/A')
         inst = info.get('mainInst', 'N/A')
+        inst = inst.upper()
         self.gui.update_obsinfo({'PROP-ID':
                                                       ('%s - %s - %s' % (propid,
                                                                          inst,
                                                                          observers))
                                  })
-        
+
         self.set_instrument(inst)
 
         # Get allocs
@@ -337,15 +337,15 @@ class IntegController(object):
         handsets = []
 
         for name in ['TELESCOPE']:
-            launchers.extend(self.gui.get_launcher_paths(name))
+            launchers.extend(self.gui.get_launcher_paths('COMMON', name))
         # uncomment once Az/El handset is ready
         #for name in ['STANDARD', 'TELESCOPE']:
         for name in ['STANDARD']:
-            handsets.extend(self.gui.get_handset_paths(name))
+            handsets.extend(self.gui.get_handset_paths('COMMON', name))
 
         for name in allocs_lst:
-            launchers.extend(self.gui.get_launcher_paths(name))
-            handsets.extend(self.gui.get_handset_paths(name))
+            launchers.extend(self.gui.get_launcher_paths(name, name))
+            handsets.extend(self.gui.get_handset_paths(name, name))
 
         self.logger.debug("launchers=%s handsets=%s" % (
             launchers, handsets))
