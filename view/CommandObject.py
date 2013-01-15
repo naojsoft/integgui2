@@ -1,13 +1,8 @@
 #
 # CommandObject.py -- command object and queue object definitions
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Sep 19 18:31:22 HST 2010
-#]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
+# Eric Jeschke (eric@naoj.org)
+#
 import threading
 
 class CommandObject(object):

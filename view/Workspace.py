@@ -1,11 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 30 16:13:44 HST 2011
-#]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
+# Eric Jeschke (eric@naoj.org)
+#
 import sys
 import threading
 import traceback

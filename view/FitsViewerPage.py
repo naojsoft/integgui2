@@ -1,11 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Oct 27 21:07:11 HST 2010
-#]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
+# Eric Jeschke (eric@naoj.org)
+#
 # stdlib imports
 import os.path
 import time

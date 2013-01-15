@@ -1,11 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Apr 16 10:16:52 HST 2011
-#]
-
-# remove once we're certified on python 2.6
-from __future__ import with_statement
-
+# Eric Jeschke (eric@naoj.org)
+#
 import os, re
 import gtk
 

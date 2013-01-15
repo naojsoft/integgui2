@@ -1,7 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jan 20 13:30:46 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org)
+#
 
 # Standard library imports
 import sys, os, glob
@@ -662,8 +661,7 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_sk(self, workspace):
-        initialdir = os.path.join(os.environ['PYHOME'], 'SOSS',
-                                  'SkPara', 'sk')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load skeleton file",
                            lambda filepath: self.load_generic(workspace,
@@ -672,7 +670,7 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_task(self, workspace):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'Tasks')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load python task",
                            lambda filepath: self.load_generic(workspace,
@@ -699,8 +697,7 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_launcher_source(self, workspace):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                  'Launchers')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load launcher source",
                            lambda filepath: self.load_generic(workspace,
@@ -710,8 +707,7 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_handset_source(self, workspace):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                  'Handsets')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load handset source",
                            lambda filepath: self.load_generic(workspace,
@@ -798,8 +794,7 @@ class IntegView(object):
 
 
     def gui_load_launcher(self, workspace):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                  'Launchers')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load launcher",
                            lambda filepath: self.load_launcher(workspace,
@@ -831,8 +826,7 @@ class IntegView(object):
 
 
     def gui_load_handset(self, workspace):
-        initialdir = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                  'Handsets')
+        initialdir = os.environ['OBSHOME']
         
         self.filesel.popup("Load handset",
                            lambda filepath: self.load_handset(workspace,
@@ -992,10 +986,11 @@ class IntegView(object):
                     str(e)))
             return None
         
-    def get_launcher_paths(self, insname):
-        filename = '%s*.yml' % insname.upper()
-        pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                 'Launchers', filename)
+    def get_launcher_paths(self, insname, launcherpfx):
+        insname = insname.upper()
+        filename = '%s*.yml' % launcherpfx
+        pathmatch = os.path.join(os.environ['OBSHOME'], insname,
+                                 'launcher', filename)
 
         res = glob.glob(pathmatch)
         return res
@@ -1104,10 +1099,11 @@ class IntegView(object):
         #common.controller.fits.clear()
 
 
-    def get_handset_paths(self, insname):
-        filename = '%s*.yml' % insname.upper()
-        pathmatch = os.path.join(os.environ['GEN2HOME'], 'integgui2',
-                                 'Handsets', filename)
+    def get_handset_paths(self, insname, handsetpfx):
+        insname = insname.upper()
+        filename = '%s*.yml' % handsetpfx
+        pathmatch = os.path.join(os.environ['OBSHOME'], insname,
+                                 'handset', filename)
 
         res = glob.glob(pathmatch)
         return res
