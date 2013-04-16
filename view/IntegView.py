@@ -14,8 +14,7 @@ pygtk.require('2.0')
 import gtk, gobject
 
 # SSD/Gen2 imports
-import Bunch
-import Future
+from ginga.misc import Bunch, Future
 
 # Local integgui2 imports
 import common
