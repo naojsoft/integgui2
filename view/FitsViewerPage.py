@@ -14,10 +14,9 @@ import gtk
 import common
 import Page
 
-import Bunch
 import astro.fitsdata as fitsdata
-import Datasrc
-import Gen2.Fitsview.FitsImage as FitsImage
+from ginga.misc import Bunch, Datasrc
+from ginga.gtkw.FitsImageCanvasGtk import FitsImageCanvas
 
 
 class FitsViewerPage(Page.ButtonPage):
@@ -59,7 +58,7 @@ class FitsViewerPage(Page.ButtonPage):
         scrolled_window.set_size_request(250, -1)
         hbox1.add1(scrolled_window)
 
-        self.fitsimage = FitsImage.FitsImage(512, 512)
+        self.fitsimage = FitsImageCanvas()
         self.widget = self.fitsimage.get_widget()
 
         hbox1.add2(self.widget)
