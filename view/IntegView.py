@@ -327,6 +327,18 @@ class IntegView(object):
                              "file.Load inf")
         item.show()
 
+        item = gtk.MenuItem(label="eph")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_ephem(ws.executers),
+                             "file.Load eph")
+        item.show()
+
+        item = gtk.MenuItem(label="tsc track")
+        loadmenu.append(item)
+        item.connect_object ("activate", lambda w: self.gui_load_tscTrack(ws.executers),
+                             "file.Load tsc")
+        item.show()
+
         loadmenu = gtk.Menu()
         item = gtk.MenuItem(label="Load")
         filemenu.append(item)
@@ -695,6 +707,24 @@ class IntegView(object):
                                                               InfPage),
                            initialdir=initialdir)
 
+    def gui_load_ephem(self, workspace):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        
+        self.filesel.popup("Load eph file",
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
+                                                              EphemPage),
+                           initialdir=initialdir)
+
+    def gui_load_tscTrack(self, workspace):
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        
+        self.filesel.popup("Load TSC Tracking Coordinate file",
+                           lambda filepath: self.load_generic(workspace,
+                                                              filepath,
+                                                              TSCTrackPage),
+                           initialdir=initialdir)
+
     def gui_load_launcher_source(self, workspace):
         initialdir = os.environ['OBSHOME']
         
@@ -747,6 +777,12 @@ class IntegView(object):
     def load_inf(self, filepath):
         return self.load_generic(self.exws, filepath, InfPage)
 
+    def load_ephem(self, filepath):
+        return self.load_generic(self.exws, filepath, EphemPage)
+
+    def load_tscTrack(self, filepath):
+        return self.load_generic(self.exws, filepath, TSCTrackPage)
+
     def load_file(self, filepath):
         if os.path.isdir(filepath):
             return self.load_folder(self.exws, filepath)
@@ -759,6 +795,8 @@ class IntegView(object):
                      'sk': SkPage,
                      'py': TaskPage,
                      'inf': InfPage,
+                     'eph': EphemPage,
+                     'tsc': TSCTrackPage,
                      }
                 pageKlass = d[ext]
             except KeyError:
@@ -1268,6 +1306,11 @@ class IntegView(object):
     
     def obs_userinput(self, tag, title, iconfile, soundfn, itemlist, callfn):
         dialog = dialogs.UserInput()
+        self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
+                    tag=tag)
+
+    def obs_combobox(self, tag, title, iconfile, soundfn, itemlist, callfn):
+        dialog = dialogs.ComboBox()
         self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
                     tag=tag)
 
