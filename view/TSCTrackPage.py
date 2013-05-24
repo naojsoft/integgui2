@@ -1,6 +1,6 @@
 # 
 #[ Russell Kackley (rkackley@naoj.org) --
-#  Last edit: Mon Mar  4 17:41:30 HST 2013
+#  Last edit: Thu May 23 16:16:11 HST 2013
 #]
 
 import os, glob
@@ -46,8 +46,8 @@ class TSCTrackPage(CodePage.CodePage):
             return lambda : common.controller.playSound(filename)
 
         def _userinput_cb(val, button_vals, d):
+            tscFilename = d[itemlist[0][0]]
             if val == button_vals[1]:
-                tscFilename = d[itemlist[0][0]]
                 # Copy the *.tsc file to the TSC computer.
                 try:
                     tscPath = TSCTrackFile.copyToTSC(self.filepath, tscFilename, self.logger)
@@ -57,7 +57,7 @@ class TSCTrackPage(CodePage.CodePage):
                     return common.view.popup_error("Cannot copy file to TSC: %s" % (
                         str(e)))
             else:
-                self.logger.info('Copy to TSC cancelled: %s to %s' % (self.tscFilePath, d['TSC Filename']))
+                self.logger.info('Copy to TSC cancelled: %s to %s' % (self.filepath, tscFilename))
 
         # Ask the user to confirm it is ok to copy file to TSC. This
         # also gives them the opportunity to change the filename if
