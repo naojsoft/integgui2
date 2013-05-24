@@ -16,6 +16,8 @@ from CodePage import *
 from DirectoryPage import *
 from QueuePage import *
 from InfPage import *
+from EphemPage import *
+from TSCTrackPage import *
 from HandsetPage import *
 from TerminalPage import *
 from FrameInfoPage import *

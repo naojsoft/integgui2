@@ -502,4 +502,60 @@ class Timer(Confirmation):
         
             self.close(self.w)
             
+class ComboBox(Confirmation):
+
+    def __init__(self, title='OBS ComboBox', logger=None, soundfn=None):
+        super(ComboBox, self).__init__(title=title, logger=logger,
+                                        soundfn=soundfn)
+        self.selectedValue = None
+
+    def popup(self, title, iconfile, soundfn, itemlist, callfn, tag=None):
+        button_vals = [1, 0]
+        # NOTE: numbers here are INDEXES into self.button_vals, not values!
+        button_list = [['OK', 0], ['Cancel', 1]]
+
+        def callback(w, rsp):
+            if rsp < 0:
+                val = None
+            else:
+                val = rsp
+
+            d = {'selected': self.selectedValue}
+
+            unregister_dialog(self.tag)
+            self.close(w)
+            return callfn(val, button_vals, d)
+
+        self._create_widget(title, iconfile, tuple(button_list),
+                            callback)
+
+        combobox = gtk.combo_box_new_text()
+
+        for item in itemlist:
+            combobox.append_text(item)
+        combobox.connect('changed', self.changed_cb)
+        combobox.set_active(0)
+        self.selectedValue = itemlist[0]
+        if len(itemlist) > 20:
+            combobox.set_wrap_width(int(len(itemlist)/20))
+
+        combobox.show()
+        self.cvbox.pack_start(combobox, fill=True, expand=False, padding=2)
+
+        self.tag = tag
+        register_dialog(tag, self)
+
+        self.w.show()
+        #self.timeraction(soundfn)
+        self.timertask = gobject.timeout_add(self.interval,
+                                             self.timeraction,
+                                             soundfn)
+
+    def changed_cb(self, combobox):
+        model = combobox.get_model()
+        index = combobox.get_active()
+        if index:
+            self.selectedValue = model[index][0]
+        return
+
 #END

@@ -169,6 +169,14 @@ class DirectoryPage(LogPage.NotePage):
             common.view.gui_do(common.view.load_inf, path)
             return True
         
+        if keyname == 'f':
+            common.view.gui_do(common.view.load_ephem, path)
+            return True
+        
+        if keyname == 't':
+            common.view.gui_do(common.view.load_tscTrack, path)
+            return True
+        
         if keyname == 'Return':
             if os.path.isdir(path):
                 self.load(path, self.pattern)

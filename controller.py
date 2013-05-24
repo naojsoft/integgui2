@@ -888,7 +888,7 @@ class IntegController(object):
                                      msg="User cancelled dialog!",
                                      complete=time.time())
             else:
-                self.monitor.setvals(['g2task'], tag, status=0,
+                self.monitor.setvals(['g2task'], tag, status=idx+1,
                                      msg="OK", values=resDict,
                                      complete=time.time())
 
@@ -903,6 +903,27 @@ class IntegController(object):
             raise Exception("failed to start userinput dialog: %s" % (str(e)))
     
 
+    def obs_combobox(self, tag, title, iconfile, soundfile, itemlist):
+        def callback(idx, vallist, resDict):
+            if idx == None:
+                self.monitor.setvals(['g2task'], tag, status=-1,
+                                     msg="User cancelled dialog!",
+                                     complete=time.time())
+            else:
+                self.monitor.setvals(['g2task'], tag, status=idx+1,
+                                     msg="OK", values=resDict,
+                                     complete=time.time())
+
+        soundfn = self._soundfn(soundfile)
+        try:
+            self.gui.obs_combobox(tag, title, iconfile, soundfn, itemlist,
+                                  callback)
+
+            return ro.OK
+    
+        except Exception, e:
+            raise Exception("failed to start combobox dialog: %s" % (str(e)))
+
     def obs_play_sound_file(self, tag, soundfile):
         try:
             self.playSound(soundfile)
@@ -916,4 +937,8 @@ class IntegController(object):
         # dummy argument for Tajitsu-san's C code
         return self.gui.get_ope_paths()
 
+    def load_page(self, filename):
+        self.logger.info('filename to load is %s' % filename)
+        self.gui.load_file(filename)
+        return 0
 #END
