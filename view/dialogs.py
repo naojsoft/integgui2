@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Apr 16 11:27:35 HST 2011
+#  Last edit: Fri Jun  7 18:49:54 HST 2013
 #]
 import time
 import threading
@@ -145,7 +145,10 @@ class SearchReplace(object):
     def _create_widget(self, buttons, callback):
         global dialog_count
         
-        if not common.view.embed_dialogs:
+        settings = common.view.get_settings()
+        embed_dialogs = settings.get('embed_dialogs', False)
+
+        if not embed_dialogs:
             self.w = MyDialog(title=self.title,
                               flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                               buttons=buttons,
@@ -254,7 +257,10 @@ class Confirmation(object):
     def _create_widget(self, title, iconfile, buttons, callback):
         global dialog_count
         
-        if not common.view.embed_dialogs:
+        settings = common.view.get_settings()
+        embed_dialogs = settings.get('embed_dialogs', False)
+
+        if not embed_dialogs:
             ## self.w = gtk.Dialog(title=self.title,
             ##                     flags=gtk.DIALOG_DESTROY_WITH_PARENT,
             ##                     buttons=buttons)

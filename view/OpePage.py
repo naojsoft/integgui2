@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Dec  1 17:22:51 HST 2011
+#  Last edit: Fri Jun  7 21:29:09 HST 2013
 #]
 import sys, traceback
 
@@ -12,6 +12,9 @@ import Page, CodePage
 import CommandObject
 
 import SOSS.parse.ope as ope
+
+thisDir = os.path.split(sys.modules[__name__].__file__)[0]
+icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
 
 warning_close = """
 WARNING:        
@@ -65,6 +68,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.varDict = {}
 
+        settings = common.view.get_settings()
+        wrap_lines = settings.get('wrap_lines', False)
+        if wrap_lines:
+            self.line_wrapping('full')
+
+        number_lines = settings.get('show_line_numbers', False)
+        self.line_numbering(number_lines)
+        
         # this is for variable definition popups
         self.tw.set_property("has-tooltip", True)
         self.tw.connect("query-tooltip", self.query_vardef)
@@ -75,14 +86,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.set_insert_spaces_instead_of_tabs(True)
 
         # add marker pixbufs
-        # TODO: maybe design a custom pixmap and put it in the Gen2 area
-        DATADIR = '/usr/share'
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
-                                                           'pixmaps/apple-green.png'))
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
+                                                           'apple-green.png'))
         if pixbuf:
             self.tw.set_mark_category_pixbuf('executing', pixbuf)
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(DATADIR,
-                                                           'pixmaps/apple-red.png'))
+        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
+                                                           'apple-red.png'))
         if pixbuf:
             self.tw.set_mark_category_pixbuf('error', pixbuf)
 
@@ -169,13 +178,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         menu = self.add_pulldownmenu("Options")
 
         item = gtk.CheckMenuItem("Wrap lines")
-        item.set_active(False)
+        item.set_active(wrap_lines)
         menu.append(item)
         item.connect("activate", self.toggle_line_wrapping)
         item.show()
 
         item = gtk.CheckMenuItem("Show line numbers")
-        item.set_active(False)
+        item.set_active(number_lines)
         menu.append(item)
         item.connect("activate", self.toggle_line_numbering)
         item.show()
@@ -824,6 +833,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Get length of queued items, if any
         queue = common.controller.queue[self.queueName]
         num_queued = len(queue)
+
+        settings = common.view.get_settings()
+        suppress_confirm_exec = settings.get('suppress_confirm_exec', True)
         
         if not self.buf.get_has_selection():
             # No selection.  See if there are previously queued commands
@@ -839,7 +851,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                                                 tm_queueName=self.tm_queueName)
                 #------------------
         
-                if common.view.suppress_confirm_exec:
+                if suppress_confirm_exec:
                     _execute_1('yes')
                 else:
                     common.view.popup_confirm("Confirm execute",
@@ -884,7 +896,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         # <== There is a selection
         if num_queued > 0:
-            if common.view.suppress_confirm_exec:
+            if suppress_confirm_exec:
                 #_execute_2(None, 1)
                 _execute_2(None, 4)
             else:
