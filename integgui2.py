@@ -137,6 +137,8 @@ def main(options, args):
                                              'obs_confirmation',
                                              'obs_userinput',
                                              'obs_combobox',
+                                             'obs_fileselection',
+                                             'obs_copyfilestotsc',
                                              'load_page',
                                              'sound_check'],
                                 port=options.port,

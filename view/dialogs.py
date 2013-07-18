@@ -118,6 +118,58 @@ class FileSelection(object):
         self.filew.destroy()
         self.filew = None
 
+class MultFileSelection(FileSelection):
+    def __init__(self, action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=None):
+        super(MultFileSelection, self).__init__(action=action)
+        self.buttons = buttons
+
+    def file_ok_sel(self, w, rsp):
+        # rsp == 0 => User pressed "Cancel"
+        # rsp == 1 => User pressed "Open" or "Save"
+        if rsp < 0:
+            val = None
+        else:
+            val = rsp
+
+        if w.get_select_multiple():
+            filepath = w.get_filenames()
+        else:
+            filepath = w.get_filename()
+        self.close(w)
+
+        return self.callfn(val, filepath)
+
+    def _create_widget(self, action):
+        # Create a new file selection widget
+        self.filew = gtk.FileChooserDialog(title="Select file(s)",
+                                           action=action)
+        # See NOTE [1]
+        if self.buttons:
+            for button in self.buttons:
+                button_text, response_id = button
+                self.filew.add_buttons(button_text, response_id)
+        else:
+            if action == gtk.FILE_CHOOSER_ACTION_SAVE:
+                self.filew.add_buttons(gtk.STOCK_SAVE, 1, gtk.STOCK_CANCEL, 0)
+            else:
+                self.filew.add_buttons(gtk.STOCK_OPEN, 1, gtk.STOCK_CANCEL, 0)
+        self.filew.set_default_response(1)
+
+        # Connect the ok_button to file_ok_sel method
+        self.filew.connect("response", self.file_ok_sel)
+
+    def popup(self, title, callfn, initialdir=None,
+              initialfile=None, multiple=True):
+        super(MultFileSelection, self).popup(title, callfn, initialdir=initialdir,
+                                             filename=initialfile)
+
+        if initialfile:
+            if self.action == gtk.FILE_CHOOSER_ACTION_OPEN:
+                self.filew.set_filename(initialfile)
+            elif self.action == gtk.FILE_CHOOSER_ACTION_SAVE:
+                self.filew.set_current_name(initialfile)
+
+        self.filew.set_select_multiple(multiple)
 
 class MyDialog(gtk.Dialog):
     def __init__(self, title=None, flags=None, buttons=None,
@@ -357,7 +409,6 @@ class Confirmation(object):
         else:
             self.timertask = None
 
-      
 class UserInput(Confirmation):
 
     def __init__(self, title='OBS UserInput', logger=None, soundfn=None):
