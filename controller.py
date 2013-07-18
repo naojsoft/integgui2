@@ -615,7 +615,8 @@ class IntegController(object):
         if not cmd_str:
             return
 
-        if not self.gui.audible_errors:
+        settings = self.gui.get_settings()
+        if not settings.get('audible_errors', True):
             return
 
         cmd_str = cmd_str.lower().strip()

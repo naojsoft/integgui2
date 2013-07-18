@@ -14,7 +14,9 @@ pygtk.require('2.0')
 import gtk, gobject
 
 # SSD/Gen2 imports
+import cfg.g2soss as g2soss
 from ginga.misc import Bunch, Future
+from ginga.misc import Settings
 
 # Local integgui2 imports
 import common
@@ -50,12 +52,20 @@ class IntegView(object):
         self.placeholder = '--notdone--'
         self.gui_thread_id = None
 
-        # Options that can be set graphically
-        self.audible_errors = True
-        self.suppress_confirm_exec = True
-        self.embed_dialogs = False
-        self.clear_obs_info = True
+        self.w = Bunch.Bunch()
 
+        basedir = os.path.join(g2soss.confhome, 'integgui2')
+        self.prefs = Settings.Preferences(basefolder=basedir,
+                                          logger=self.logger)
+        self.settings = self.prefs.createCategory('default')
+        self.settings.setDefaults(
+            audible_errors = True,
+            suppress_confirm_exec = True,
+            embed_dialogs = False,
+            wrap_lines = False,
+            show_line_numbers = False,
+            clear_obs_info = True)
+        
         # This is the home directory for loading all kinds of files
         self.procdir = None
         # This is the list of directories to search for include
@@ -66,9 +76,6 @@ class IntegView(object):
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
         self.set_procdir(procdir, 'SUKA')
         
-        # Create the GUI
-        self.w = Bunch.Bunch()
-
         # hack required to use threads with GTK
         gobject.threads_init()
         gtk.gdk.threads_init()
@@ -111,7 +118,9 @@ class IntegView(object):
 
         # Populate "Observation Journal" ws
         self.add_frameinfo(self.ojws)
+        self.add_options(self.ojws)
         #self.ojws.addpage('statmon', "StatMon", StatMonPage)
+        self.ojws.select('frames')
 
         # Populate "Lower Middle" ws
         self.handsets = self.lmws.addpage('handset', "Handset",
@@ -171,6 +180,9 @@ class IntegView(object):
         else:
             self.__dict__[key] = False
 
+    def get_settings(self):
+        return self.settings
+    
     def set_procdir(self, path, inst):
         topprocdir = common.topprocdir
         inst = inst.upper()
@@ -226,33 +238,6 @@ class IntegView(object):
         filemenu.append(quit_item)
         quit_item.connect_object ("activate", self.quit, "file.exit")
         quit_item.show()
-
-        # create an Option pulldown menu, and add it to the menu bar
-        optionmenu = gtk.Menu()
-        option_item = gtk.MenuItem(label="Option")
-        menubar.append(option_item)
-        option_item.show()
-        option_item.set_submenu(optionmenu)
-
-        w = gtk.CheckMenuItem("Audible Errors")
-        w.set_active(self.audible_errors)
-        optionmenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'audible_errors'))
-
-        w = gtk.CheckMenuItem("Suppress 'Confirm Execute' popups")
-        w.set_active(self.suppress_confirm_exec)
-        optionmenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'suppress_confirm_exec'))
-
-        w = gtk.CheckMenuItem("Embed dialogs")
-        w.set_active(self.embed_dialogs)
-        optionmenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'embed_dialogs'))
-
-        w = gtk.CheckMenuItem(label="Clear info on Config")
-        w.set_active(self.clear_obs_info)
-        optionmenu.append(w)
-        w.connect("activate", lambda w: self.toggle_var(w, 'clear_obs_info'))
 
         # create a Queue pulldown menu, and add it to the menu bar
         queuemenu = gtk.Menu()
@@ -995,6 +980,18 @@ class IntegView(object):
                     str(e)))
             return None
         
+    def add_options(self, workspace):
+        try:
+            page = workspace.addpage('options', "Options", OptionsPage)
+
+            workspace.select(page.name)
+            return page
+
+        except Exception, e:
+            self.popup_error("Cannot load options page: %s" % (
+                    str(e)))
+            return None
+        
     def add_obsinfo(self, workspace):
         try:
             page = workspace.addpage('obsinfo', "Obsinfo", ObsInfoPage)
@@ -1110,7 +1107,7 @@ class IntegView(object):
         self.close_handsets()
         self.close_launchers()
 
-        if self.clear_obs_info:
+        if self.settings.get('clear_obs_info', True):
             self.clear_observation()
 
         try:
