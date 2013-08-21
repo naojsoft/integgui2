@@ -1,7 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar 28 14:17:14 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org)
+#
 import os.path
 import string
 
@@ -36,7 +35,9 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         acceptchars = set(string.printable)
         self.deletechars = ''.join(set(string.maketrans('', '')) -
                                    acceptchars)
-        self.transtbl = string.maketrans('\r', '\n')
+        #self.transtbl = string.maketrans('\r', '\n') 
+        self.transtbl = string.maketrans('\r', ' ')
+
 
         self.border = gtk.Frame("")
         self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
@@ -133,7 +134,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         # "cleanse" text--change CR to NL, delete unprintable chars
         # TODO: what about unicode?
         buftxt = buftxt.translate(self.transtbl, self.deletechars)
-        # translate tabs
+        # translate tabs to 8 spaces
         buftxt = buftxt.replace('\t', '        ')
 
         self.buf.begin_not_undoable_action()
@@ -179,12 +180,13 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         #self.buf.set_modified(False)
 
+        #self._do_save()
+
         
     def reload(self):
         try:
-            in_f = open(self.filepath, 'r')
-            buf = in_f.read()
-            in_f.close()
+            with open(self.filepath, 'r') as in_f:
+                buf = in_f.read()
         except IOError, e:
             # ? raise exception instead ?
             return common.view.popup_error("Cannot read '%s': %s" % (
@@ -200,9 +202,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             buf = self.buf.get_text(start, end)
 
             try:
-                out_f = open(self.filepath, 'w')
-                out_f.write(buf)
-                out_f.close()
+                with open(self.filepath, 'w') as out_f:
+                    out_f.write(buf)
                 #self.statusMsg("%s saved." % self.filepath)
             except IOError, e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
