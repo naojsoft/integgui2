@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan 11 19:24:44 HST 2012
+#  Last edit: Thu Aug  1 14:06:05 HST 2013
 #]
 
 # Standard library imports
@@ -45,8 +45,8 @@ def main(options, args):
     pub_channels = ['g2task']
 
     # Create a local monitor
-    mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
-    #mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
+    #mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
+    mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
 
     threadPool = mymon.get_threadPool()
         

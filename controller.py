@@ -387,52 +387,52 @@ class IntegController(object):
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
 
-    ## def awaitTask(self, tag, timeout=None):
+    def awaitTask(self, tag, timeout=None):
 
-    ##     # If task submission was successful, then watch the monitor for
-    ##     # the result.
-    ##     try:
-    ##         d = self.monitor.getitem_any(['%s.task_end' % tag],
-    ##                                      timeout=timeout)
+        # If task submission was successful, then watch the monitor for
+        # the result.
+        try:
+            d = self.monitor.getitem_any(['%s.task_end' % tag],
+                                         timeout=timeout)
 
-    ##     except Monitor.TimeoutError, e:
-    ##         self.logger.error(str(e))
-    ##         return 2
-        
-    ##     # Task terminated.  Get all items currently associated with this
-    ##     # transaction.
-    ##     vals = self.monitor.getitems_suffixOnly(tag)
-    ##     if type(vals) != dict:
-    ##         self.logger.error("Could not get task transaction info")
-    ##         return ro.ERROR
+        except Monitor.TimeoutError, e:
+            self.logger.error(str(e))
+            return 2
 
-    ##     # This produces voluminous output for large sk files and is not helpful
-    ##     #self.logger.debug("task transaction info: %s" % str(vals))
+        # Task terminated.  Get all items currently associated with this
+        # transaction.
+        vals = self.monitor.getitems_suffixOnly(tag)
+        if type(vals) != dict:
+            self.logger.error("Could not get task transaction info")
+            return ro.ERROR
 
-    ##     # Interpret task results:
-    ##     #   task_code == 0 --> OK   task_code != 0 --> ERROR
-    ##     #res = vals.get('task_code', 1)
-    ##     if vals.has_key('task_code'):
-    ##         res = vals['task_code']
-    ##     else:
-    ##         logger.error("Task has no task result code; assuming error")
-    ##         res = ro.ERROR
+        # This produces voluminous output for large sk files and is not helpful
+        #self.logger.debug("task transaction info: %s" % str(vals))
 
-    ##     if not isinstance(res, int):
-    ##         logger.error("Task result code (%s) not int; assuming error" % (
-    ##             res))
-    ##         res = ro.ERROR
+        # Interpret task results:
+        #   task_code == 0 --> OK   task_code != 0 --> ERROR
+        #res = vals.get('task_code', 1)
+        if vals.has_key('task_code'):
+            res = vals['task_code']
+        else:
+            logger.error("Task has no task result code; assuming error")
+            res = ro.ERROR
 
-    ##     if res == 0:
-    ##         self.logger.info("task terminated successfully")
-    ##         return ro.OK
-    ##     else:
-    ##         # Check for a diagnostic message
-    ##         msg = vals.get('task_error',
-    ##                        "[No diagnostic message available]")
-    ##         # This is reported elsewhere?
-    ##         self.logger.info("task terminated with error: %s" % msg)
-    ##         return res
+        if not isinstance(res, int):
+            logger.error("Task result code (%s) not int; assuming error" % (
+                res))
+            res = ro.ERROR
+
+        if res == 0:
+            self.logger.info("task terminated successfully")
+            return ro.OK
+        else:
+            # Check for a diagnostic message
+            msg = vals.get('task_error',
+                           "[No diagnostic message available]")
+            # This is reported elsewhere?
+            self.logger.info("task terminated with error: %s" % msg)
+            return res
 
     def update_integgui(self, statusDict):
         d = {}
@@ -508,6 +508,9 @@ class IntegController(object):
             self.update_integgui(statusDict)
 
         elif vals.has_key('ready'):
+            # Release any threads stuck in awaitTask
+            self.monitor.releaseAll(has_value=True)
+            
             self.gui.update_statusMsg("TaskManager is ready.")
 
             self.playSound(common.sound.tm_ready, priority=22)
@@ -749,10 +752,10 @@ class IntegController(object):
                 executingP.set()
                 time_start = time.time()
 
-                res = self.tm.execTask(tm_queueName, cmdstr, '')
-                ## tag = self.tm.execTaskNoWait(tm_queueName, cmdstr)
-                ## self.logger.debug("Task submitted tag=%s" % tag)
-                ## res = self.awaitTask(tag)
+                #res = self.tm.execTask(tm_queueName, cmdstr, '')
+                tag = self.tm.execTaskNoWait(tm_queueName, cmdstr)
+                self.logger.debug("Task submitted tag=%s" % tag)
+                res = self.awaitTask(tag)
 
                 time_end = time.time()
                 executingP.clear()
