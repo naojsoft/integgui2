@@ -234,6 +234,15 @@ class IntegView(object):
         sep = gtk.SeparatorMenuItem()
         filemenu.append(sep)
         sep.show()
+        item = gtk.MenuItem(label="Sound check")
+        filemenu.append(item)
+        item.connect_object ("activate", lambda w: self.sound_check(),
+                             "file.Sound check")
+        item.show()
+
+        sep = gtk.SeparatorMenuItem()
+        filemenu.append(sep)
+        sep.show()
         quit_item = gtk.MenuItem(label="Exit")
         filemenu.append(quit_item)
         quit_item.connect_object ("activate", self.quit, "file.exit")
@@ -1132,6 +1141,8 @@ class IntegView(object):
         # Fix!
         #common.controller.fits.clear()
 
+    def sound_check(self):
+        common.controller.sound_check()
 
     def get_handset_paths(self, insname, handsetpfx):
         insname = insname.upper()

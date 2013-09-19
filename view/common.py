@@ -129,6 +129,7 @@ sound = Bunch.Bunch(#success_executer='doorbell.au',
                     close_panel='ogg/ocs/beep-05.ogg',
                     pause_toggle='ogg/ocs/beep-05.ogg',
                     bad_keystroke='ogg/ocs/beep-07.ogg',
+                    sound_check='ogg/ocs/IntegGUI2SoundCheckOK.ogg',
                     )
 
 # YUK...MODULE-LEVEL GLOBAL VARIABLES
