@@ -945,4 +945,20 @@ class IntegController(object):
         self.logger.info('filename to load is %s' % filename)
         self.gui.load_file(filename)
         return 0
+
+    def sound_check(self):
+        def do_sound_check():
+            # First, play a sound in IntegGUI2 itself.
+            self.obs_play_sound_file('tag', common.sound.sound_check)
+            # Now, try to play a sound in the alarm_handler. Report an
+            # error if there is a problem.
+            try:
+                self.alarm_handler_proxy = ro.remoteObjectProxy('alarm_handler')
+                self.alarm_handler_proxy.soundCheck()
+            except Exception as e:
+                self.logger.error('Unable to connect to alarm_handler %s' % str(e))
+
+        t = Task.FuncTask2(do_sound_check)
+        t.init_and_start(self)
+        return 0
 #END

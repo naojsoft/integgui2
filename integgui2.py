@@ -137,7 +137,8 @@ def main(options, args):
                                              'obs_confirmation',
                                              'obs_userinput',
                                              'obs_combobox',
-                                             'load_page'],
+                                             'load_page',
+                                             'sound_check'],
                                 port=options.port,
                                 ev_quit=ev_quit,
                                 usethread=True, threadPool=threadPool)
