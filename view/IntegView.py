@@ -203,6 +203,7 @@ class IntegView(object):
             os.path.join(topprocdir, inst, 'COMMON'),
             os.path.join(topprocdir, 'COMMON'),
             ]
+        self.logger.info("include_dirs: %s" % str(self.include_dirs))
         
     def add_menus(self, menubar):
 
