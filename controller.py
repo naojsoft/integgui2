@@ -635,8 +635,8 @@ class IntegController(object):
 
 
     def playSound(self, soundfile, priority=20):
-        soundpath = os.path.join(g2soss.producthome,
-                                 'file/Sounds', soundfile)
+        soundpath = os.path.join(g2soss.confhome,
+                                 'Sounds', soundfile)
         if os.path.exists(soundpath):
             self.soundsink.playFile(soundpath, priority=priority)
             
