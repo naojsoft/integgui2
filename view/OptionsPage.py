@@ -60,7 +60,6 @@ class OptionsPage(Page.ButtonPage):
                            ("Embed dialogs", 'embed_dialogs'),
                            ("Wrap Lines in OPE Pages", 'wrap_lines'),
                            ("Number Lines in OPE Pages", 'show_line_numbers'),
-                           ("Embed dialogs", 'embed_dialogs'),
                            ("Clear info on Config", 'clear_obs_info')):
             w = gtk.CheckButton(title)
             self.w[key] = w
