@@ -635,8 +635,8 @@ class IntegController(object):
 
 
     def playSound(self, soundfile, priority=20):
-        soundpath = os.path.join(g2soss.producthome,
-                                 'file/Sounds', soundfile)
+        soundpath = os.path.join(g2soss.confhome,
+                                 'Sounds', soundfile)
         if os.path.exists(soundpath):
             self.soundsink.playFile(soundpath, priority=priority)
             
@@ -927,6 +927,47 @@ class IntegController(object):
     
         except Exception, e:
             raise Exception("failed to start combobox dialog: %s" % (str(e)))
+
+    def obs_fileselection(self, tag, title, initialdir=None,
+                          initialfile=None, multiple=True, button='open'):
+        def callback(rsp, filepath):
+            if rsp == None or rsp == 0:
+                self.monitor.setvals(['g2task'], tag, status=-1,
+                                     msg="User cancelled dialog!", values=None,
+                                     complete=time.time())
+            else:
+                self.monitor.setvals(['g2task'], tag, status=0,
+                                     msg="OK", values=filepath,
+                                     complete=time.time())
+
+        try:
+            self.gui.obs_fileselection(tag, title, callback, initialdir,
+                                       initialfile, multiple, button)
+
+            return ro.OK
+
+        except Exception, e:
+            raise Exception("failed to start fileselection: %s" % (str(e)))
+
+    def obs_copyfilestotsc(self, tag, fileSelectionPath, checkFormat=True, copyMode='manual'):
+        def callback(status, statusMsg, results):
+            self.logger.info('controller obs_copyfiletotsc callback called with status %s' % status)
+            self.logger.info('controller obs_copyfiletotsc callback called with statusMsg %s' % statusMsg)
+            self.logger.info('controller obs_copyfiletotsc callback called with results %s' % results)
+            if status == 0:
+                msg = 'OK'
+            else:
+                msg = 'Error'
+            self.monitor.setvals(['g2task'], tag, status=status,
+                                 msg=msg, statusMsg=statusMsg,
+                                 results=results,
+                                 complete=time.time())
+
+        try:
+            self.gui.obs_copyfilestotsc(tag, 'CopyTSCTrackFile', callback, fileSelectionPath, checkFormat, copyMode)
+            return ro.OK
+        except Exception, e:
+            raise Exception("Exception in obs_copyfiletotsc: %s" % (str(e)))
 
     def obs_play_sound_file(self, tag, soundfile):
         try:
