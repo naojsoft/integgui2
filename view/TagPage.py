@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Nov  5 10:10:10 HST 2010
+#  Last edit: Mon Jan 13 15:03:12 HST 2014
 #]
 
 import gtk
@@ -49,9 +49,10 @@ class TagPage(LogPage.NotePage):
     def jump_tag(self, w, evt):
         widget = self.tw
         try:
+            x, y = int(evt.x), int(evt.y)
             tup = widget.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
-                                                 evt.x, evt.y)
-            #print tup
+                                                 x, y)
+            self.logger.debug("coords are: %s" % (str(tup)))
             buf_x1, buf_y1 = tup
         except Exception, e:
             self.logger.error("Error converting coordinates to line: %s" % (
