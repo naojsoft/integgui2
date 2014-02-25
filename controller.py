@@ -392,6 +392,7 @@ class IntegController(object):
         # If task submission was successful, then watch the monitor for
         # the result.
         try:
+            self.logger.info("Waiting for task_end: %s" % tag)
             d = self.monitor.getitem_any(['%s.task_end' % tag],
                                          timeout=timeout)
 
@@ -399,6 +400,8 @@ class IntegController(object):
             self.logger.error(str(e))
             return 2
 
+        self.logger.info("Released: %s" % tag)
+        
         # Task terminated.  Get all items currently associated with this
         # transaction.
         vals = self.monitor.getitems_suffixOnly(tag)
@@ -680,6 +683,11 @@ class IntegController(object):
         self.playSound(soundfile, priority=22)
 
 
+    def reset_executer(self):
+        self.logger.info("Releasing all waiters!")
+        self.monitor.releaseAll(has_value=True)
+        self.executingP.clear()
+        
     def log_history(self, cmdstr, time_start, time_end, tm_queueName,
                     result):
         elapsed = time_end - time_start
@@ -756,6 +764,7 @@ class IntegController(object):
                 tag = self.tm.execTaskNoWait(tm_queueName, cmdstr)
                 self.logger.debug("Task submitted tag=%s" % tag)
                 res = self.awaitTask(tag)
+                self.logger.debug("Awakened from task wait")
 
                 time_end = time.time()
                 executingP.clear()

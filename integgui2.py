@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Aug  1 14:06:05 HST 2013
+#  Last edit: Thu Feb  6 13:38:35 HST 2014
 #]
 
 # Standard library imports
@@ -62,7 +62,7 @@ def main(options, args):
     gui = igview.IntegView(logger, ev_quit, queues, logtype=logtype)
 
     # Create network callable object for notifications
-    notify_obj = fits.IntegGUINotify(gui, options.fitsdir)
+    notify_obj = fits.HSC_IntegGUINotify(gui, options.fitsdir)
     notify_obj.update_framelist()
 
     # For playing sounds

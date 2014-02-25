@@ -228,17 +228,7 @@ class IntegView(object):
         
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.reconfig(),
-                             "file.Config from session")
-        item.show()
-
-        sep = gtk.SeparatorMenuItem()
-        filemenu.append(sep)
-        sep.show()
-        item = gtk.MenuItem(label="Sound check")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.sound_check(),
-                             "file.Sound check")
+        item.connect("activate", lambda w: self.reconfig())
         item.show()
 
         sep = gtk.SeparatorMenuItem()
@@ -246,7 +236,7 @@ class IntegView(object):
         sep.show()
         quit_item = gtk.MenuItem(label="Exit")
         filemenu.append(quit_item)
-        quit_item.connect_object ("activate", self.quit, "file.exit")
+        quit_item.connect("activate", self.quit)
         quit_item.show()
 
         # create a Queue pulldown menu, and add it to the menu bar
@@ -260,6 +250,28 @@ class IntegView(object):
         queuemenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(self.queuepage),
                              "queue.Create queue")
+        item.show()
+
+        # create a Misc pulldown menu, and add it to the menu bar
+        miscmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Misc")
+        menubar.append(item)
+        item.show()
+        item.set_submenu(miscmenu)
+
+        item = gtk.MenuItem(label="Sound check")
+        miscmenu.append(item)
+        item.connect("activate", lambda w: common.controller.sound_check())
+        item.show()
+
+        sep = gtk.SeparatorMenuItem()
+        miscmenu.append(sep)
+        sep.show()
+
+        item = gtk.MenuItem(label="Reset Executer")
+        miscmenu.append(item)
+        item.connect("activate",
+                     lambda w: common.controller.reset_executer())
         item.show()
 
 
@@ -1146,9 +1158,6 @@ class IntegView(object):
         # Fix!
         #common.controller.fits.clear()
 
-    def sound_check(self):
-        common.controller.sound_check()
-
     def get_handset_paths(self, insname, handsetpfx):
         insname = insname.upper()
         filename = '%s*.yml' % handsetpfx
@@ -1371,6 +1380,11 @@ class IntegView(object):
     def update_frames(self, framelist):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frames, framelist)
+
+    # TODO: get rid of this
+    def set_format(self, header, format_str):
+        if hasattr(self, 'framepage'):
+            self.gui_do(self.framepage.set_format, header, format_str)
 
     def update_obsinfo(self, infodict):
         self.logger.debug("OBSINFO=%s" % str(infodict))
