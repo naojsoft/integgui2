@@ -228,17 +228,7 @@ class IntegView(object):
         
         item = gtk.MenuItem(label="Config from session")
         filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.reconfig(),
-                             "file.Config from session")
-        item.show()
-
-        sep = gtk.SeparatorMenuItem()
-        filemenu.append(sep)
-        sep.show()
-        item = gtk.MenuItem(label="Sound check")
-        filemenu.append(item)
-        item.connect_object ("activate", lambda w: self.sound_check(),
-                             "file.Sound check")
+        item.connect("activate", lambda w: self.reconfig())
         item.show()
 
         sep = gtk.SeparatorMenuItem()
@@ -246,7 +236,7 @@ class IntegView(object):
         sep.show()
         quit_item = gtk.MenuItem(label="Exit")
         filemenu.append(quit_item)
-        quit_item.connect_object ("activate", self.quit, "file.exit")
+        quit_item.connect("activate", self.quit)
         quit_item.show()
 
         # create a Queue pulldown menu, and add it to the menu bar
@@ -260,6 +250,28 @@ class IntegView(object):
         queuemenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(self.queuepage),
                              "queue.Create queue")
+        item.show()
+
+        # create a Misc pulldown menu, and add it to the menu bar
+        miscmenu = gtk.Menu()
+        item = gtk.MenuItem(label="Misc")
+        menubar.append(item)
+        item.show()
+        item.set_submenu(miscmenu)
+
+        item = gtk.MenuItem(label="Sound check")
+        miscmenu.append(item)
+        item.connect("activate", lambda w: common.controller.sound_check())
+        item.show()
+
+        sep = gtk.SeparatorMenuItem()
+        miscmenu.append(sep)
+        sep.show()
+
+        item = gtk.MenuItem(label="Reset Executer")
+        miscmenu.append(item)
+        item.connect("activate",
+                     lambda w: common.controller.reset_executer())
         item.show()
 
 
@@ -435,11 +447,9 @@ class IntegView(object):
                              "file.New Workspace")
         item.show()
 
-
     def add_dialogs(self):
         self.filesel = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
         self.filesave = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
-
 
     def add_statusbar(self):
         hbox = gtk.HBox()
@@ -703,7 +713,7 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_ephem(self, workspace):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
+        initialdir = self.procdir
         
         self.filesel.popup("Load eph file",
                            lambda filepath: self.load_generic(workspace,
@@ -712,13 +722,18 @@ class IntegView(object):
                            initialdir=initialdir)
 
     def gui_load_tscTrack(self, workspace):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-        
-        self.filesel.popup("Load TSC Tracking Coordinate file",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              TSCTrackPage),
-                           initialdir=initialdir)
+        initialdir = self.procdir
+        self.tsc_filepath = None
+        def callback(rsp, filepath):
+            if rsp == 1: # OK button
+                copyTSCTrackPage = self.add_tscTrackPage('CopyTSCTrackFile', None, filepath, True)
+                common.controller.ctl_do(copyTSCTrackPage.startCopy)
+            elif rsp == 2:
+                for filepath1 in filepath: # OPEN button (not currently in use)
+                    self.load_generic(workspace, filepath1, TSCTrackPage)
+
+        dialog = dialogs.MultFileSelection(buttons=((gtk.STOCK_COPY, 1), (gtk.STOCK_CANCEL, 0)))
+        dialog.popup('Select File(s):', callback, initialdir)
 
     def gui_load_launcher_source(self, workspace):
         initialdir = os.environ['OBSHOME']
@@ -937,7 +952,8 @@ class IntegView(object):
             self.popup_error("Cannot load history page: %s" % (
                     str(e)))
             return None
-        
+
+
     ## def add_history(self, workspace):
     ##     try:
     ##         page = workspace.addpage('history', "History", TablePage.TablePage)
@@ -1142,9 +1158,6 @@ class IntegView(object):
         # Fix!
         #common.controller.fits.clear()
 
-    def sound_check(self):
-        common.controller.sound_check()
-
     def get_handset_paths(self, insname, handsetpfx):
         insname = insname.upper()
         filename = '%s*.yml' % handsetpfx
@@ -1323,6 +1336,40 @@ class IntegView(object):
         self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
                     tag=tag)
 
+    def obs_fileselection(self, tag, title, callfn, initialdir=None, initialfile=None, multiple=True, button='open'):
+        if button.lower() == 'copy':
+            button = (gtk.STOCK_COPY, 1)
+        elif button.lower() == 'ok':
+            button = (gtk.STOCK_OK, 1)
+        else:
+            button = (gtk.STOCK_OPEN, 1)
+        dialog = dialogs.MultFileSelection(buttons=(button, (gtk.STOCK_CANCEL, 0)))
+        self.gui_do(dialog.popup, title, callfn, initialdir, initialfile, multiple)
+
+    def add_tscTrackPage(self, title, callfn, fileSelectionPath, checkFormat):
+        # See if we already have a page with the specified title. If
+        # so, use it. If not, create one using the CopyTSCTrackPage
+        # class.
+        try:
+            copyTSCTrackPage = self.exws.getPage(title)
+        except KeyError:
+            copyTSCTrackPage = self.exws.addpage(title, title, CopyTSCTrackPage)
+        # Setup the CopyTSCTrackPage object with the list of files and
+        # then select it so the user can see it.
+        copyTSCTrackPage.setup(callfn, fileSelectionPath, True, self.logger)
+        self.exws.select('CopyTSCTrackFile')
+        return copyTSCTrackPage
+
+    def obs_copyfilestotsc(self, tag, title, callfn, fileSelectionPath, checkFormat=True, copyMode='manual'):
+        copyTSCTrackPage = self.add_tscTrackPage(title, callfn, fileSelectionPath, checkFormat)
+        if copyTSCTrackPage.okFileCount < 1:
+            self.logger.error('Did not find any TSC tracking files to copy')
+            if callfn:
+                callfn(copyTSCTrackPage.status, copyTSCTrackPage.statusMsg, [])
+        if copyMode.lower() == 'auto':
+            #copyTSCTrackPage.startCopy()
+            self.gui_do(copyTSCTrackPage.startCopy)
+
     def cancel_dialog(self, tag):
         self.gui_do(dialogs.cancel_dialog, tag)
         
@@ -1333,6 +1380,11 @@ class IntegView(object):
     def update_frames(self, framelist):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frames, framelist)
+
+    # TODO: get rid of this
+    def set_format(self, header, format_str):
+        if hasattr(self, 'framepage'):
+            self.gui_do(self.framepage.set_format, header, format_str)
 
     def update_obsinfo(self, infodict):
         self.logger.debug("OBSINFO=%s" % str(infodict))

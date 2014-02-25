@@ -1,7 +1,6 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jan 20 13:20:34 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org) --
+#
 
 import os, time
 import gtk
@@ -34,6 +33,9 @@ class FrameInfoPage(LogPage.NotePage):
 
         super(FrameInfoPage, self).__init__(frame, name, title)
 
+        self.header = header
+        self.format_str = format_str
+        
         # bottom buttons
         btns = gtk.HButtonBox()
         btns.set_layout(gtk.BUTTONBOX_START)
@@ -67,22 +69,25 @@ class FrameInfoPage(LogPage.NotePage):
 
             self.colortbl[status] = tag
 
+    def set_format(self, header, format_str):
+        self.header = header
+        self.format_str = format_str
 
     def update_frame(self, frameinfo):
-        self.logger.debug("UPDATE FRAME: %s" % str(frameinfo))
+        self.logger.debug("update frame: %s" % str(frameinfo))
 
         frameid = frameinfo.frameid
         with self.lock:
-            text = format_str % frameinfo
+            text = self.format_str % frameinfo
 
             # set tags according to content of message
             try:
                 tags = [ self.colortbl[frameinfo.status] ]
             except Exception, e:
-                print str(e)
+                self.logger.warn("Bad status in frameinfo: %s" % (str(e)))
                 tags = ['normal']
 
-            print tags, frameinfo
+            #print tags, frameinfo
             if hasattr(frameinfo, 'row'):
                 row = frameinfo.row
                 #common.update_line(self.buf, row, text)
@@ -102,7 +107,7 @@ class FrameInfoPage(LogPage.NotePage):
         self.buf.delete(start, end)
         
         # Create header
-        self.append(header+'\n', [])
+        self.append(self.header+'\n', [])
 
         # add frames
         for frameinfo in framelist:
