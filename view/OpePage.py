@@ -1,6 +1,6 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jun  7 21:29:09 HST 2013
+#  Last edit: Wed Mar  5 15:24:04 HST 2014
 #]
 import sys, traceback
 
@@ -51,9 +51,9 @@ Please choose one of the following options:
 
 1) Prepend these commands to the queue along with a breakpoint and execute.
 2) Prepend these commands to the queue, but don't execute.
-2) Append these commands to the queue, but don't execute.
-3) Replace queued commands with these commands and execute.
-4) Cancel this execute request.
+3) Append these commands to the queue, but don't execute.
+4) Replace queued commands with these commands and execute.
+5) Cancel this execute request.
 
 """
 
