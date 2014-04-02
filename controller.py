@@ -302,7 +302,7 @@ class IntegController(object):
             self.gui.gui_do(self.gui.load_fits, fitspath)
 
 
-    def _session_config(self, info):
+    def _update_obsinfo(self, info):
         self.logger.debug("info=%s" % str(info))
 
         # Get propid info
@@ -316,6 +316,15 @@ class IntegController(object):
                                                                          observers))
                                  })
 
+    def _session_config(self, info):
+        self.logger.debug("info=%s" % str(info))
+
+        # Update the ObsInfo window
+        self._update_obsinfo(info)
+
+        # Update the instrument
+        inst = info.get('mainInst', 'N/A')
+        inst = inst.upper()
         self.set_instrument(inst)
 
         # Get allocs
@@ -328,6 +337,7 @@ class IntegController(object):
 
         # List of inst codes we should pay attention to
         self.inscodes = map(self.insconfig.getCodeByName, allocs_lst)
+        propid = info.get('propid', 'xxxxx')
         self.propid = propid
         
         # Load up appropriate launchers and handsets
@@ -609,7 +619,7 @@ class IntegController(object):
         if bnch.path == ('mon.session.%s' % self.sessionName):
             
             info = bnch.value
-            #self._session_config(info)
+            self._update_obsinfo(info)
                 
 
     def audible_warn(self, cmd_str, vals):
