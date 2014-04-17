@@ -18,6 +18,9 @@ import Bunch
 from cfg.INS import INSdata
 import cfg.g2soss as g2soss
 
+# For getting instrument info
+inscfg = INSdata()
+
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
 regex_frameid = re.compile('^(\w{3})([AQ])(\d{8})$')
@@ -35,21 +38,27 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
               ]
 
-opefile_host = 'ana.sum.subaru.nao.ac.jp'
-
-
 valid_monlogs = set(['taskmgr0', 'TSC', 'status', 
                      'sessions', 'frames',
                      'STARS', 'archiver', 'gen2base',
-                     'integgui2', 'fitsview', 'fitsview1',
+                     'integgui2', 'fitsview', 'guideview',
                      ])
 # add active instrument names
-valid_monlogs.update(INSdata().getNames())
+valid_monlogs.update(inscfg.getNames())
+
+# remove g2cam instruments, for which there is no instrument log anymore
+# (their log is in taskmgr0)
+for code in inscfg.getCodes():
+    info = inscfg.getOBCPInfoByCode(code)
+    iface = info.get('interface', ('unknown', 1.0))
+    if iface[0] == 'g2cam':
+        name = inscfg.getNameByCode(code)
+        valid_monlogs.remove(name)
 
 typical_monlogs = set(['taskmgr0', 'TSC', 'status', 'integgui2',
                        'archiver'
                        ])
-typical_monlogs.update(INSdata().getNames())
+typical_monlogs.update(inscfg.getNames())
 
 
 class ControllerError(Exception):
