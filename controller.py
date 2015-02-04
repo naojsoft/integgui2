@@ -1010,9 +1010,22 @@ class IntegController(object):
         # dummy argument for Tajitsu-san's C code
         return self.gui.get_ope_paths()
 
-    def load_page(self, filename):
-        self.logger.info('filename to load is %s' % filename)
-        self.gui.load_file(filename)
+    ## def load_page(self, filepath):
+    ##     self.gui.load_file(filepath)
+    ##     return 0
+
+    def load_page(self, filepath):
+        self.logger.info("filepath to load is %s" % (filepath))
+        dirname, filename = os.path.split(filepath)
+
+        res = self.gui.ds.getPages(filename)
+        if len(res) == 0:
+            # page is not open yet
+            self.gui.load_file(filepath)
+        else:
+            self.logger.debug("page exists, reloading...")
+            ws, page = res[0]
+            self.gui.gui_do(page.reload)
         return 0
 
     def sound_check(self):
