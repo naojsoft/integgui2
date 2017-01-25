@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 
@@ -17,13 +17,13 @@ import remoteObjects.Monitor as Monitor
 import Bunch
 from cfg.INS import INSdata
 import cfg.g2soss as g2soss
+from astro.frame import Frame as AstroFrame
 
 # For getting instrument info
 inscfg = INSdata()
 
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
-regex_frameid = re.compile('^(\w{3})([AQ])(\d{8})$')
 
 # Regex used to discover/parse log info
 regex_log = re.compile(r'^mon\.log\.(\w+)$')
@@ -38,7 +38,7 @@ statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
               ]
 
-valid_monlogs = set(['taskmgr0', 'TSC', 'status', 
+valid_monlogs = set(['taskmgr0', 'TSC', 'status',
                      'sessions', 'frames',
                      'STARS', 'archiver', 'gen2base',
                      'integgui2', 'fitsview', 'guideview',
@@ -71,7 +71,7 @@ class IntegController(object):
     create and start a task to do the work (which will be done on another
     thread).
     """
-    
+
     def __init__(self, logger, ev_quit, monitor, view, queues, fits,
                  soundsink, options, logtype='normal'):
 
@@ -121,7 +121,7 @@ class IntegController(object):
 
 #############
 ###  GUI interface to the controller
-            
+
     def clearQueue(self, queueName):
         queue = self.queue[queueName]
         queue.flush()
@@ -138,7 +138,7 @@ class IntegController(object):
                                self.executingP,
                                common.sound.success_executer,
                                common.sound.failure_executer)
-        
+
             # now the task is spun off into another thread
             # for the task manager interaction
             t.init_and_start(self)
@@ -158,7 +158,7 @@ class IntegController(object):
         try:
             t = Task.FuncTask2(self.exec_one, cmdObj, tm_queueName,
                                sound_success, sound_failure)
-        
+
             # now the task is spun off into another thread
             # for the task manager interaction
             t.init_and_start(self)
@@ -184,7 +184,7 @@ class IntegController(object):
             tags.update(queueObj.get_tags())
 
         return tags
-        
+
 
     def remove_by_tags(self, tags):
         # TODO: may need a lock?
@@ -202,7 +202,7 @@ class IntegController(object):
 
         except Exception, e:
             raise ControllerError(e)
-        
+
 #############
 
     def tm_cancel(self, queueName):
@@ -225,7 +225,7 @@ class IntegController(object):
         def resume():
             self.tm2.resume(queueName)
             #self.gui.gui_do(self.gui.reset_pause)
-            
+
         t = Task.FuncTask2(resume)
         t.init_and_start(self)
 
@@ -237,7 +237,7 @@ class IntegController(object):
             self.bm.restart(self.options.taskmgr)
 
             self.gui.update_statusMsg("Restarting TaskManager.  Please wait...")
-            
+
             # reset visually all command executors
             self.gui.gui_do(self.gui.reset_pause)
 
@@ -250,7 +250,7 @@ class IntegController(object):
     def addQueue(self, queueName, logger):
         if self.queue.has_key(queueName):
             raise ControllerError("Queue already exists: '%s'" % queueName)
-        
+
         queue = CommandQueue.CommandQueue(queueName, logger)
         self.queue[queueName] = queue
         return queue
@@ -264,7 +264,7 @@ class IntegController(object):
             # If no instrument allocated, then just look up a non-existent
             # instrument status messages
             inscode = "NOP"
-    
+
         # Set up default fetch list and dictionary.
         # _statDict_: dictionary whose keys are status variables we need
         # _statvars_: list of (index, key) pairs (index is used by IntegGUI)
@@ -279,7 +279,7 @@ class IntegController(object):
         with self.lock:
             self.statvars = statvars
             self.insname = insname
-            
+
 
     def get_instrument(self):
         return self.insname
@@ -287,7 +287,7 @@ class IntegController(object):
     def get_alloc_instrument(self):
         insname = self.status.fetchOne('FITS.SBR.MAINOBCP')
         return insname
-    
+
     def config_alloc_instrument(self):
         insname = self.get_alloc_instrument()
         self.set_instrument(insname)
@@ -339,7 +339,7 @@ class IntegController(object):
         # Get allocs
         allocs = info.get('allocs', [])
         allocs_lst = []
-    
+
         for name in self.insconfig.getNames(active=True):
             if name in allocs:
                 allocs_lst.append(name)
@@ -348,7 +348,7 @@ class IntegController(object):
         self.inscodes = map(self.insconfig.getCodeByName, allocs_lst)
         propid = info.get('propid', 'xxxxx')
         self.propid = propid
-        
+
         # Load up appropriate launchers and handsets
         #self.gui.close_launchers()
 
@@ -401,7 +401,7 @@ class IntegController(object):
             self.gui.set_procdir(propiddir, inst)
         else:
             self.gui.set_procdir(procdir, inst)
-            
+
 
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
@@ -420,7 +420,7 @@ class IntegController(object):
             return 2
 
         self.logger.info("Released: %s" % tag)
-        
+
         # Task terminated.  Get all items currently associated with this
         # transaction.
         vals = self.monitor.getitems_suffixOnly(tag)
@@ -495,7 +495,7 @@ class IntegController(object):
         # possible SkMonitorPage update on some command status change
         else:
             self.gui.process_task(bnch.path, vals)
-        
+
         if vals.has_key('task_code'):
             res = vals['task_code']
             # Interpret task results:
@@ -532,12 +532,12 @@ class IntegController(object):
         elif vals.has_key('ready'):
             # Release any threads stuck in awaitTask
             self.monitor.releaseAll(has_value=True)
-            
+
             self.gui.update_statusMsg("TaskManager is ready.")
 
             self.playSound(common.sound.tm_ready, priority=22)
-            
-        
+
+
     # this one is called if new log data becomes available
     def arr_loginfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
@@ -559,8 +559,8 @@ class IntegController(object):
             #buf = bnch.value['msgstr']
             #bnch.value['msgstr'] = buf.translate(None, self.deletechars)
             self.gui.update_loginfo(logname, bnch.value)
-            
-        
+
+
     # this one is called if new data becomes available about frames
     def arr_fitsinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
@@ -589,17 +589,22 @@ class IntegController(object):
 
             # check if this is a frame from an instrument that is
             # allocated
-            match = regex_frameid.match(frameid)
-            if match:
-                inscode = match.group(1).upper()
-                if not (inscode in self.inscodes):
+            fr = AstroFrame()
+            try:
+                fr.from_frameid(frameid)
+
+                if not (fr.inscode in self.inscodes):
+                    # not allocated, so ignore it
                     return
+
+            except ValueError as e:
+                return
 
             try:
                 # Get all the saved items under this path to report to
                 # the handler
                 vals = self.monitor.getitems_suffixOnly(bnch.path)
-                
+
                 method(frameid, vals)
                 return
 
@@ -612,7 +617,7 @@ class IntegController(object):
         self.logger.error("No match for path '%s'" % bnch.path)
         return
 
-                
+
     # this one is called if new data becomes available about the session
     def arr_sessinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
@@ -626,10 +631,10 @@ class IntegController(object):
             return
 
         if bnch.path == ('mon.session.%s' % self.sessionName):
-            
+
             info = bnch.value
             self._update_obsinfo(info)
-                
+
 
     def audible_warn(self, cmd_str, vals):
         """Called when we get a failed command and should/could issue an audible
@@ -661,7 +666,7 @@ class IntegController(object):
                                  'Sounds', soundfile)
         if os.path.exists(soundpath):
             self.soundsink.playFile(soundpath, priority=priority)
-            
+
         else:
             self.logger.error("No such audio file: %s" % soundpath)
 
@@ -695,7 +700,7 @@ class IntegController(object):
 
         if soundfile:
             self.playSound(soundfile, priority=18)
-            
+
     def feedback_break(self):
         self.logger.info("-- Break --")
         soundfile = common.sound.break_executer
@@ -706,7 +711,7 @@ class IntegController(object):
         self.logger.info("Releasing all waiters!")
         self.monitor.releaseAll(has_value=True)
         self.executingP.clear()
-        
+
     def log_history(self, cmdstr, time_start, time_end, tm_queueName,
                     result):
         elapsed = time_end - time_start
@@ -726,26 +731,26 @@ class IntegController(object):
         elif result == 'NG':
             #d['icon'] = "face-angry.svg"
             d['icon'] = "error.svg"
-        
+
         self.histidx += 1
         self.gui.update_history(self.histidx, d)
-        
+
 
     def get_sound_failure(self, res, cmdstr, sound_failure):
         if res == 3:
             self.gui.update_statusMsg("Task cancelled!")
             return common.sound.cancel_executer
         return sound_failure
-            
+
     def exec_queue(self, queueObj, tm_queueName, executingP,
                    sound_success, sound_failure):
-        
+
         while len(queueObj) > 0:
             try:
                 # pull an item off the front of the queue
                 cmdObj = queueObj.get()
                 cmdObj.mark_status('normal')
-            
+
             except Exception, e:
                 self.gui.gui_do(self.gui.popup_error, str(e))
                 return
@@ -760,7 +765,7 @@ class IntegController(object):
                 elif cmdstr == '== NOP ==':
                     # comment or other non-command item
                     continue
-                
+
             except Exception, e:
                 # Put object back on the front of the queue
                 queueObj.prepend(cmdObj)
@@ -803,7 +808,7 @@ class IntegController(object):
                 # Interpret failure sonically
                 sound_failure = self.get_sound_failure(res, cmdstr,
                                                        sound_failure)
-                
+
                 self.feedback_error(tm_queueName, cmdstr, cmdObj, res,
                                     str(e), sound_failure, time_start,
                                     time_end)
@@ -820,7 +825,7 @@ class IntegController(object):
         try:
             res = 1
             cmdstr = cmdObj.get_cmdstr()
-        
+
             cmdObj.mark_status('executing')
 
             # Try to execute the command in the TaskManager
@@ -856,7 +861,7 @@ class IntegController(object):
             # Interpret failure sonically
             sound_failure = self.get_sound_failure(res, cmdstr,
                                                    sound_failure)
-            
+
             self.feedback_error(tm_queueName, cmdstr, cmdObj, res,
                                 str(e), sound_failure, time_start, time_end)
 
@@ -864,12 +869,12 @@ class IntegController(object):
     def edit_one(self, cmdObj):
         try:
             cmdstr = cmdObj.get_cmdstr()
-        
+
         except Exception, e:
             common.view.popup_error("Error editing command: %s" % (
                     str(e)))
             return
-                
+
         self.gui.gui_do(self.gui.edit_command, cmdstr)
 
 
@@ -879,7 +884,7 @@ class IntegController(object):
     def obs_timer(self, tag, title, iconfile, soundfile, time_sec):
         def callback(*args):
             pass
-        
+
         soundfn = self._soundfn(soundfile)
         try:
             self.gui.obs_timer(tag, title, iconfile, soundfn, time_sec,
@@ -888,11 +893,11 @@ class IntegController(object):
             self.monitor.setvals(['g2task'], tag, complete=time.time(),
                                  status=0)
             return ro.OK
-    
+
         except Exception, e:
             raise Exception("failed to start timer: %s" % (str(e)))
-            
-    
+
+
     def obs_confirmation(self, tag, title, iconfile, soundfile, btnlist):
         def callback(idx, vallist):
             if idx == None:
@@ -909,10 +914,10 @@ class IntegController(object):
             self.gui.obs_confirmation(tag, title, iconfile, soundfn, btnlist,
                                       callback)
             return ro.OK
-    
+
         except Exception, e:
             raise Exception("failed to start confirmation dialog: %s" % (str(e)))
-    
+
     def obs_userinput(self, tag, title, iconfile, soundfile, itemlist):
         def callback(idx, vallist, resDict):
             if idx == None:
@@ -930,10 +935,10 @@ class IntegController(object):
                                    callback)
 
             return ro.OK
-    
+
         except Exception, e:
             raise Exception("failed to start userinput dialog: %s" % (str(e)))
-    
+
 
     def obs_combobox(self, tag, title, iconfile, soundfile, itemlist):
         def callback(idx, vallist, resDict):
@@ -952,7 +957,7 @@ class IntegController(object):
                                   callback)
 
             return ro.OK
-    
+
         except Exception, e:
             raise Exception("failed to start combobox dialog: %s" % (str(e)))
 
@@ -1001,11 +1006,11 @@ class IntegController(object):
         try:
             self.playSound(soundfile)
             return ro.OK
-    
+
         except Exception, e:
             raise Exception("failed to play sound file '%s': %s" % (
                 soundfile, str(e)))
-    
+
     def get_ope_paths(self, dummy):
         # dummy argument for Tajitsu-san's C code
         return self.gui.get_ope_paths()
