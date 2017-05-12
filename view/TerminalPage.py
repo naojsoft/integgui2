@@ -1,13 +1,16 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue Sep 28 14:19:45 HST 2010
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 
-import gtk
-import vte
+import os
 
-import common
-import Page
+from gi.repository import Gtk
+from gi.repository import GLib
+from gi.repository import Vte
+
+from . import common
+from . import Page
 
 
 class TerminalPage(Page.ButtonPage):
@@ -16,22 +19,28 @@ class TerminalPage(Page.ButtonPage):
 
         super(TerminalPage, self).__init__(frame, name, title)
 
-        tw = vte.Terminal()
+        tw = Vte.Terminal()
         #tw.set_color_foreground(common.terminal_colors.fg)
         #tw.set_color_background(common.terminal_colors.bg)
         
         tw.connect("child-exited", lambda w: self.close())
-        tw.fork_command()
+        ## tw.spawn_sync(Vte.PtyFlags.DEFAULT,
+        ##                os.environ['HOME'],
+        ##                ["/bin/bash"],
+        ##                [],
+        ##                GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+        ##                None,
+        ##                None)
         self.tw = tw
 
         tw.show()
-        frame.pack_start(tw, expand=True, fill=True)
+        frame.pack_start(tw, True, True, 0)
 
         #self.add_close()
         # Add items to the menu
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")

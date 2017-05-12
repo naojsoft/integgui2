@@ -1,20 +1,22 @@
 #
 # HandsetPage.py -- implements an Integgui2 handset
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 21:23:45 HST 2010
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+from gi.repository import Pango
 
 import yaml
 
-import common
-import Page
-import CommandObject
+from . import common
+from . import Page
+from . import CommandObject
 
-import Bunch
+from ginga.misc import Bunch
+from six.moves import range
         
 compass_template = """
   %(n)s
@@ -35,28 +37,28 @@ class HandsetPage(Page.CommandPage):
         self.tm_queueName = 'launcher'
         self.paused = False
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        lw = gtk.Layout()
+        lw = Gtk.Layout()
         lw.set_size(420, 340)
         scrolled_window.add(lw)
         lw.show()
         scrolled_window.show()
 
-        frame.pack_start(scrolled_window, expand=True, fill=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
         self.lw = lw
         
-        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel)
+        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
 
         ## menu = self.add_menu()
         ## self.add_close()
@@ -64,7 +66,7 @@ class HandsetPage(Page.CommandPage):
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = gtk.MenuItem(label="Reset")
+        item = Gtk.MenuItem(label="Reset")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.reset(),
                              "menu.Reset")
@@ -72,7 +74,7 @@ class HandsetPage(Page.CommandPage):
 
         #self.add_close(side=Page.LEFT)
         #self.add_close()
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -83,22 +85,22 @@ class HandsetPage(Page.CommandPage):
 
     def _make_compass(self, n, s, e, w):
         txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
-        lbl = gtk.Label(txt)
-        lbl.modify_font(pango.FontDescription('Monospace 11'))
+        lbl = Gtk.Label(txt)
+        lbl.modify_font(Pango.FontDescription('Monospace 11'))
         lbl.show()
         return lbl
 
     def _make_button(self, name):
-        img = gtk.Image()
+        img = Gtk.Image()
         # make xpm image from inline data
         try:
             xpm_data = icons[name]
-            pixbuf = gtk.gdk.pixbuf_new_from_xpm_data(xpm_data)
+            pixbuf = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_data)
             img.set_from_pixbuf(pixbuf)
         except:
-            img = gtk.Label(name)
+            img = Gtk.Label(name)
 
-        btn = gtk.Button()
+        btn = Gtk.Button()
         btn.add(img)
         img.show()
         btn.show()
@@ -135,7 +137,7 @@ class HandsetPage(Page.CommandPage):
         # Place entries
         ents = widgets.setdefault('entries', {})
         for x, y, width, name in ((off_xv-35, off_yh+5, 10, 'mainstep'),):
-            ent = gtk.Entry()
+            ent = Gtk.Entry()
             ent.set_alignment(1.0)
             ent.set_text("0")
             ent.set_width_chars(width)
@@ -145,10 +147,10 @@ class HandsetPage(Page.CommandPage):
 
         # Place spin buttons
         for x, y, name in ((20, 250, 'lspin'), (120, 250, 'rspin')):
-            ent = gtk.SpinButton()
+            ent = Gtk.SpinButton()
             ent.show()
             ent.set_alignment(1.0)
-            ent.set_update_policy(gtk.UPDATE_ALWAYS)
+            ent.set_update_policy(Gtk.SpinButtonUpdatePolicy.ALWAYS)
             # this seems to force size
             ent.set_range(-1000, 1000)
             ents[name] = ent
@@ -165,7 +167,7 @@ class HandsetPage(Page.CommandPage):
                                 (120, 232, '+E/-W', 'rstep'),
                                 (20, 275, 'arcsec', 'lstepunit'),
                                 (120, 275, 'arcsec', 'rstepunit')):
-            lbl = gtk.Label(txt)
+            lbl = Gtk.Label(txt)
             lbl.show()
             lbls[name] = lbl
             self.lw.put(lbl, x, y)
@@ -177,7 +179,7 @@ class HandsetPage(Page.CommandPage):
 
         # Place buttons
         btns = widgets['buttons']
-        btn = gtk.Button('Move')
+        btn = Gtk.Button('Move')
         #btn.set_size(10, -1)
         btn.connect("clicked", self.execute)
         btn.show()
@@ -185,7 +187,7 @@ class HandsetPage(Page.CommandPage):
         self.lw.put(btn, 20, 300)
 
         # Mode drop-down
-        cbox = gtk.combo_box_new_text()
+        cbox = Gtk.ComboBoxText()
         cbox.show()
         cbox.connect("changed", self.changeMode)
         btns['mode'] = cbox
@@ -199,7 +201,7 @@ class HandsetPage(Page.CommandPage):
                      'right1', 'right2', 'right3', 'down1', 'down2',
                      'down3', 'move'):
             btn = self.widgets['buttons'][name]
-            btn.modify_bg(gtk.STATE_NORMAL,
+            btn.modify_bg(Gtk.StateType.NORMAL,
                           common.launcher_colors['normal'])
 
     def addModes(self, modes):
@@ -207,7 +209,7 @@ class HandsetPage(Page.CommandPage):
         
         # remove old labels
         try:
-            for i in xrange(0, 100):
+            for i in range(0, 100):
                 cbox.remove_text(i)
         except:
             pass
@@ -216,7 +218,7 @@ class HandsetPage(Page.CommandPage):
         self.modes = []
         index = 0
         for d in modes:
-            assert isinstance(d, dict) and d.has_key('label'), \
+            assert isinstance(d, dict) and 'label' in d, \
                    HandsetError("Malformed handset mode: expected key 'modes': %s" % (
                 str(d)))
             name = d['label']
@@ -253,14 +255,14 @@ class HandsetPage(Page.CommandPage):
 
         try:
             for key in ('arrows', 'button'):
-                assert d.has_key(key), \
+                assert key in d, \
                        HandsetError("Malformed handset mode: expected key '%s': %s" % (
                     key, str(d)))
 
             # Process arrow info
             info = d['arrows']
             for key in ('cmd', 'dec', 'ra', 'unit', 'step'):
-                assert info.has_key(key), \
+                assert key in info, \
                        HandsetError("Malformed handset mode: expected key '%s': %s" % (
                     key, str(info)))
 
@@ -307,7 +309,7 @@ class HandsetPage(Page.CommandPage):
 
             info = d['button']
             for key in ('cmd', 'dec', 'ra'):
-                assert info.has_key(key), \
+                assert key in info, \
                        HandsetError("Malformed handset mode: expected key '%s': %s" % (
                     key, str(info)))
 
@@ -331,19 +333,20 @@ class HandsetPage(Page.CommandPage):
             self.button_info = Bunch.Bunch(cmd=info['cmd'],
                                            dec_var=decvar, ra_var=ravar)
 
-        except Exception, e:
+        except Exception as e:
+            self.logger.error("error loading handset: %s" % (str(e)))
             raise e
         
     def load(self, buf):
         d = yaml.load(buf)
 
-        assert isinstance(d, dict) and d.has_key('modes'), \
+        assert isinstance(d, dict) and 'modes' in d, \
                HandsetError("Malformed handset def: expected key 'modes': %s" % (
             str(d)))
 
         self.addModes(d['modes'])
 
-        if d.has_key('tabname'):
+        if 'tabname' in d:
             self.setLabel(d['tabname'])
 
             
@@ -354,7 +357,7 @@ class HandsetPage(Page.CommandPage):
         stepval = self.widgets['entries']['mainstep'].get_text()
         try:
             stepval = float(stepval)
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error("Bad step value '%s': %s" % (
                     stepval, str(e)))
             return
@@ -375,7 +378,7 @@ class HandsetPage(Page.CommandPage):
                                       self.logger, w, cmdstr)
 
             common.controller.execOne(cmdObj, 'launcher')
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
 
@@ -399,7 +402,7 @@ class HandsetPage(Page.CommandPage):
                                       self.logger, w, cmdstr)
 
             common.controller.execOne(cmdObj, 'launcher')
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
 
@@ -421,7 +424,7 @@ class HandsetCommandObject(CommandObject.CommandObject):
         if state == 'queued':
             state = 'normal'
 
-        self.widget.modify_bg(gtk.STATE_NORMAL,
+        self.widget.modify_bg(Gtk.StateType.NORMAL,
                               common.launcher_colors[state])
         
     def mark_status(self, txttag):

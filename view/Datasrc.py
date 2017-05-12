@@ -1,6 +1,8 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import threading
 
 class TimeoutError(Exception):
@@ -39,7 +41,7 @@ class Datasrc(object):
                 oldest = self.history.pop(0)
                 del self.datums[oldest]
 
-            self.sortedkeys = self.datums.keys()
+            self.sortedkeys = list(self.datums.keys())
             self.sortedkeys.sort()
             
             self.newdata.set()
@@ -115,7 +117,7 @@ class Datasrc(object):
                         raise IndexError("No next item")
 
             self.cursor += 1
-            print "cursor: %d" % self.cursor
+            print("cursor: %d" % self.cursor)
             return self.queue[self.cursor]
 
             
@@ -130,6 +132,6 @@ class Datasrc(object):
                 raise IndexError("No previous item")
 
             self.cursor -= 1
-            print "cursor: %d" % self.cursor
+            print("cursor: %d" % self.cursor)
             return self.queue[self.cursor]
 

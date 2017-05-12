@@ -1,15 +1,15 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Oct 22 15:08:05 HST 2010
-#]
-
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 import os
-import gtk
 
-import myproc
+from gi.repository import Gtk
 
-import common
-import CodePage, OpePage
+from g2base import myproc
+
+from . import common
+from . import CodePage, OpePage
 
 
 class InfPage(CodePage.CodePage):
@@ -19,15 +19,15 @@ class InfPage(CodePage.CodePage):
         super(InfPage, self).__init__(frame, name, title)
 
         # add some bottom buttons
-        self.btn_makeope = gtk.Button("Make OPE")
+        self.btn_makeope = Gtk.Button("Make OPE")
         self.btn_makeope.connect("clicked", lambda w: self.makeope('app2ope.pl -'))
         self.btn_makeope.show()
-        self.leftbtns.pack_end(self.btn_makeope)
+        self.leftbtns.pack_end(self.btn_makeope, False, False, 0)
 
-        self.btn_makedarks = gtk.Button("Make Darks")
+        self.btn_makedarks = Gtk.Button("Make Darks")
         self.btn_makedarks.connect("clicked", lambda w: self.makeope('mkDARKope.pl -'))
         self.btn_makedarks.show()
-        self.leftbtns.pack_end(self.btn_makedarks)
+        self.leftbtns.pack_end(self.btn_makedarks, False, False, 0)
 
     def makeope(self, cmdstr):
         # get text to process
@@ -54,7 +54,7 @@ class InfPage(CodePage.CodePage):
             common.view.open_generic(common.view.exws, output, opepath,
                                      OpePage.OpePage)
 
-        except Exception, e:
+        except Exception as e:
             return common.view.popup_error("Cannot generate ope file: %s" % (
                     str(e)))
 

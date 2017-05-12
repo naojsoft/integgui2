@@ -1,14 +1,18 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import os, re
-import gtk
 
-import Bunch
+from gi.repository import Gtk
+from gi.repository import Gdk
 
-import common
-import Page
-import CommandObject
+from ginga.misc import Bunch
+
+from . import common
+from . import Page
+from . import CommandObject
 
 class QueuePage(Page.ButtonPage, Page.TextPage):
 
@@ -23,19 +27,19 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.tm_queueName = 'executer'
 
         # Create the widgets for the text
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        tw = gtk.TextView()
+        tw = Gtk.TextView()
         scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
         tw.set_editable(False)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_wrap_mode(Gtk.WrapMode.NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
 
@@ -79,46 +83,46 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         #self.buf.create_tag('selected', background="pink1")
         #self.buf.create_tag('cursor', background="skyblue1")
 
-        frame.pack_start(scrolled_window, fill=True, expand=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
         ## self.add_menu()
         ## self.add_close()
 
-        # self.tw.drag_source_set(gtk.gdk.BUTTON1_MASK,
-        #                       [('text/cmdtag', 0, 555)], gtk.gdk.ACTION_MOVE)
-        # self.tw.drag_dest_set(gtk.DEST_DEFAULT_ALL,
-        #                       [('text/cmdtag', 0, 555)], gtk.gdk.ACTION_MOVE)
+        # self.tw.drag_source_set(Gdk.BUTTON1_MASK,
+        #                       [('text/cmdtag', 0, 555)], Gdk.ACTION_MOVE)
+        # self.tw.drag_dest_set(Gtk.DEST_DEFAULT_ALL,
+        #                       [('text/cmdtag', 0, 555)], Gdk.ACTION_MOVE)
         #self.tw.connect("drag-data-get", self.grabdata)
         #self.tw.connect("drag-drop", self.rearrange)
 
         # add some bottom buttons
-        self.btn_exec = gtk.Button("Resume")
+        self.btn_exec = Gtk.Button("Resume")
         self.btn_exec.connect("clicked", lambda w: self.resume())
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec)
+        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
-        self.btn_step = gtk.Button("Step")
+        self.btn_step = Gtk.Button("Step")
         self.btn_step.connect("clicked", lambda w: self.step())
-        self.btn_step.modify_bg(gtk.STATE_NORMAL,
+        self.btn_step.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_step.show()
-        self.leftbtns.pack_end(self.btn_step)
+        self.leftbtns.pack_end(self.btn_step, False, False, 0)
 
-        self.btn_break = gtk.Button("Break")
+        self.btn_break = Gtk.Button("Break")
         self.btn_break.connect("clicked", lambda w: self.insbreak(line=0))
         self.btn_break.show()
-        self.leftbtns.pack_end(self.btn_break)
+        self.leftbtns.pack_end(self.btn_break, False, False, 0)
 
-        self.btn_refresh = gtk.Button("Refresh")
+        self.btn_refresh = Gtk.Button("Refresh")
         self.btn_refresh.connect("clicked", lambda w: self.redraw())
         self.btn_refresh.show()
-        self.leftbtns.pack_end(self.btn_refresh)
+        self.leftbtns.pack_end(self.btn_refresh, False, False, 0)
 
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         # currently disabled
         item.set_sensitive(False)
         menu.append(item)
@@ -128,13 +132,13 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = gtk.MenuItem(label="Clear All")
+        item = Gtk.MenuItem(label="Clear All")
         menu.append(item)
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
                              "menu.Clear_All")
         item.show()
 
-        item = gtk.MenuItem(label="Pop and edit command")
+        item = Gtk.MenuItem(label="Pop and edit command")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.editCommand(),
                              "menu.Edit_command")
@@ -160,7 +164,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             cmdObj = self.queueObj.peek()
             self.queueObj.remove(cmdObj)
 
-        except Exception, e:
+        except Exception as e:
             # TODO: popup error here?
             common.view.gui_do(common.view.popup_error, str(e))
 
@@ -184,7 +188,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                         tag = 'comment2'
                     elif text.startswith('#'):
                         tag = 'comment1'
-                except Exception, e:
+                except Exception as e:
                     text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
                     tag = 'badref'
                     
@@ -218,7 +222,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             if insmark != None:
                 ## insiter = self.buf.get_iter_at_mark(insmark)
                 ## insline = insiter.get_line()
-                res = self.tw.scroll_to_mark(insmark, 0, use_align=True)
+                res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
                 #print "2. scrolling res is %s insline=%d" % (res, insline)
                 
 
@@ -287,7 +291,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
-            print "i=%d j=%d" % (i, j)
+            print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
             self.clip = self.queueObj.delete(i, j+1)
@@ -301,7 +305,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
-            print "i=%d j=%d" % (i, j)
+            print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
             self.clip = self.queueObj.getslice(i, j+1)
@@ -341,7 +345,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             return
         
         (i, j) = (self.sel_i, self.sel_j)
-        print "i=%d j=%d" % (i, j)
+        print("i=%d j=%d" % (i, j))
         self.clear_selection()
         
         deleted = self.queueObj.delete(i, j+1)
@@ -370,7 +374,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             cmdobj = CommandObject.BreakCommandObject('brk%d', self.queueName,
                                                      self.logger, self)
             self.queueObj.insert(line, [cmdobj])
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
     def _skip_comment(self, line):
@@ -414,14 +418,14 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                     if i < num_queued:
                         i += 1
                     self.queueObj.insert(i, [cmdobj])
-            except Exception, e:
+            except Exception as e:
                 common.view.popup_error(str(e))
                 return
 
         try:
             common.controller.execQueue(self.queueName,
                                         tm_queueName=self.tm_queueName)
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
 
@@ -432,7 +436,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         return self._resume(w_break=True)
 
     def keypress(self, w, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.keyval)
         if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
                        'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
             # navigation and other
@@ -440,7 +444,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         if keyname in ('Left', 'Right'):
             # ignore these
             return True
-        print "key pressed --> %s" % keyname
+        print("key pressed --> %s" % keyname)
 
         if keyname == 'r':
             self._redraw()
@@ -467,7 +471,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             self.insbreak()
             return True
 
-        common.view.setStatus("I don't understand that key: %s", keyname)
+        common.view.statusMsg("I don't understand that key: %s", keyname)
         return True
     
     def show_cursor(self, tbuf, titer, tmark):
@@ -502,17 +506,17 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         return True
     
     def grabdata(self, tw, context, selection, info, tstamp):
-        print "grabbing!"
+        print("grabbing!")
         return True
     
     def rearrange(self, tw, context, x, y, tstamp):
-        print "rearrange!"
-        buf_x1, buf_y1 = tw.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+        print("rearrange!")
+        buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                     x, y)
         txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
 
-        print "Drop!"
-        print '\n'.join([str(t) for t in context.targets])
+        print("Drop!")
+        print('\n'.join([str(t) for t in context.targets]))
         context.finish(True, False, tstamp)
         return True
     

@@ -2,22 +2,32 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
+from __future__ import absolute_import
 import re
 import os, time
 import threading
 import string
 
-import view.common as common
-import CommandQueue
+from Gen2.integgui2.view import common
+from Gen2.integgui2 import CommandQueue
+
+from ginga.misc import Bunch
 
 # SSD/Gen2 imports
-import Task
-import remoteObjects as ro
-import remoteObjects.Monitor as Monitor
-import Bunch
+from g2base.remoteObjects import remoteObjects as ro
+from g2base.remoteObjects import Monitor
+from g2base import Task
+from g2base.astro.frame import Frame as AstroFrame
+
 from cfg.INS import INSdata
 import cfg.g2soss as g2soss
-from astro.frame import Frame as AstroFrame
+
+from six.moves import map
+import six
+if six.PY2:
+    maketrans = string.maketrans
+else:
+    maketrans = bytes.maketrans
 
 # For getting instrument info
 inscfg = INSdata()
@@ -107,8 +117,9 @@ class IntegController(object):
         self.propid = None
 
         # Used to strip out bogus characters from log buffers
-        self.deletechars = ''.join(set(string.maketrans('', '')) -
-                                   set(string.printable))
+        acceptchars = set(string.printable)
+        self.deletechars = ''.join(set(maketrans(b'', b'').decode('iso-8859-1')) -
+                                   acceptchars)
         self.reset_conn()
 
 
@@ -145,7 +156,7 @@ class IntegController(object):
             # for the task manager interaction
             t.init_and_start(self)
 
-        except Exception, e:
+        except Exception as e:
             # TODO: popup error here?
             self.gui.gui_do(self.gui.popup_error, str(e))
 
@@ -165,7 +176,7 @@ class IntegController(object):
             # for the task manager interaction
             t.init_and_start(self)
 
-        except Exception, e:
+        except Exception as e:
             # TODO: popup error here?
             self.gui.gui_do(self.gui.popup_error, str(e))
 
@@ -174,7 +185,7 @@ class IntegController(object):
             t = Task.FuncTask2(self.edit_one, cmdObj)
             t.init_and_start(self)
 
-        except Exception, e:
+        except Exception as e:
             # TODO: popup error here?
             self.gui.gui_do(self.gui.popup_error, str(e))
 
@@ -202,7 +213,7 @@ class IntegController(object):
             t = Task.FuncTask(func, args, kwdargs)
             t.init_and_start(self)
 
-        except Exception, e:
+        except Exception as e:
             raise ControllerError(e)
 
 #############
@@ -250,7 +261,7 @@ class IntegController(object):
         t.init_and_start(self)
 
     def addQueue(self, queueName, logger):
-        if self.queue.has_key(queueName):
+        if queueName in self.queue:
             raise ControllerError("Queue already exists: '%s'" % queueName)
 
         queue = CommandQueue.CommandQueue(queueName, logger)
@@ -299,7 +310,7 @@ class IntegController(object):
         try:
             info = self.sm.getSessionInfo(self.sessionName)
 
-        except ro.remoteObjectError, e:
+        except ro.remoteObjectError as e:
             self.logger.error("Error getting session info for session '%s': %s" % (
                     self.sessionName, str(e)))
 
@@ -347,7 +358,7 @@ class IntegController(object):
                 allocs_lst.append(name)
 
         # List of inst codes we should pay attention to
-        self.inscodes = map(self.insconfig.getCodeByName, allocs_lst)
+        self.inscodes = list(map(self.insconfig.getCodeByName, allocs_lst))
         propid = info.get('propid', 'xxxxx')
         self.propid = propid
 
@@ -386,6 +397,7 @@ class IntegController(object):
         logs = list(names.intersection(typical_monlogs))
         logs.sort()
 
+        self.logger.debug("loading logs: %s" % (str(logs)))
         for name in logs:
             if self.logtype == 'monlog':
                 self.gui.gui_do(self.gui.load_monlog, self.gui.logpage,
@@ -417,7 +429,7 @@ class IntegController(object):
             d = self.monitor.getitem_any(['%s.task_end' % tag],
                                          timeout=timeout)
 
-        except Monitor.TimeoutError, e:
+        except Monitor.TimeoutError as e:
             self.logger.error(str(e))
             return 2
 
@@ -436,7 +448,7 @@ class IntegController(object):
         # Interpret task results:
         #   task_code == 0 --> OK   task_code != 0 --> ERROR
         #res = vals.get('task_code', 1)
-        if vals.has_key('task_code'):
+        if 'task_code' in vals:
             res = vals['task_code']
         else:
             logger.error("Task has no task result code; assuming error")
@@ -480,16 +492,16 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
-        if not bnch.has_key('value'):
+        if 'value' not in bnch:
             # delete (vaccuum) packet
             return
         vals = bnch.value
 
-        if vals.has_key('ast_id'):
+        if 'ast_id' in vals:
             # SkMonitorPage update on some abstract or device dependent command
             self.gui.process_ast(vals['ast_id'], vals)
 
-        elif vals.has_key('subpath'):
+        elif 'subpath' in vals:
             # SkMonitorPage update on some subcommand
             self.gui.process_subcommand(bnch.path,
                                         vals['subpath'], vals)
@@ -498,7 +510,7 @@ class IntegController(object):
         else:
             self.gui.process_task(bnch.path, vals)
 
-        if vals.has_key('task_code'):
+        if 'task_code' in vals:
             res = vals['task_code']
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR
@@ -527,11 +539,11 @@ class IntegController(object):
             return
 
         vals = bnch.value
-        if vals.has_key('obsinfo'):
+        if 'obsinfo' in vals:
             statusDict = bnch.value['obsinfo']
             self.update_integgui(statusDict)
 
-        elif vals.has_key('ready'):
+        elif 'ready' in vals:
             # Release any threads stuck in awaitTask
             self.monitor.releaseAll(has_value=True)
 
@@ -610,7 +622,7 @@ class IntegController(object):
                 method(frameid, vals)
                 return
 
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Error processing '%s': %s" % (
                     str(bnch.path), str(e)))
             return
@@ -764,7 +776,7 @@ class IntegController(object):
                 cmdObj = queueObj.get()
                 cmdObj.mark_status('normal')
 
-            except Exception, e:
+            except Exception as e:
                 self.gui.gui_do(self.gui.popup_error, str(e))
                 return
 
@@ -779,7 +791,7 @@ class IntegController(object):
                     # comment or other non-command item
                     continue
 
-            except Exception, e:
+            except Exception as e:
                 # Put object back on the front of the queue
                 queueObj.prepend(cmdObj)
                 self.gui.gui_do(self.gui.popup_error, str(e))
@@ -810,7 +822,7 @@ class IntegController(object):
                 if res != 0:
                     raise Exception('Command terminated with res=%d' % res)
 
-            except Exception, e:
+            except Exception as e:
                 time_end = time.time()
                 executingP.clear()
                 self.gui.update_statusMsg("")
@@ -864,7 +876,7 @@ class IntegController(object):
             else:
                 raise Exception('Command terminated with res=%d' % res)
 
-        except Exception, e:
+        except Exception as e:
             time_end = time.time()
             # fix!
             if tm_queueName == 'executer':
@@ -883,7 +895,7 @@ class IntegController(object):
         try:
             cmdstr = cmdObj.get_cmdstr()
 
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error("Error editing command: %s" % (
                     str(e)))
             return
@@ -907,7 +919,7 @@ class IntegController(object):
                                  status=0)
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to start timer: %s" % (str(e)))
 
 
@@ -928,7 +940,7 @@ class IntegController(object):
                                       callback)
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to start confirmation dialog: %s" % (str(e)))
 
     def obs_userinput(self, tag, title, iconfile, soundfile, itemlist):
@@ -949,7 +961,7 @@ class IntegController(object):
 
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to start userinput dialog: %s" % (str(e)))
 
 
@@ -971,7 +983,7 @@ class IntegController(object):
 
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to start combobox dialog: %s" % (str(e)))
 
     def obs_fileselection(self, tag, title, initialdir=None,
@@ -992,7 +1004,7 @@ class IntegController(object):
 
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to start fileselection: %s" % (str(e)))
 
     def obs_copyfilestotsc(self, tag, fileSelectionPath, checkFormat=True, copyMode='manual'):
@@ -1012,7 +1024,7 @@ class IntegController(object):
         try:
             self.gui.obs_copyfilestotsc(tag, 'CopyTSCTrackFile', callback, fileSelectionPath, checkFormat, copyMode)
             return ro.OK
-        except Exception, e:
+        except Exception as e:
             raise Exception("Exception in obs_copyfiletotsc: %s" % (str(e)))
 
     def obs_play_sound_file(self, tag, soundfile):
@@ -1020,7 +1032,7 @@ class IntegController(object):
             self.playSound(soundfile)
             return ro.OK
 
-        except Exception, e:
+        except Exception as e:
             raise Exception("failed to play sound file '%s': %s" % (
                 soundfile, str(e)))
 

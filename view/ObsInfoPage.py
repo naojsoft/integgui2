@@ -2,36 +2,44 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
+from __future__ import absolute_import
 import time
-import pygtk
-pygtk.require('2.0')
-import gtk, gobject, cairo
 
-import common
-import Page
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+import cairo
+
+from . import common
+from . import Page
 
 # Create a GTK+ widget on which we will draw using Cairo
-class CairoDrawable(gtk.DrawingArea):
-
-    # Draw in response to an expose-event
-    __gsignals__ = { "expose-event": "override" }
+class CairoDrawable(Gtk.DrawingArea):
 
     def __init__(self, drawfn):
         self.draw = drawfn
-        super(gtk.DrawingArea, self).__init__()
+        super(CairoDrawable, self).__init__()
 
-    # Handle the expose-event by drawing
-    def do_expose_event(self, event):
+        #self.set_events(Gdk.EventMask.EXPOSURE_MASK)
+        # prevents some flickering
+        self.set_double_buffered(True)
+        self.set_app_paintable(True)
 
+        self.connect('draw', self.draw_event)
+
+    def draw_event(self, widget, cr):
+
+        # Handle the expose-event by drawing
         # Create the cairo context
-        cr = self.window.cairo_create()
+        #cr = self.window.cairo_create()
 
-        # Restrict Cairo to the exposed area; avoid extra work
-        cr.rectangle(event.area.x, event.area.y,
-                event.area.width, event.area.height)
-        cr.clip()
+        ## # Restrict Cairo to the exposed area; avoid extra work
+        ## cr.rectangle(event.area.x, event.area.y,
+        ##              event.area.width, event.area.height)
+        ## cr.clip()
 
-        self.draw(cr, *self.window.get_size())
+        rect = widget.get_allocation()
+        self.draw(cr, rect.width, rect.height)
 
 
 class ObsInfoPage(Page.ButtonPage):
@@ -55,11 +63,11 @@ class ObsInfoPage(Page.ButtonPage):
 
         self.timertask = None
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
         # create cairo drawing area
         self.area = CairoDrawable(self.draw)
         self.area.set_size_request(400, 300)
@@ -70,19 +78,19 @@ class ObsInfoPage(Page.ButtonPage):
         scrolled_window.show()
         self.area.show()
 
-        frame.pack_start(scrolled_window, fill=True, expand=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = gtk.MenuItem(label="Cancel Timer")
+        item = Gtk.MenuItem(label="Cancel Timer")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.cancel_timer(),
                              "menu.Cancel_Timer")
         item.show()
 
         #self.add_close()
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         # currently disabled
         item.set_sensitive(False)
         menu.append(item)
@@ -130,25 +138,26 @@ class ObsInfoPage(Page.ButtonPage):
         self._draw_text(cr, 500, 160, self.obsdict['OBSINFO5'])
 
     def redraw(self):
-        cr = self.area.window.cairo_create()
-        cr.rectangle(0, 0, self.maxwd, self.maxht)
-        cr.clip()
-
-        return self.draw(cr, self.maxwd, self.maxht)
+        # invalidate the draw area and it will be drawn
+        rect = self.area.get_allocation()
+        self.area.queue_draw_area(0, 0, rect.width, rect.height)
 
     def update_obsinfo(self, obsdict):
 
         self.logger.debug("obsinfo update: %s" % str(obsdict))
         self.obsdict.update(obsdict)
 
-        if obsdict.has_key('TIMER_SEC'):
+        if 'TIMER_SEC' in obsdict:
             self.set_timer(obsdict['TIMER_SEC'])
 
         self.redraw()
 
     def cancel_timer(self):
         if self.timertask:
-            gobject.source_remove(self.timertask)
+            try:
+                GObject.source_remove(self.timertask)
+            except:
+                pass
         self.timertask = None
         self.obsdict['TIMER'] = ''
         self.redraw()
@@ -172,7 +181,7 @@ class ObsInfoPage(Page.ButtonPage):
         self.obsdict['TIMER'] = str(diff).rjust(5)
         self.redraw()
         if diff > 0:
-            self.timertask = gobject.timeout_add(1000, self.timer_interval)
+            self.timertask = GObject.timeout_add(1000, self.timer_interval)
         else:
             # TODO: play sound?
             self.timertask = None

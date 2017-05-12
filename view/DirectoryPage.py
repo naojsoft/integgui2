@@ -1,14 +1,16 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Nov  5 10:35:08 HST 2010
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 import sys
 import glob
 import os, re
-import gtk
 
-import common
-import LogPage
+from gi.repository import Gtk
+from gi.repository import Gdk
+
+from . import common
+from . import LogPage
 
 
 class DirectoryPage(LogPage.NotePage):
@@ -39,12 +41,12 @@ class DirectoryPage(LogPage.NotePage):
         self.tw.connect("enter-notify-event", self.focus_in)
 
         # add some bottom buttons
-        ## self.btn_exec = gtk.Button("Exec")
+        ## self.btn_exec = Gtk.Button("Exec")
         ## self.btn_exec.connect("clicked", lambda w: self.execute())
-        ## self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        ## self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
         ##                         common.launcher_colors['execbtn'])
         ## self.btn_exec.show()
-        ## self.leftbtns.pack_end(self.btn_exec)
+        ## self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
     def regist_clickfn(fn):
         """Register a function to be called on the files when you click them."""
@@ -95,7 +97,7 @@ class DirectoryPage(LogPage.NotePage):
         # Hacky way to get our cursor on screen
         insmark = self.buf.get_insert()
         if insmark != None:
-            res = self.tw.scroll_to_mark(insmark, 0, use_align=True)
+            res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
 
     def redraw(self):
         common.gui_do(self._redraw)
@@ -136,7 +138,7 @@ class DirectoryPage(LogPage.NotePage):
     ##     print str(evt)
     ##     widget = self.tw
     ##     try:
-    ##         tup = widget.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+    ##         tup = widget.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
     ##                                              evt.x, evt.y)
     ##         #print tup
     ##         buf_x1, buf_y1 = tup
@@ -190,7 +192,7 @@ class DirectoryPage(LogPage.NotePage):
        
         
     def keypress(self, w, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.keyval)
         if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
                        'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
             # navigation and other
@@ -200,7 +202,7 @@ class DirectoryPage(LogPage.NotePage):
             return True
         #print "key pressed --> %s" % keyname
 
-        if event.state & gtk.gdk.CONTROL_MASK:
+        if event.state & Gdk.ModifierType.CONTROL_MASK:
             if keyname == 'r':
                 self.reload()
                 return True

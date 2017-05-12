@@ -1,17 +1,24 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Mar  5 15:24:04 HST 2014
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, traceback
 
 import os, re
-import gobject, gtk
 
-import common
-import Page, CodePage
-import CommandObject
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
+from gi.repository import GtkSource
+
+from . import common
+from . import Page, CodePage
+from . import CommandObject
 
 import SOSS.parse.ope as ope
+from six.moves import range
 
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
@@ -86,64 +93,71 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.set_insert_spaces_instead_of_tabs(True)
 
         # add marker pixbufs
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
-                                                           'apple-green.png'))
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
+                                                              'apple-green.png'))
         if pixbuf:
-            self.tw.set_mark_category_pixbuf('executing', pixbuf)
-        pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(icondir,
+            #self.tw.set_mark_category_pixbuf('executing', pixbuf)
+            attrs = GtkSource.MarkAttributes()
+            attrs.set_pixbuf(pixbuf)
+            self.tw.set_mark_attributes('executing', attrs, 0)
+
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
                                                            'apple-red.png'))
         if pixbuf:
-            self.tw.set_mark_category_pixbuf('error', pixbuf)
+            #self.tw.set_mark_category_pixbuf('error', pixbuf)
+            attrs = GtkSource.MarkAttributes()
+            attrs.set_pixbuf(pixbuf)
+            self.tw.set_mark_attributes('error', attrs, 0)
 
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
 
         # add some bottom buttons
-        self.btn_exec = gtk.Button("Exec")
+        self.btn_exec = Gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: self.execute())
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec)
+        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
-        self.btn_append = gtk.Button("Append")
+        self.btn_append = Gtk.Button("Append")
         self.btn_append.connect("clicked", lambda w: self.insert())
         self.btn_append.show()
-        self.leftbtns.pack_end(self.btn_append)
+        self.leftbtns.pack_end(self.btn_append, False, False, 0)
 
-        self.btn_prepend = gtk.Button("Prepend")
+        self.btn_prepend = Gtk.Button("Prepend")
         self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
         self.btn_prepend.show()
-        self.leftbtns.pack_end(self.btn_prepend)
+        self.leftbtns.pack_end(self.btn_prepend, False, False, 0)
 
-        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel)
+        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
 
-        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause = Gtk.Button("Pause")
         self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause)
+        self.leftbtns.pack_end(self.btn_pause, False, False, 0)
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Buffer")
         
-        item = gtk.MenuItem(label="Recolor")
+        item = Gtk.MenuItem(label="Recolor")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.color(),
                              "menu.Recolor")
         item.show()
 
-        item = gtk.MenuItem(label="Uncolor")
+        item = Gtk.MenuItem(label="Uncolor")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.color(eraseall=True),
                              "menu.Uncolor")
         item.show()
 
-        item = gtk.MenuItem(label="Current")
+        item = Gtk.MenuItem(label="Current")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.current(),
                              "menu.Current")
@@ -151,25 +165,25 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = gtk.MenuItem(label="Clear all")
+        item = Gtk.MenuItem(label="Clear all")
         menu.append(item)
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
                              "menu.Clear_all")
         item.show()
 
-        item = gtk.MenuItem(label="Clear my")
+        item = Gtk.MenuItem(label="Clear my")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.unqueue_my_commands(),
                              "menu.Clear_my")
         item.show()
 
-        item = gtk.MenuItem(label="Unlink my")
+        item = Gtk.MenuItem(label="Unlink my")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.unlink_my_commands(),
                              "menu.Unlink_my")
         item.show()
 
-        item = gtk.MenuItem(label="Attach to ...")
+        item = Gtk.MenuItem(label="Attach to ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.attach_queue(),
                              "menu.Attach_to")
@@ -177,19 +191,19 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         menu = self.add_pulldownmenu("Options")
 
-        item = gtk.CheckMenuItem("Wrap lines")
+        item = Gtk.CheckMenuItem("Wrap lines")
         item.set_active(wrap_lines)
         menu.append(item)
         item.connect("activate", self.toggle_line_wrapping)
         item.show()
 
-        item = gtk.CheckMenuItem("Show line numbers")
+        item = Gtk.CheckMenuItem("Show line numbers")
         item.set_active(number_lines)
         menu.append(item)
         item.connect("activate", self.toggle_line_numbering)
         item.show()
 
-        item = gtk.CheckMenuItem("Don't link commands to page")
+        item = Gtk.CheckMenuItem("Don't link commands to page")
         item.set_active(False)
         menu.append(item)
         item.connect("activate", lambda w: self.toggle_var(w, 'add_frozen'))
@@ -200,14 +214,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
 
     def toggle_var(self, widget, key):
-        if widget.active: 
+        if widget.get_active(): 
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
 
     def build_dialog(self, title, text, func):
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_WARNING,
+        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=Gtk.MESSAGE_WARNING,
                                    message_format=text)
         dialog.set_title(title)
         dialog.connect("response", func)
@@ -352,7 +366,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         try:
             # Get the text from the code buffer
             start, end = self.buf.get_bounds()
-            buf = self.buf.get_text(start, end)
+            buf = self.buf.get_text(start, end, True)
 
             # compute the variable dictionary
             include_dirs = common.view.include_dirs
@@ -484,7 +498,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 tagpage.tablbl.set_markup('<span>Tags</span>')
                 
                 
-        except Exception, e:
+        except Exception as e:
             errmsg = "Error coloring buffer: %s" % (str(e))
             self.logger.error(errmsg)
             common.view.statusMsg(errmsg)
@@ -503,7 +517,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             first, last = self.buf.get_selection_bounds()
             self.buf.apply_tag_by_name('savedselection', first, last)
         except ValueError:
-            print "Error getting selection--no selection?"
+            print("Error getting selection--no selection?")
         return False
 
     def current(self):
@@ -545,7 +559,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # mode (?) and the tooltip widget.  Return True if a tooltip should
         # be displayed
         #print "tooltip: args are %s" % (str(args))
-        buf_x1, buf_y1 = tw.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+        buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                     x, y)
         txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
 
@@ -572,12 +586,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             enditer.forward_char()
 
         # Get the text of the varref
-        varname = buf.get_text(startiter, enditer)
+        varname = buf.get_text(startiter, enditer, True)
         varname = varname[1:]
         try:
             res = self.get_vardef(varname)
             ttw.set_text(res)
-        except Exception, e:
+        except Exception as e:
             ttw.set_text(str(e))
             
         return True
@@ -593,15 +607,16 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return
 
         # Set the clipboard to the plain ASCII text
-        text = self.buf.get_text(*tup)
+        start, end = tup[:2]
+        text = self.buf.get_text(start, end, True)
         common.view.clipboard.set_text(text, -1)
 
         
     def keypress(self, w, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.keyval)
         #print "key pressed --> %s" % keyname
 
-        if event.state & gtk.gdk.CONTROL_MASK:
+        if event.state & Gdk.ModifierType.CONTROL_MASK:
             if keyname == 't':
                 common.view.raise_page('tags')
                 return True
@@ -653,7 +668,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             return p_cmdstr
         
-        except Exception, e:
+        except Exception as e:
             errstr = "Error parsing command: %s" % (str(e))
             raise Exception(errstr)
 
@@ -667,7 +682,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         # Get current value of text buffer
         start, end = self.buf.get_bounds()
-        txtbuf = self.buf.get_text(start, end)
+        txtbuf = self.buf.get_text(start, end, True)
 
         # Get all the commands strings referenced by _tags_ and put
         # them in dict _cmds_
@@ -675,7 +690,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for tag in tags:
             # Now get the command from the text widget
             start, end = common.get_region_lines(self.buf, tag)
-            cmds[tag] = self.buf.get_text(start, end)
+            cmds[tag] = self.buf.get_text(start, end, True)
 
         # Define a mapping 
         # NOTE: enclosed function captures values of tags, cmds and
@@ -710,7 +725,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # to the command in the page, but the command string
             # already pre-expanded
             start, end = self.buf.get_bounds()
-            txtbuf = self.buf.get_text(start, end)
+            txtbuf = self.buf.get_text(start, end, True)
         
         # Get the range of text selected
         try:
@@ -732,7 +747,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Break selection into individual lines
         cmds = []
 
-        for i in xrange(int(lrow)+1-frow):
+        for i in range(int(lrow)+1-frow):
 
             row = frow+i
             #print "row: %d" % (row)
@@ -745,7 +760,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 # if the line consists of simply a newline
                 cmd = ""
             else:
-                cmd = self.buf.get_text(first, last).strip()
+                cmd = self.buf.get_text(first, last, True).strip()
             self.logger.debug("cmd=%s" % (cmd))
             if (len(cmd) == 0) or cmd.startswith('#'):
                 # TODO: linked comments
@@ -888,7 +903,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     common.controller.execQueue(self.queueName,
                                                 tm_queueName=self.tm_queueName)
 
-            except Exception, e:
+            except Exception as e:
                 common.view.popup_error(str(e))
             return True
 
@@ -924,19 +939,19 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 queue.extend(cmds)
             else:
                 queue.insert(loc, cmds)
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
     def attach_queue(self):
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
-                                   buttons=gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=Gtk.MESSAGE_QUESTION,
+                                   buttons=Gtk.BUTTONS_OK_CANCEL,
                                    message_format="Pick the destination queue:")
         dialog.set_title("Connect Queue")
         # Add a combo box to the content area containing the names of the
         # current queues
         vbox = dialog.get_content_area()
-        cbox = gtk.combo_box_new_text()
+        cbox = Gtk.ComboBoxText()
         index = 0
         names = []
         for name in common.controller.queue.keys():
@@ -952,8 +967,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def attach_queue_res(self, w, rsp, cbox, names):
         queueName = names[cbox.get_active()].strip().lower()
         w.destroy()
-        if rsp == gtk.RESPONSE_OK:
-            if not common.view.queue.has_key(queueName):
+        if rsp == Gtk.RESPONSE_OK:
+            if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
                 return True
             self.queueName = queueName
@@ -979,7 +994,7 @@ class OpeCommandObject(CommandObject.CommandObject):
         # Now get the command from the text widget
         start, end = common.get_region_lines(buf, self.guitag)
         #start, end = common.get_region(buf, self.guitag)
-        cmdstr = buf.get_text(start, end).strip()
+        cmdstr = buf.get_text(start, end, True).strip()
 
         # remove trailing semicolon, if present
         if cmdstr.endswith(';'):
@@ -996,12 +1011,12 @@ class OpeCommandObject(CommandObject.CommandObject):
         # Get the entire buffer from the page's text widget
         buf = self.page.buf
         start, end = buf.get_bounds()
-        txtbuf = buf.get_text(start, end)
+        txtbuf = buf.get_text(start, end, True)
 
         # Now get the command from the text widget
         start, end = common.get_region_lines(buf, self.guitag)
         #start, end = common.get_region(buf, self.guitag)
-        cmdstr = buf.get_text(start, end)
+        cmdstr = buf.get_text(start, end, True)
 
         return (txtbuf, cmdstr)
     
@@ -1083,7 +1098,7 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
         # Now get the command from the text widget
         start, end = common.get_region_lines(buf, self.guitag)
         #start, end = common.get_region(buf, self.guitag)
-        comment = buf.get_text(start, end).strip()
+        comment = buf.get_text(start, end, True).strip()
 
         self.logger.debug("preview is '%s'" % (comment))
         return '>>' + comment

@@ -1,12 +1,12 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Oct  9 20:29:07 HST 2010
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 
-import gtk
+#from gi.repository import Gtk
 
-import Workspace
-import Page
+from . import Workspace
+from . import Page
 
 
 class WorkspacePage(Workspace.Workspace, Page.Page):
@@ -15,7 +15,7 @@ class WorkspacePage(Workspace.Workspace, Page.Page):
         Page.Page.__init__(self, frame, name, title)
         Workspace.Workspace.__init__(self, frame, name, title)
 
-        #self.nb.set_tab_pos(gtk.POS_LEFT)
+        #self.nb.set_tab_pos(Gtk.PositionType.LEFT)
         
 class ButtonWorkspacePage(Workspace.Workspace, Page.ButtonPage):
 

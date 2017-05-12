@@ -2,13 +2,17 @@
 # Eric Jeschke (eric@naoj.org) --
 #
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, time
-import gtk
 
-import LogPage
-import common
+from gi.repository import Gtk
 
-import Bunch
+from . import LogPage
+from . import common
+
+from g2base import Bunch
+from six.moves import range
 
 
 header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
@@ -37,24 +41,24 @@ class FrameInfoPage(LogPage.NotePage):
         self.format_str = format_str
 
         # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns = Gtk.HButtonBox()
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.btns = btns
 
-#         self.btn_load = gtk.Button("Load")
+#         self.btn_load = Gtk.Button("Load")
 #         self.btn_load.connect("clicked", lambda w: self.load_frames())
 #         self.btn_load.show()
-#         btns.pack_end(self.btn_load, padding=4)
+#         btns.pack_end(self.btn_load, False, False, 4)
 
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        frame.pack_end(btns, False, False, 2)
 
 #        menu = self.add_menu()
 #        self.add_close()
 
         menu = self.add_pulldownmenu("Page")
 
-        # item = gtk.MenuItem(label="Print")
+        # item = Gtk.MenuItem(label="Print")
         # menu.append(item)
         # item.connect_object ("activate", lambda w: self.print_journal(),
         #                      "menu.Print")
@@ -83,7 +87,7 @@ class FrameInfoPage(LogPage.NotePage):
             # set tags according to content of message
             try:
                 tags = [ self.colortbl[frameinfo.status] ]
-            except Exception, e:
+            except Exception as e:
                 self.logger.warn("Bad status in frameinfo: %s" % (str(e)))
                 tags = ['normal']
 
@@ -122,7 +126,7 @@ class FrameInfoPage(LogPage.NotePage):
     def select_frame(self, w, evt):
         with self.lock:
             widget = self.tw
-            win = gtk.TEXT_WINDOW_TEXT
+            win = Gtk.TextWindowType.TEXT
             buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
             (startiter, coord) = widget.get_line_at_y(buf_y1)
             (enditer, coord) = widget.get_line_at_y(buf_y1)
@@ -130,7 +134,7 @@ class FrameInfoPage(LogPage.NotePage):
             text = self.buf.get_text(startiter, enditer).strip()
             frameno = text.split()[0]
             line = startiter.get_line()
-            print "%d: %s" % (line, frameno)
+            print("%d: %s" % (line, frameno))
 
             #self._select_frames = [frameno]
 
@@ -154,7 +158,7 @@ class FrameInfoPage(LogPage.NotePage):
         # Break selection into individual lines
         frames = []
 
-        for i in xrange(int(lrow)+1-frow):
+        for i in range(int(lrow)+1-frow):
 
             row = frow+i
 

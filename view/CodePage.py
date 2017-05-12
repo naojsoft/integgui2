@@ -1,15 +1,18 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
 import os.path
 import string
 
-import common
-import Page
-import dialogs
+from . import common
+from . import Page
+from . import dialogs
 
-import gtk
-import gtksourceview2
+from gi.repository import Gtk
+from gi.repository import GtkSource
+
+import six
 
 warning_close = """
 WARNING: Buffer is modified
@@ -32,36 +35,41 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.filepath = ''
         
         # Used to strip out bogus characters from buffers
-        acceptchars = set(string.printable)
-        self.deletechars = ''.join(set(string.maketrans('', '')) -
-                                   acceptchars)
-        #self.transtbl = string.maketrans('\r', '\n') 
-        self.transtbl = string.maketrans('\r', ' ')
+        if six.PY2:
+            acceptchars = set(string.printable)
+            self.deletechars = ''.join(set(string.maketrans('', '')) -
+                                       acceptchars)
+            #self.transtbl = string.maketrans('\r', '\n') 
+            self.transtbl = string.maketrans('\r', ' ')
+        else:
+            acceptchars = set(string.printable.encode('iso-8859-1'))
+            self.deletechars = (''.join(map(chr, set(bytes.maketrans(b'', b'')) -
+                                            acceptchars))).encode('iso-8859-1')
+            self.transtbl = bytes.maketrans(b'\r', b' ')
 
-
-        self.border = gtk.Frame("")
-        self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        self.border = Gtk.Frame()
+        self.border.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
         self.border.set_label_align(0.1, 0.5)
 
         # Create the widgets for the OPE file text
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
         # create buffer
-        lm = gtksourceview2.LanguageManager()
-        self.buf = gtksourceview2.Buffer()
-        self.buf.set_data('languages-manager', lm)
+        lm = GtkSource.LanguageManager()
+        self.buf = GtkSource.Buffer()
+        self.buf_lm = lm
 
-        tw = gtksourceview2.View(self.buf)
+        tw = GtkSource.View.new_with_buffer(self.buf)
         scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
         tw.set_editable(True)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_wrap_mode(Gtk.WrapMode.NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
 
@@ -79,36 +87,36 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.border.add(scrolled_window)
         self.border.show()
 
-        frame.pack_start(self.border, fill=True, expand=True)
+        frame.pack_start(self.border, True, True, 0)
 
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Reload")
+        item = Gtk.MenuItem(label="Reload")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.reload(),
                              "menu.Reload")
         item.show()
 
-        item = gtk.MenuItem(label="Save")
+        item = Gtk.MenuItem(label="Save")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save(),
                              "menu.Save")
         item.show()
 
-        item = gtk.MenuItem(label="Save as ...")
+        item = Gtk.MenuItem(label="Save as ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_as(),
                              "menu.Save_As")
         item.show()
 
-        item = gtk.MenuItem(label="Save selection as ...")
+        item = Gtk.MenuItem(label="Save selection as ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_selection_as(),
                              "menu.Save_As")
         item.show()
 
         #self.add_close()
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -116,13 +124,13 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         menu = self.add_pulldownmenu("Buffer")
 
-        item = gtk.MenuItem(label="Find/Replace ...")
+        item = Gtk.MenuItem(label="Find/Replace ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.find(),
                              "menu.Find")
         item.show()
 
-        item = gtk.MenuItem(label="Print ...")
+        item = Gtk.MenuItem(label="Print ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.print_cb(),
                              "menu.Print")
@@ -133,15 +141,19 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         # "cleanse" text--change CR to NL, delete unprintable chars
         # TODO: what about unicode?
+        buftxt = buftxt.encode('iso-8859-1')
+        
         buftxt = buftxt.translate(self.transtbl, self.deletechars)
         # translate tabs to 8 spaces
-        buftxt = buftxt.replace('\t', '        ')
+        buftxt = buftxt.replace(b'\t', b'        ')
+
+        buftxt = buftxt.decode()
 
         self.buf.begin_not_undoable_action()
 
         # insert text
-        #tags = ['code']
-        tags = []
+        tags = ['code']
+        #tags = []
         try:
             start, end = self.buf.get_bounds()
             self.buf.remove_source_marks(start, end)
@@ -161,6 +173,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         self.buf.end_not_undoable_action()
 
+        start, end = self.buf.get_bounds()
+        buf = self.buf.get_text(start, end, True)
 
     def load(self, filepath, buf):
         self.loadbuf(buf)
@@ -169,7 +183,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #lw.config(text=filepath)
         self.border.set_label(filepath)
 
-        manager = self.buf.get_data('languages-manager')
+        manager = self.buf_lm
         language = manager.guess_language(filepath)
         if language:
             self.buf.set_highlight_syntax(True)
@@ -181,13 +195,12 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #self.buf.set_modified(False)
 
         #self._do_save()
-
         
     def reload(self):
         try:
             with open(self.filepath, 'r') as in_f:
                 buf = in_f.read()
-        except IOError, e:
+        except IOError as e:
             # ? raise exception instead ?
             return common.view.popup_error("Cannot read '%s': %s" % (
                     self.filepath, str(e)))
@@ -199,13 +212,13 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
             # get text to save
             start, end = self.buf.get_bounds()
-            buf = self.buf.get_text(start, end)
+            buf = self.buf.get_text(start, end, True)
 
             try:
                 with open(self.filepath, 'w') as out_f:
                     out_f.write(buf)
                 #self.statusMsg("%s saved." % self.filepath)
-            except IOError, e:
+            except IOError as e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
                         self.filepath, str(e)))
 
@@ -223,8 +236,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                   _save)
         
     def build_dialog(self, title, text, func):
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_WARNING,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.WARNING,
                                    message_format=text)
         dialog.set_title(title)
         dialog.connect("response", func)
@@ -261,18 +274,18 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.tw.set_show_line_numbers(onoff)
         
     def toggle_line_numbering(self, widget):
-        self.line_numbering(widget.active)
+        self.line_numbering(widget.get_active())
         return True
         
     def line_wrapping(self, kind):
-        d = { 'none': gtk.WRAP_NONE,
-              'char': gtk.WRAP_CHAR,
-              'word': gtk.WRAP_WORD,
-              'full': gtk.WRAP_WORD_CHAR }
+        d = { 'none': Gtk.WrapMode.NONE,
+              'char': Gtk.WrapMode.CHAR,
+              'word': Gtk.WrapMode.WORD,
+              'full': Gtk.WrapMode.WORD_CHAR }
         self.tw.set_wrap_mode(d[kind])
         
     def toggle_line_wrapping(self, widget):
-        if widget.active:
+        if widget.get_active():
             self.line_wrapping('full')
         else:
             self.line_wrapping('none')
@@ -294,8 +307,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         window = sourceview.get_toplevel()
         buffer = sourceview.get_buffer()
 
-        compositor = gtksourceview2.print_compositor_new_from_view(sourceview)
-        compositor.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+        compositor = GtkSource.View.print_compositor_new_from_view(sourceview)
+        compositor.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         compositor.set_highlight_syntax(True)
         #compositor.set_print_line_numbers(5)
         #compositor.set_header_format(False, 'Printed on %A', None, '%F')
@@ -304,16 +317,16 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         compositor.set_print_header(False)
         compositor.set_print_footer(True)
 
-        print_op = gtk.PrintOperation()
+        print_op = Gtk.PrintOperation()
         print_op.connect("begin-print", self.begin_print_cb, compositor)
         print_op.connect("draw-page", self.draw_page_cb, compositor)
-        res = print_op.run(gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG, window)
+        res = print_op.run(Gtk.PrintOperationAction.PRINT_DIALOG, window)
 
-        if res == gtk.PRINT_OPERATION_RESULT_ERROR:
+        if res == Gtk.PRINT_OPERATION_RESULT_ERROR:
             #error_dialog(window, "Error printing file:\n\n" + filename)
             return common.view.popup_error("Error printing file '%s'" % (
                 filename))
-        elif res == gtk.PRINT_OPERATION_RESULT_APPLY:
+        elif res == Gtk.PRINT_OPERATION_RESULT_APPLY:
             common.view.statusMsg('File printed: %s' % filename)
 
     ##### Find and Replace callbacks
@@ -348,7 +361,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         reverse = dialog.is_reverse_search()
         if dialog.is_case_sensitive():
-            search_flags = gtksourceview2.SEARCH_CASE_INSENSITIVE
+            search_flags = GtkSource.View.SEARCH_CASE_INSENSITIVE
         else:
             search_flags = 0
 

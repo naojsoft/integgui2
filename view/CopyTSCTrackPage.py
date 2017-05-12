@@ -1,20 +1,22 @@
 #
-#[ Russell Kackley (rkackley@naoj.org) --
-#  Last edit: Fri Nov  8 09:04:12 HST 2013
-#]
-
+# Russell Kackley (rkackley@naoj.org)
+#
 # Displays names and status of tracking coordinate files copied to TSC
 # computer
 
+from __future__ import absolute_import
 import os, glob
-import gtk
-import pango
 
-import common
-import Page
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+from gi.repository import Pango
 
-import remoteObjects as ro
-import Bunch
+from . import common
+from . import Page
+
+from g2base.remoteObjects import remoteObjects as ro
+from ginga.misc import Bunch
+
 import astro.TSCTrackFile as TSCTrackFile
 
 class CopyTSCTrackPage(Page.ButtonPage):
@@ -52,7 +54,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
         # Add a "Close" item to the "Page" menu to provide a way for
         # the user to close the CopyTSCTrackPage
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -60,15 +62,15 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
         # Create a Frame with a thin border into which we will place
         # the ScrolledWindow
-        self.border = gtk.Frame('')
-        self.border.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        self.border = Gtk.Frame()
+        self.border.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
         self.border.set_label_align(0.1, 0.5)
 
         # Create a ScrolledWindow object into which we will place the
         # TreeView
-        sw = gtk.ScrolledWindow()
+        sw = Gtk.ScrolledWindow()
         sw.set_border_width(2)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.show()
         self.sw = sw
 
@@ -79,7 +81,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
         # create the TreeView which will display the filenames and
         # status info.
-        self.treeview = gtk.TreeView()
+        self.treeview = Gtk.TreeView()
 
         # Create the TreeViewColumns, based on the above column
         # information. At the end of the loop, append the
@@ -88,11 +90,11 @@ class CopyTSCTrackPage(Page.ButtonPage):
         for n, colInfo in enumerate(self.columns):
             header, kwd, dtype, width = colInfo
             if dtype == 'icon':
-                cell = gtk.CellRendererPixbuf()
+                cell = Gtk.CellRendererPixbuf()
             else:
-                cell = gtk.CellRendererText()
+                cell = Gtk.CellRendererText()
             cell.set_padding(2, 0)
-            tvc = gtk.TreeViewColumn(header, cell)
+            tvc = Gtk.TreeViewColumn(header, cell)
             tvc.set_resizable(True)
             tvc.set_min_width(width)
             tvcolumn.append(tvc)
@@ -101,14 +103,14 @@ class CopyTSCTrackPage(Page.ButtonPage):
             self.treeview.append_column(tvcolumn[n])
 
         # create a TreeStore to use as the data model
-        self.treestore = gtk.TreeStore(object)
+        self.treestore = Gtk.TreeStore(object)
 
         # Set the model for the TreeView widget to the TreeStore we
         # just created.
         self.treeview.set_model(self.treestore)
 
         # Set some attributes of the TreeView widget
-        self.treeview.get_selection().set_mode(gtk.SELECTION_NONE)
+        self.treeview.get_selection().set_mode(Gtk.SELECTION_NONE)
         self.treeview.get_selection().unselect_all()
         self.treeview.show()
 
@@ -122,21 +124,21 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
         # Put the border/ScrolledWindow/TreeView combination inside
         # the supplied parent frame.
-        frame.pack_start(self.border, fill=True, expand=True, padding=2)
+        frame.pack_start(self.border, True, True, 2)
 
         # add a bottom button to allow the user to start the copy operation
-        self.btn_startCopy = gtk.Button("Start Copy")
+        self.btn_startCopy = Gtk.Button("Start Copy")
         self.btn_startCopy.connect("clicked", lambda w: self.startCopy())
         self.btn_startCopy.show()
         self.btn_startCopy.set_sensitive(False)
-        self.leftbtns.pack_end(self.btn_startCopy)
+        self.leftbtns.pack_end(self.btn_startCopy, False, False, 0)
 
         # add a bottom button to allow the user to cancel the copy operation
-        self.btn_cancelCopy = gtk.Button("Cancel Copy")
+        self.btn_cancelCopy = Gtk.Button("Cancel Copy")
         self.btn_cancelCopy.connect("clicked", lambda w: self.cancelCopy())
         self.btn_cancelCopy.show()
         self.btn_cancelCopy.set_sensitive(False)
-        self.leftbtns.pack_end(self.btn_cancelCopy)
+        self.leftbtns.pack_end(self.btn_cancelCopy, False, False, 0)
 
     def setup(self, callfn=None, filepaths=None, checkFormat=True, logger=ro.nullLogger()):
         # Setup the CopyTSCTrackPage by specifying the completion
@@ -230,7 +232,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
             # For cells with text in them
             bnch = model.get_value(iter, 0)
             cell.set_property('markup', bnch[kwd])
-            cell.set_property('ellipsize', pango.ELLIPSIZE_MIDDLE)
+            cell.set_property('ellipsize', Pango.ELLIPSIZE_MIDDLE)
             if kwd == 'status':
                 if bnch.statusCode in (self.STATUS__FILE_PENDING, self.STATUS__FILE_READY_TO_COPY):
                     backgrd = 'yellow'
@@ -249,8 +251,8 @@ class CopyTSCTrackPage(Page.ButtonPage):
             filepath = os.path.join(icondir, filename)
             width = 16
             height = width
-            pb = gtk.gdk.pixbuf_new_from_file_at_size(filepath,
-                                                      width, height)
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_size(filepath,
+                                                        width, height)
             cell.set_property('pixbuf', pb)
 
         if dtype == 'icon':

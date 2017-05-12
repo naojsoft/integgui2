@@ -1,15 +1,16 @@
 #
 # DialogPage.py -- implements an Integgui2 dialog
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Apr 15 16:33:43 HST 2011
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 
-import gtk
-import common
-import Page
+from gi.repository import Gtk
 
-import Bunch
+from . import common
+from . import Page
+
+from ginga.misc import Bunch
         
 class DialogError(Exception):
     pass
@@ -20,35 +21,34 @@ class DialogPage(Page.Page):
 
         super(DialogPage, self).__init__(frame, name, title)
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        vbox = gtk.VBox()
+        vbox = Gtk.VBox()
         scrolled_window.add(vbox)
         vbox.show()
         scrolled_window.show()
 
-        frame.pack_start(scrolled_window, expand=True, fill=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
-        self.cvbox = gtk.VBox()
-        vbox.pack_start(self.cvbox, expand=False, fill=True)
+        self.cvbox = Gtk.VBox()
+        vbox.pack_start(self.cvbox, False, True, 0)
         self.cvbox.show()
         
-        separator = gtk.HSeparator()
+        separator = Gtk.HSeparator()
         separator.show()
-        vbox.pack_start(separator, expand=False, fill=True)
+        vbox.pack_start(separator, False, True, 0)
 
         # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns = Gtk.HButtonBox()
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        vbox.pack_start(self.leftbtns, fill=True, expand=False,
-                        padding=4)
+        vbox.pack_start(self.leftbtns, False, True, 4)
         btns.show()
 
     def get_content_area(self):
@@ -57,10 +57,10 @@ class DialogPage(Page.Page):
     def add_button(self, name, rsp, callback):
         def _callback(w):
             return callback(self, rsp)
-        btn = gtk.Button(name)
+        btn = Gtk.Button(name)
         btn.connect("clicked", _callback)
         btn.show()
-        self.leftbtns.pack_start(btn)
+        self.leftbtns.pack_start(btn, False, False, 0)
 
     def add_buttons(self, buttonlist, callback):
         for name, rsp in buttonlist:

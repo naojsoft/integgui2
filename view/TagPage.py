@@ -1,12 +1,12 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Jan 13 15:03:12 HST 2014
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 
-import gtk
+from gi.repository import Gtk
 
-import common
-import LogPage
+from . import common
+from . import LogPage
 
 class TagPage(LogPage.NotePage):
 
@@ -50,11 +50,11 @@ class TagPage(LogPage.NotePage):
         widget = self.tw
         try:
             x, y = int(evt.x), int(evt.y)
-            tup = widget.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+            tup = widget.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                  x, y)
             self.logger.debug("coords are: %s" % (str(tup)))
             buf_x1, buf_y1 = tup
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error converting coordinates to line: %s" % (
                 str(e)))
             return False

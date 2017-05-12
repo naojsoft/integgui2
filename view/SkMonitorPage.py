@@ -1,21 +1,22 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Oct 19 16:55:16 HST 2011
-#]
-
+# Eric Jeschke (eric@naoj.org)
+#
 # Standard library imports
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import re, time
 import threading
 
 # Special library imports
-import gtk
+from gi.repository import Gtk
 
-import Bunch
-import remoteObjects as ro
-import common
-import WorkspacePage
-from LogPage import NotePage
+from g2base.remoteObjects import remoteObjects as ro
+from ginga.misc import Bunch
+
+from . import common
+from . import WorkspacePage
+from .LogPage import NotePage
 
 
 class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
@@ -31,12 +32,12 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         self.track = {}
 
         # Don't allow DND to this workspace
-        self.nb.set_group_id(2)
-        self.nb.set_tab_pos(gtk.POS_RIGHT)
+        self.nb.set_group_name('2')
+        self.nb.set_tab_pos(Gtk.PositionType.RIGHT)
 
         ## menu = self.add_pulldownmenu("Page")
 
-        ## item = gtk.MenuItem(label="Close")
+        ## item = Gtk.MenuItem(label="Close")
         ## # currently disabled
         ## item.set_sensitive(False)
         ## menu.append(item)
@@ -46,8 +47,8 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
         # Options menu
         ## menu = self.add_pulldownmenu("Option")
-        menu = gtk.Menu()
-        item = gtk.MenuItem(label="Option")
+        menu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Option")
         self.wsmenu.append(item)
         item.show()
         item.set_submenu(menu)
@@ -58,24 +59,24 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         self.track_elapsed = False
         self.track_subcommands = True
 
-        w = gtk.CheckMenuItem("Track Subcommands")
+        w = Gtk.CheckMenuItem("Track Subcommands")
         w.set_active(self.track_subcommands)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'track_subcommands'))
 
-        w = gtk.CheckMenuItem("Save Decode Result")
+        w = Gtk.CheckMenuItem("Save Decode Result")
         w.set_active(self.save_decode_result)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
-        w = gtk.CheckMenuItem("Show Times")
+        w = Gtk.CheckMenuItem("Show Times")
         w.set_active(self.show_times)
         menu.append(w)
         w.show()
         w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
 
-        w = gtk.CheckMenuItem("Track Elapsed")
+        w = Gtk.CheckMenuItem("Track Elapsed")
         w.set_active(self.track_elapsed)
         menu.append(w)
         w.show()
@@ -83,7 +84,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def toggle_var(self, widget, key):
-        if widget.active: 
+        if widget.get_active(): 
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
@@ -142,7 +143,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         with self.lock:
             try:
                 super(SkMonitorPage, self).delpage(name)
-            except Exception, e:
+            except Exception as e:
                 # may have already been removed
                 pass
             try:
@@ -191,7 +192,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         #page.tw.tag_raise(ast_num)
         # Scroll the view to this area
         start, end = common.get_region(page.buf, tagname)
-        page.tw.scroll_to_iter(start, 0.1)
+        page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
 
 
     def replace_text(self, page, tagname, textstr,
@@ -202,14 +203,14 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         #print "getting region"
         start, end = common.get_region(txtbuf, tagname)
         start.forward_chars(start_offset)
-        text = txtbuf.get_text(start, end)
+        text = txtbuf.get_text(start, end, True)
         #print "deleting %s" % (text)
         txtbuf.delete(start, end)
         #print "inserting %s" % (textstr)
         txtbuf.insert_with_tags_by_name(start, textstr, tagname)
 
         # Scroll the view to this area
-        page.tw.scroll_to_iter(start, 0.1)
+        page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
 
 
     def insert_line(self, page, tagname, newtag, level, textstr):
@@ -245,7 +246,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         txtbuf = page.buf
         start, end = common.get_region(txtbuf, tagname)
 
-        if vals.has_key('time_added'):
+        if 'time_added' in vals:
             length = vals['time_added']
             end = start.copy()
             end.forward_chars(length)
@@ -264,31 +265,31 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         tagname = bnch.tag
 
         cmd_str = None
-        if vals.has_key('cmd_str'):
+        if 'cmd_str' in vals:
             cmd_str = vals['cmd_str']
             cmd_repn = vals.get('cmd_repn', cmd_str)
 
             # Only update this string if it has changed
-            if not vals.has_key('inserted') or (vals['inserted'] != cmd_repn):
+            if 'inserted' not in vals or (vals['inserted'] != cmd_repn):
                 offset = vals.get('time_added', 0)
                 # Replace the decode string with the actual parameters
                 self.replace_text(page, tagname, cmd_repn,
                                   start_offset=offset)
                 vals['inserted'] = cmd_repn
 
-        if vals.has_key('task_error'):
+        if 'task_error' in vals:
             self.append_error(page, tagname, '\n ==> ' + vals['task_error'])
             
             # audible warnings
-            if not vals.has_key('audible'):
+            if 'audible' not in vals:
                 vals['audible'] = True
                 # Only play an audible error if this was not a cancel
-                if vals.has_key('task_code') and (vals['task_code'] != 3):
+                if 'task_code' in vals and (vals['task_code'] != 3):
                     common.controller.audible_warn(cmd_str, vals)
 
-        elif vals.has_key('task_end'):
-            if vals.has_key('task_start'):
-                if self.track_elapsed and info.has_key('asttime'):
+        elif 'task_end' in vals:
+            if 'task_start' in vals:
+                if self.track_elapsed and 'asttime' in info:
                     elapsed = vals['task_start'] - info.asttime
                 else:
                     elapsed = vals['task_end'] - vals['task_start']
@@ -299,22 +300,22 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                         self.time2str(vals['task_end'])))
             self.change_text(page, tagname, 'task_end')
                 
-        elif vals.has_key('end_time'):
+        elif 'end_time' in vals:
             self.update_time(page, tagname, vals, '[EN %s]: ' % (
                     self.time2str(vals['end_time'])))
             self.change_text(page, tagname, 'end_time')
                 
-        elif vals.has_key('ack_time'):
+        elif 'ack_time' in vals:
             self.update_time(page, tagname, vals, '[AB %s]: ' % (
                     self.time2str(vals['ack_time'])))
             self.change_text(page, tagname, 'ack_time')
 
-        elif vals.has_key('cmd_time'):
+        elif 'cmd_time' in vals:
             self.update_time(page, tagname, vals, '[CD %s]: ' % (
                     self.time2str(vals['cmd_time'])))
             self.change_text(page, tagname, 'cmd_time')
 
-        elif vals.has_key('task_start'):
+        elif 'task_start' in vals:
             self.update_time(page, tagname, vals, '[TS %s]: ' % (
                     self.time2str(vals['task_start'])))
             self.change_text(page, tagname, 'task_start')
@@ -347,9 +348,10 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 self.db[name] = info
                 page = None
 
-            if vals.has_key('ast_buf'):
+            if 'ast_buf' in vals:
                 ast_str = ro.binary_decode(vals['ast_buf'])
                 ast_str = ro.uncompress(ast_str)
+                ast_str = ast_str.decode('ascii')
                 # Due to an unfortunate way in which we have to search for
                 # tags in common.get_region()
                 if not ast_str.endswith('\n'):
@@ -367,7 +369,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 page = self.addpage(name, title, ast_str)
                 info.page = page
 
-            elif vals.has_key('ast_track'):
+            elif 'ast_track' in vals:
                 path = vals['ast_track']
                 
                 # GLOBAL VAR READ
@@ -412,7 +414,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 return
 
             # Have we already set this up?
-            if self.track.has_key(subpath):
+            if subpath in self.track:
                 return
             
             page = p_bnch.info.page
@@ -424,7 +426,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             curvals = common.controller.getvals(subpath)
             if isinstance(curvals, dict):
                 state.update(curvals)
-            print "What we know is: %s" % str(state)
+            print("What we know is: %s" % str(state))
 
             # Figure out the text tag of the last subcommand under this
             # command based on the count
@@ -439,7 +441,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             cmd_str = 'SUBCOMMAND'
 
             # Insert a new line for the subcommand
-            print "inserting new line: lasttag=%s" % (lasttag)
+            print("inserting new line: lasttag=%s" % (lasttag))
             self.insert_line(page, lasttag, tagname, level, cmd_str)
             
             bnch = Bunch.Bunch(info=p_bnch.info, state=state, tag=tagname,

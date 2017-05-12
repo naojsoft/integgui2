@@ -1,12 +1,19 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import time
 import threading
-import gtk
 
-import Bunch
-import Workspace
+from gi.repository import Gtk
+
+from ginga.misc import Bunch
+
+from . import common
+from . import Workspace
+
+from six.moves import map
 
 
 class Desktop(object):
@@ -22,29 +29,29 @@ class Desktop(object):
         
         # TODO: should generalize to number of rows and columns
 
-        vframe = gtk.VPaned()
+        vframe = Gtk.VPaned()
 
-        self.w.ulh = gtk.HPaned()
+        self.w.ulh = Gtk.HPaned()
         self.w.ulh.set_size_request(-1, 400)
-        self.w.llh = gtk.HPaned()
-        self.w.umh = gtk.HPaned()
+        self.w.llh = Gtk.HPaned()
+        self.w.umh = Gtk.HPaned()
         self.w.umh.set_size_request(-1, 400)
-        self.w.lmh = gtk.HPaned()
+        self.w.lmh = Gtk.HPaned()
         self.w.ulh.add2(self.w.umh)
         self.w.llh.add2(self.w.lmh)
         
-        frame.pack_start(vframe, fill=True, expand=True)
+        frame.pack_start(vframe, True, True, 0)
 
-        ul = gtk.VBox()
+        ul = Gtk.VBox()
         ul.set_size_request(850, 400)
-        ll = gtk.VBox()
+        ll = Gtk.VBox()
         ll.set_size_request(550, -1)
-        um = gtk.VBox()
+        um = Gtk.VBox()
         um.set_size_request(0, -1)
-        lm = gtk.VBox()
+        lm = Gtk.VBox()
         lm.set_size_request(460, -1)
-        ur = gtk.VBox()
-        lr = gtk.VBox()
+        ur = Gtk.VBox()
+        lr = Gtk.VBox()
 
         self.w.ulh.add1(ul)
         self.w.llh.add1(ll)
@@ -86,7 +93,7 @@ class Desktop(object):
             pinfo = self.ws_fr[loc].pane
             pane_w = pinfo.widget
             cur_pos = pane_w.get_position()
-            print "Setting position for pane %s to %d" % (pinfo.name, cur_pos)
+            print("Setting position for pane %s to %d" % (pinfo.name, cur_pos))
             pinfo.pos = cur_pos
             pinfo.time = time.time()
             if cur_pos < pos:
@@ -99,7 +106,7 @@ class Desktop(object):
             pinfo = self.ws_fr[loc].pane
             pane_w = pinfo.widget
             cur_pos = pane_w.get_position()
-            print "Maybe restore position for pane %s" % (pinfo.name)
+            print("Maybe restore position for pane %s" % (pinfo.name))
             try:
                 pos = pinfo.pos
                 self.logger.debug("Restoring pane to pos %d" % (pos))
@@ -120,7 +127,7 @@ class Desktop(object):
     
     def addws(self, loc, name, title):
         with self.lock:
-            if self.ws.has_key(name):
+            if name in self.ws:
                 raise Exception("A workspace with name '%s' already exists!" % name)
 
             frame = self.get_wsframe(loc)
@@ -138,16 +145,16 @@ class Desktop(object):
 
     def add_detached(self, name, title, x=None, y=None):
         with self.lock:
-            if self.ws.has_key(name):
+            if name in self.ws:
                 raise Exception("A workspace with name '%s' already exists!" % name)
-            root = gtk.Window(gtk.WINDOW_TOPLEVEL)
+            root = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
             root.set_title(title)
             # TODO: this needs to be more sophisticated
             root.connect("delete_event", lambda w, e: w.hide())
             root.set_border_width(2)
 
             # create main frame
-            frame = gtk.VBox(spacing=2)
+            frame = Gtk.VBox(spacing=2)
             root.add(frame)
 
             ws = Workspace.Workspace(frame, name, title)
@@ -166,7 +173,7 @@ class Desktop(object):
 
     def add_detached_noname(self, x=None, y=None):
         with self.lock:
-            while self.ws.has_key('ws%d' % self.count):
+            while 'ws%d' % self.count in self.ws:
                 self.count += 1
             name = 'ws%d' % self.count
             title = 'Workspace %d' % self.count
@@ -178,7 +185,7 @@ class Desktop(object):
 
     def getWorkspaces(self):
         with self.lock:
-            return map(self.getWorkspace, self.ws.keys())
+            return list(map(self.getWorkspace, list(self.ws.keys())))
 
     def getPages(self, name):
         """Return a list of tuples of (ws, page) for pages matching
@@ -202,7 +209,7 @@ class Desktop(object):
     
     def getNames(self):
         with self.lock:
-            return self.ws.keys()
+            return list(self.ws.keys())
 
     def gui_moveto_workspace(self, src_ws, page):
         
@@ -214,15 +221,15 @@ class Desktop(object):
                 self.move_page(src_ws, page, dst_ws)
             return True
 
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
-                                   buttons=gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
+                                   buttons=Gtk.ButtonsType.OK_CANCEL,
                                    message_format="To workspace:")
         dialog.set_title("Move page")
         # Add a combo box to the content area containing the names of the
         # current workspaces
         vbox = dialog.get_content_area()
-        cbox = gtk.combo_box_new_text()
+        cbox = Gtk.ComboBoxText()
         index = 0
         names = []
         for name in self.getNames():

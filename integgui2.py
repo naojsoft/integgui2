@@ -1,28 +1,32 @@
 #! /usr/bin/env python
-# 
-# Eric Jeschke (eric@naoj.org) 
+#
+# Eric Jeschke (eric@naoj.org)
 #
 
 # Standard library imports
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os
 import threading
 
+from ginga.misc import Bunch
+
 # SSD/Gen2 imports
-import remoteObjects as ro
-import remoteObjects.Monitor as Monitor
-import Bunch
-import ssdlog
+from g2base.remoteObjects import remoteObjects as ro
+from g2base.remoteObjects import Monitor
+from g2base import ssdlog
 import Gen2.soundsink as SoundSink
 
 # Local integgui2 imports
-import fits
-import controller as igctrl
-import view.IntegView as igview
-import view.common
-import CommandQueue
+from Gen2.integgui2 import fits
+from Gen2.integgui2 import controller as igctrl
+from Gen2.integgui2.view import IntegView as igview
+from Gen2.integgui2.view import common
+from Gen2.integgui2 import CommandQueue
+
 
 def main(options, args):
-    
+
     global controller, gui
 
     # Create top level logger.
@@ -48,7 +52,7 @@ def main(options, args):
     mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
 
     threadPool = mymon.get_threadPool()
-        
+
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
                                                             logger), )
@@ -56,7 +60,7 @@ def main(options, args):
         logtype = 'monlog'
     else:
         logtype = 'normal'
-        
+
     # Create view
     gui = igview.IntegView(logger, ev_quit, queues, logtype=logtype)
 
@@ -75,8 +79,8 @@ def main(options, args):
                                         soundsink, options,
                                         logtype=logtype)
 
-    view.common.set_view(gui)
-    view.common.set_controller(controller)
+    common.set_view(gui)
+    common.set_controller(controller)
 
     # Configure for currently allocated instrument
     if options.instrument:
@@ -86,7 +90,7 @@ def main(options, args):
         try:
             insname = controller.get_alloc_instrument()
             controller.set_instrument(insname)
-        except Exception, e:
+        except Exception as e:
             # TODO: error popup?
             pass
 
@@ -100,7 +104,7 @@ def main(options, args):
     taskch = [options.taskmgr, 'g2task']
     mymon.subscribe_cb(controller.arr_taskinfo, taskch)
     sub_channels.extend(taskch)
-    
+
     # Obsinfo
     ig_ch = options.taskmgr + '-ig'
     mymon.subscribe_cb(controller.arr_obsinfo, [ig_ch])
@@ -122,7 +126,7 @@ def main(options, args):
     if options.session:
         try:
             controller.config_from_session(options.session)
-        except Exception, e:
+        except Exception as e:
             logger.error("Failed to initialize from session '%s': %s" % (
                 options.session, str(e)))
 
@@ -143,7 +147,7 @@ def main(options, args):
                                 port=options.port,
                                 ev_quit=ev_quit,
                                 usethread=True, threadPool=threadPool)
-    
+
     # Load any files specified on the command line
     for opefile in args:
         gui.load_ope(opefile)
@@ -185,20 +189,20 @@ def main(options, args):
         if server_started:
             mymon.stop_server(wait=True)
         mymon.stop(wait=True)
-    
+
     logger.info("Exiting Gen2/SCM IntegGUI II...")
     #gui.quit()
     sys.exit(0)
-    
+
 
 # Create demo in root window for testing.
 if __name__ == '__main__':
-  
+
     from optparse import OptionParser
 
     usage = "usage: %prog [options]"
     optprs = OptionParser(usage=usage, version=('%%prog'))
-    
+
     optprs.add_option("--debug", dest="debug", default=False,
                       action="store_true",
                       help="Enter the pdb debugger on main()")
@@ -262,11 +266,10 @@ if __name__ == '__main__':
     elif options.profile:
         import profile
 
-        print "%s profile:" % sys.argv[0]
+        print("%s profile:" % sys.argv[0])
         profile.run('main(options, args)')
 
     else:
         main(options, args)
 
 #END
-

@@ -1,19 +1,19 @@
 # 
-#[ Russell Kackley (rkackley@naoj.org) --
-#  Last edit: Wed Nov  6 09:04:11 HST 2013
-#]
-
+# Russell Kackley (rkackley@naoj.org)
+#
+from __future__ import absolute_import
 import os, glob
-import gtk
 
-import myproc
+from gi.repository import Gtk
 
-import common
-import CodePage
+from g2base import myproc
+
+from . import common
+from . import CodePage
 import cfg.g2soss as g2soss
 
-import astro.jplHorizonsIF as jplHorizonsIF
-import astro.TSCTrackFile as TSCTrackFile
+## import astro.jplHorizonsIF as jplHorizonsIF
+## import astro.TSCTrackFile as TSCTrackFile
 
 class TSCTrackPage(CodePage.CodePage):
 
@@ -22,10 +22,10 @@ class TSCTrackPage(CodePage.CodePage):
         super(TSCTrackPage, self).__init__(frame, name, title)
 
         # add a bottom button
-        self.btn_copyTSC = gtk.Button("Copy to TSC")
+        self.btn_copyTSC = Gtk.Button("Copy to TSC")
         self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
         self.btn_copyTSC.show()
-        self.leftbtns.pack_end(self.btn_copyTSC)
+        self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
 
         self.tscFilePath = None
 

@@ -1,15 +1,19 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
 import threading
 import yaml
+import functools
 
-import gtk, gobject
+from gi.repository import Gtk
 
-import Bunch
-import common
-import Page
-import CommandObject
+from ginga.misc import Bunch
+
+from . import common
+from . import Page
+from . import CommandObject
+from six.moves import map
 
 # Default width of the main launcher buttons
 default_width = 150
@@ -29,26 +33,27 @@ class Launcher(object):
         self.btn_width = 20
         self.execfn = execfn
 
-        self.table = gtk.Table(rows=2, columns=2)
+        self.table = Gtk.Table(rows=2, columns=2)
         self.table.set_name('launcher')
         self.table.show()
 
-        self.btn_exec = gtk.Button(title)
+        self.btn_exec = Gtk.Button(title)
         self.btn_exec.set_size_request(default_width, -1)
         self.btn_exec.connect("clicked", lambda w: self.execute())
         self.btn_exec.show()
 
         self.table.attach(self.btn_exec, 0, 1, 1, 2,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
 
-        frame.pack_start(self.table, expand=False, fill=True)
+        frame.pack_start(self.table, False, True, 0)
         
 
     def addParam(self, name):
         self.paramList.append(name)
+        key = functools.cmp_to_key(lambda x, y: len(y) - len(x))
         # sort parameter list so longer strings are substituted first
-        self.paramList.sort(lambda x,y: len(y) - len(x))
+        self.paramList.sort(key=key)
 
     def add_cmd(self, cmdstr):
         self.cmdstr = cmdstr
@@ -65,17 +70,17 @@ class Launcher(object):
 
     def add_input(self, name, width, defVal, label):
         
-        lbl = gtk.Label(label)
+        lbl = Gtk.Label(label)
         lbl.show()
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
-        field = gtk.Entry()
+        field = Gtk.Entry()
         field.set_width_chars(width)
         field.set_text(str(defVal))
         field.show()
         self.table.attach(field, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
         self.bump_col()
 
@@ -87,12 +92,12 @@ class Launcher(object):
 
     def add_list(self, name, optionList, label):
         
-        lbl = gtk.Label(label)
+        lbl = Gtk.Label(label)
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
         lbl.show()
-        combobox = gtk.combo_box_new_text()
+        combobox = Gtk.ComboBoxText()
         options = []
         index = 0
         for opt, val in optionList:
@@ -102,7 +107,7 @@ class Launcher(object):
         combobox.set_active(0)
         combobox.show()
         self.table.attach(combobox, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
         self.bump_col()
 
@@ -115,18 +120,18 @@ class Launcher(object):
 
     def add_radio(self, name, optionList, label):
         
-        lbl = gtk.Label(label)
+        lbl = Gtk.Label(label)
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=gtk.FILL, yoptions=gtk.FILL,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
         lbl.show()
         
         btn = None
         options = []
         for opt, val in optionList:
-            btn = gtk.RadioButton(group=btn, label=opt)
+            btn = Gtk.RadioButton(group=btn, label=opt)
             self.table.attach(btn, self.col, self.col+1, self.row, self.row+1,
-                              xoptions=gtk.FILL, yoptions=gtk.FILL,
+                              xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                               xpadding=1, ypadding=1)
             options.append((btn, val))
             self.bump_col()
@@ -173,11 +178,11 @@ class Launcher(object):
         if state == 'queued':
             state = 'normal'
 
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors[state])
 
     def reset(self):
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['normal'])
 
 
@@ -189,19 +194,19 @@ class LauncherList(object):
         self.count = 0
         self.frame = frame
         self.execfn = execfn
-        self.vbox = gtk.VBox(spacing=2)
-        frame.pack_start(self.vbox, expand=True, fill=True)
+        self.vbox = Gtk.VBox(spacing=2)
+        frame.pack_start(self.vbox, True, True, 0)
 
     def addSeparator(self):
-        separator = gtk.HSeparator()
+        separator = Gtk.HSeparator()
         separator.show()
-        self.vbox.pack_start(separator, expand=False, fill=True)
+        self.vbox.pack_start(separator, False, True, 0)
         self.count += 1
 
     def addLauncher(self, name, title):
-        frame = gtk.VBox()
+        frame = Gtk.VBox()
         frame.show()
-        self.vbox.pack_start(frame, expand=False, fill=True)
+        self.vbox.pack_start(frame, False, True, 0)
         self.count += 1
         
         launcher = Launcher(frame, name, title, self.execfn)
@@ -215,7 +220,7 @@ class LauncherList(object):
         return self.ldict[name.lower()]
 
     def getLaunchers(self):
-        return self.ldict.values()
+        return list(self.ldict.values())
 
     def addLauncherFromDef(self, ast):
         assert ast.tag == 'launcher'
@@ -306,26 +311,26 @@ class LauncherList(object):
             return elt_s.split('=')
         
     def addLauncherFromYAMLdef(self, d):
-        assert isinstance(d, dict) and d.has_key('label'), \
+        assert isinstance(d, dict) and 'label' in d, \
                LauncherError("Malformed launcher def: expected key 'label': %s" % (
             str(d)))
         name = d['label']
 
         launcher = self.addLauncher(name, name)
 
-        assert d.has_key('cmd'), \
+        assert 'cmd' in d, \
                LauncherError("Malformed launcher def: expected key 'cmd': %s" % (
             str(d)))
         launcher.add_cmd(d['cmd'])
 
-        if d.has_key('params'):
+        if 'params' in d:
             for param in d['params']:
                 if param == 'break':
                     launcher.add_break()
                     continue
 
                 if isinstance(param, dict):
-                    assert param.has_key('type')
+                    assert 'type' in param
                     p_type = param['type'].lower()
 
                     if p_type == 'input':
@@ -339,14 +344,14 @@ class LauncherList(object):
 
                     elif p_type == 'select':
                         var = param['name']
-                        vallst = map(self._validate_elt, param['values'])
+                        vallst = list(map(self._validate_elt, param['values']))
                         lbl = param.get('label', '')
 
                         launcher.add_radio(var, vallst, lbl)
 
                     elif p_type == 'list':
                         var = param['name']
-                        vallst = map(self._validate_elt, param['values'])
+                        vallst = list(map(self._validate_elt, param['values']))
                         lbl = param.get('label', '')
 
                         launcher.add_list(var, vallst, lbl)
@@ -370,7 +375,7 @@ class LauncherList(object):
                         launcher.add_input(var, width, val, lbl)
 
                     elif p_type == 'select':
-                        vallst = map(self._validate_elt, param[2])
+                        vallst = list(map(self._validate_elt, param[2]))
                         lbl = ''
                         if len(param) > 3:
                             lbl = param[3]
@@ -378,7 +383,7 @@ class LauncherList(object):
                         launcher.add_radio(var, vallst, lbl)
 
                     elif p_type == 'list':
-                        vallst = map(self._validate_elt, param[2])
+                        vallst = list(map(self._validate_elt, param[2]))
                         lbl = ''
                         if len(param) > 3:
                             lbl = param[3]
@@ -408,37 +413,37 @@ class LauncherPage(Page.CommandPage):
         self.queueName = 'launcher'
         self.tm_queueName = 'launcher'
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
         
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
-        frame.pack_start(scrolled_window, expand=True, fill=True)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
+        frame.pack_start(scrolled_window, True, True, 0)
         
         scrolled_window.show()
 
-        self.fw = gtk.VBox()
+        self.fw = Gtk.VBox()
         scrolled_window.add_with_viewport(self.fw)
         
         self.llist = LauncherList(self.fw, name, title,
                                   self.execute)
 
-        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
-        self.leftbtns.pack_start(self.btn_cancel, padding=4)
+        self.leftbtns.pack_start(self.btn_cancel, False, False, 4)
 
-        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause = Gtk.Button("Pause")
         self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
-        self.leftbtns.pack_start(self.btn_pause)
+        self.leftbtns.pack_start(self.btn_pause, False, False, 0)
 
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = gtk.MenuItem(label="Reset")
+        item = Gtk.MenuItem(label="Reset")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.reset(),
                              "menu.Reset")
@@ -446,7 +451,7 @@ class LauncherPage(Page.CommandPage):
 
         #self.add_close(side=Page.LEFT)
         #self.add_close()
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -459,7 +464,7 @@ class LauncherPage(Page.CommandPage):
         ymldef = yaml.load(buf)
         self.llist.loadLauncher(ymldef)
 
-        if ymldef.has_key('tabname'):
+        if 'tabname' in ymldef:
             self.setLabel(ymldef['tabname'])
 
     def addFromDefs(self, ast):

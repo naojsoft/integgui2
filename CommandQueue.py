@@ -5,7 +5,10 @@
 #  Last edit: Sat Apr 16 10:16:53 HST 2011
 #]
 
+from __future__ import absolute_import
 import threading
+from six.moves import filter
+from six.moves import map
 
 class QueueEmpty(Exception):
     pass
@@ -73,13 +76,13 @@ class CommandQueue(object):
         """Returns a list of all tag ids for the command objects in the
         queue."""
         with self.lock:
-            return map(str, self.queue)
+            return list(map(str, self.queue))
 
     def get_by_tags(self, tags):
         """Returns a list of all elements of the queue who have 
         queue."""
         with self.lock:
-            return filter(lambda x: str(x) in tags, self.queue)
+            return [x for x in self.queue if str(x) in tags]
 
     def flush(self):
         with self.lock:
@@ -162,7 +165,7 @@ class CommandQueue(object):
     def removeFilter(self, predfunc):
         with self.lock:
             oldqueue = self.queue
-            self.queue = filter(predfunc, self.queue)
+            self.queue = list(filter(predfunc, self.queue))
             deleted = set(oldqueue).difference(self.queue)
             self.update_status(deleted)
             self.redraw()
@@ -171,7 +174,7 @@ class CommandQueue(object):
     def mapFilter(self, func):
         with self.lock:
             oldqueue = self.queue
-            self.queue = map(func, self.queue)
+            self.queue = list(map(func, self.queue))
             deleted = set(oldqueue).difference(self.queue)
             self.update_status(deleted)
             self.redraw()

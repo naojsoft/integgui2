@@ -2,12 +2,14 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
+from __future__ import absolute_import
 import threading
 
-import remoteObjects as ro
-import remoteObjects.Monitor as Monitor
-import Bunch
-from astro.frame import Frame
+from ginga.misc import Bunch
+
+from g2base.remoteObjects import remoteObjects as ro
+from g2base.remoteObjects import Monitor
+from g2base.astro.frame import Frame
 
 # Headers we show
 headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
@@ -45,7 +47,7 @@ class IntegGUINotify(object):
 
     def _getframe(self, frameid, **kwdargs):
         with self.lock:
-            if self.framecache.has_key(frameid):
+            if frameid in self.framecache:
                 d = self.framecache[frameid]
                 d.update(kwdargs)
                 return d
@@ -102,8 +104,7 @@ class IntegGUINotify(object):
                     pass
 
             # self.gui adds 'row' item--if not present, update gui
-            #print('updating row')
-            if not d.has_key('row'):
+            if 'row' not in d:
                 self.output_line(d)
 
 
@@ -178,7 +179,7 @@ class IntegGUINotify(object):
                                    'filepath']):
             self.transfer_done(frameid, vals['status'])
 
-        elif vals.has_key('time_start'):
+        elif 'time_start' in vals:
             self.transfer_started(frameid)
 
 
@@ -264,9 +265,9 @@ class HSC_IntegGUINotify(IntegGUINotify):
 
         with self.lock:
             d = super(HSC_IntegGUINotify, self)._getframe(frameid, **kwdargs)
-            if not d.has_key('count_xfers'):
+            if 'count_xfers' not in d:
                 d.count_xfers = 0
-            if not d.has_key('count_stars'):
+            if 'count_stars' not in d:
                 d.count_stars = 0
             return d
 

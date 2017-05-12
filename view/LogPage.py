@@ -1,16 +1,18 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
 import time
 import threading
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
+
 import os.path
 ## import subprocess
 
-import common
-import Page
+from . import common
+from . import Page
 
 
 class NotePage(Page.ButtonPage, Page.TextPage):
@@ -28,21 +30,21 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
         self.lock = threading.RLock()
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        tw = gtk.TextView()
+        tw = Gtk.TextView()
         scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
-        frame.pack_start(scrolled_window, expand=True, fill=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
         tw.set_editable(False)
-        tw.set_wrap_mode(gtk.WRAP_NONE)
+        tw.set_wrap_mode(Gtk.WrapMode.NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
 
@@ -55,20 +57,20 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         #self.add_close()
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Save as ...")
+        item = Gtk.MenuItem(label="Save as ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_log_as(),
                              "menu.Save_as")
         item.show()
         
-        item = gtk.MenuItem(label="Save selection as ...")
+        item = Gtk.MenuItem(label="Save selection as ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_log_selection_as(),
                              "menu.Save_selection_as")
         item.show()
         
         #self.add_close()
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -117,7 +119,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         try:
             self.buf.insert_with_tags_by_name(end, data, *tags)
 
-        except Exception, e:
+        except Exception as e:
             tags = ['error']
             data = "--DATA COULD NOT BE INSERTED--: %s" % (str(e))
             self.buf.insert_with_tags_by_name(end, data, *tags)
@@ -225,10 +227,10 @@ class LogPage(NotePage):
                     for line in data.split('\n'):
                         self.push(line)
                     
-        except IOError, e:
+        except IOError as e:
             pass
             
-        gobject.timeout_add(self.poll_interval, self.poll)
+        GObject.timeout_add(self.poll_interval, self.poll)
 
 
 ## class TailPage(LogPage):

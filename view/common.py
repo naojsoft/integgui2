@@ -1,14 +1,18 @@
 #
 # common.py -- common module for IntegGUI view
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Wed Jan 11 22:27:57 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
+from __future__ import print_function
 import os.path
 import re
-import gtk
 
-import Bunch
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+
+from g2base import Bunch
 
 # Top directory to look for stuff
 topprocdir = os.path.join(os.environ['HOME'], 'Procedure')
@@ -22,22 +26,22 @@ color_white = 'white'
 color_bg = 'light grey'
 
 # Gtk color objects used to set widgets dynamically
-launcher_colors = Bunch.Bunch(error = gtk.gdk.color_parse('salmon'),
-                              done = gtk.gdk.color_parse('skyblue'),
-                              normal = gtk.gdk.color_parse('#dcdad5'),
-                              executing =  gtk.gdk.color_parse('palegreen'),
+launcher_colors = Bunch.Bunch(error = Gdk.color_parse('salmon'),
+                              done = Gdk.color_parse('skyblue'),
+                              normal = Gdk.color_parse('#dcdad5'),
+                              executing =  Gdk.color_parse('palegreen'),
 
-                              #execbtn = gtk.gdk.color_parse('royalblue'),
-                              #execbtn = gtk.gdk.color_parse('steelblue1'),
-                              execbtn = gtk.gdk.color_parse('#82a8db'),
-                              cancelbtn = gtk.gdk.color_parse('palevioletred'),
-                              killbtn = gtk.gdk.color_parse('salmon'),
+                              #execbtn = Gdk.color_parse('royalblue'),
+                              #execbtn = Gdk.color_parse('steelblue1'),
+                              execbtn = Gdk.color_parse('#82a8db'),
+                              cancelbtn = Gdk.color_parse('palevioletred'),
+                              killbtn = Gdk.color_parse('salmon'),
 
-                              badtags = gtk.gdk.color_parse('red1'))
+                              badtags = Gdk.color_parse('red1'))
 
 # Colors for embedded terminals
-terminal_colors = Bunch.Bunch(fg=gtk.gdk.color_parse('black'),
-                              bg=gtk.gdk.color_parse('white'),
+terminal_colors = Bunch.Bunch(fg=Gdk.color_parse('black'),
+                              bg=Gdk.color_parse('white'),
                               )
 
 # Colors used in the OpePage
@@ -173,7 +177,7 @@ def update_line(buf, row, text, tags=None):
 
     res = start.set_line(row)
     if start.get_line() != row:
-        print "Could not set line to %d !" % row
+        print("Could not set line to %d !" % row)
 
     if not tags:
         buf.insert(start, text)
@@ -190,7 +194,7 @@ def change_text(page, tagname, **kwdargs):
 
     # Scroll the view to this area
     start, end = get_region(page.buf, tagname)
-    page.tw.scroll_to_iter(start, 0.1)
+    page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
 
 
 def get_region(txtbuf, tagname):
@@ -240,7 +244,7 @@ def replace_text(page, tagname, textstr):
     txtbuf.insert_with_tags_by_name(start, textstr, tagname)
 
     # Scroll the view to this area
-    page.tw.scroll_to_iter(start, 0.1)
+    page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
 
 
 def clear_tags_region(buf, tags, start, end):
@@ -272,7 +276,7 @@ def append_tv(widget, text):
     startiter = txtbuf.get_start_iter()
     txtbuf.place_cursor(startiter)
     enditer = txtbuf.get_end_iter()
-    widget.scroll_to_iter(enditer, False, 0, 0)
+    widget.scroll_to_iter(enditer, 0.1, False, 0.0, 0.0)
 
 def clear_tv(widget):
     txtbuf = widget.get_buffer()
@@ -298,5 +302,14 @@ class TagError(Exception):
 
 class SelectionError(Exception):
     pass
+
+def combo_box_new_text():
+    liststore = Gtk.ListStore(GObject.TYPE_STRING)
+    combobox = Gtk.ComboBox()
+    combobox.set_model(liststore)
+    cell = Gtk.CellRendererText()
+    combobox.pack_start(cell, True)
+    combobox.add_attribute(cell, 'text', 0)
+    return combobox
 
 #END

@@ -1,13 +1,17 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import threading
 import traceback
 
-import gtk
+from gi.repository import Gtk
+from gi.repository import Gdk
 
-import common
+from . import common
+from six.moves import range
 
 # module-level var used for drag-and-drop of pages
 drag_src = None
@@ -32,14 +36,14 @@ class Workspace(object):
         # Mutex
         self.lock = threading.RLock()
 
-        nb = gtk.Notebook()
-        nb.set_tab_pos(gtk.POS_TOP)
+        nb = Gtk.Notebook()
+        nb.set_tab_pos(Gtk.PositionType.TOP)
         nb.set_scrollable(True)
         nb.set_show_tabs(True)
         nb.set_show_border(True)
         nb.set_size_request(900, 500)
         # Allows drag-and-drop between notebooks
-        nb.set_group_id(1)
+        nb.set_group_name('1')
         nb.connect("page-added", self._page_added)
         nb.connect("page-removed", self._page_removed)
         nb.connect("switch-page", self._page_switched)
@@ -54,51 +58,50 @@ class Workspace(object):
         nb.show()
 
         self.nb = nb
-        frame.pack_start(self.nb, expand=True, fill=True,
-                         padding=2)
+        frame.pack_start(self.nb, True, True, 2)
 
 
     def popup_menu(self, w, event, menu):
-        if (event.type == gtk.gdk.BUTTON_PRESS) and \
+        if (event.type == Gdk.EventType.BUTTON_PRESS) and \
                (event.button == 3):
             menu.popup(None, None, None, event.button, event.time)
             return True
         return False
     
     def build_menu(self):
-        wsmenu = gtk.Menu()
+        wsmenu = Gtk.Menu()
 
-        tpmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Tab position")
+        tpmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Tab position")
         wsmenu.append(item)
         item.show()
         item.set_submenu(tpmenu)
 
-        item = gtk.MenuItem(label="Top")
+        item = Gtk.MenuItem(label="Top")
         tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(gtk.POS_TOP),
+        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.TOP),
                             "pos.Top")
         item.show()
 
-        item = gtk.MenuItem(label="Left")
+        item = Gtk.MenuItem(label="Left")
         tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(gtk.POS_LEFT),
+        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.LEFT),
                             "pos.Left")
         item.show()
 
-        item = gtk.MenuItem(label="Bottom")
+        item = Gtk.MenuItem(label="Bottom")
         tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(gtk.POS_BOTTOM),
+        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.BOTTOM),
                             "pos.Bottom")
         item.show()
 
-        item = gtk.MenuItem(label="Right")
+        item = Gtk.MenuItem(label="Right")
         tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(gtk.POS_RIGHT),
+        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.RIGHT),
                             "pos.Right")
         item.show()
 
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         wsmenu.append(item)
         item.connect_object("activate", lambda w: self.close(),
                             "close")
@@ -111,8 +114,8 @@ class Workspace(object):
 
 
     def build_tabmenu(self):
-        tabmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Nop")
+        tabmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Nop")
         tabmenu.append(item)
         item.show()
 
@@ -124,12 +127,12 @@ class Workspace(object):
         
     def makename(self, name):
         with self.lock:
-            if not self.pages.has_key(name):
+            if name not in self.pages:
                 return name
 
-            for i in xrange(2, 100000):
+            for i in range(2, 100000):
                 possname = '%s(%d)' % (name, i)
-                if not self.pages.has_key(possname):
+                if possname not in self.pages:
                     return possname
 
             raise Exception("A page with name '%s' already exists!" % name)
@@ -137,7 +140,7 @@ class Workspace(object):
 
     def _addpage(self, name, title, child, pageobj):
         with self.lock:
-            if self.pages.has_key(name):
+            if name in self.pages:
                 if not adjname:
                     raise Exception("A page with name '%s' already exists!" % name)
                 newname = self.makename(name)
@@ -146,7 +149,7 @@ class Workspace(object):
                 name = newname
 
             # Create a label for the notebook tab
-            label = gtk.Label(title)
+            label = Gtk.Label(title)
             label.show()
 
             # workspace context menu
@@ -180,7 +183,7 @@ class Workspace(object):
         
     def addpage(self, name, title, klass, adjname=True):
         with self.lock:
-            if self.pages.has_key(name):
+            if name in self.pages:
                 if not adjname:
                     raise Exception("A page with name '%s' already exists!" % name)
                 newname = self.makename(name)
@@ -189,27 +192,27 @@ class Workspace(object):
                 name = newname
 
             # Make a frame for the notebook tab content
-            child = gtk.VBox()
+            child = Gtk.VBox()
 
             # Create the new object in the frame
             try:
                 pageobj = klass(child, name, title)
 
-            except Exception, e:
+            except Exception as e:
                 try:
                     (type, value, tb) = sys.exc_info()
-                    print "Traceback:\n%s" % \
-                                      "".join(traceback.format_tb(tb))
+                    print("Traceback:\n%s" % \
+                                      "".join(traceback.format_tb(tb)))
                     self.logger.debug("Traceback:\n%s" % \
                                       "".join(traceback.format_tb(tb)))
                     tb = None
                     raise e
 
-                except Exception, e:
+                except Exception as e:
                     self.logger.debug("Traceback information unavailable.")
                     raise e
 
-            child.set_data('ig_page', pageobj)
+            child.ig_page = pageobj
             child.show()
 
             self._addpage(name, title, child, pageobj)
@@ -242,7 +245,7 @@ class Workspace(object):
 
     def getNames(self):
         with self.lock:
-            return self.pages.keys()
+            return list(self.pages.keys())
 
     def getPage(self, name):
         with self.lock:
@@ -289,15 +292,15 @@ class Workspace(object):
             except:
                 pass
 
-            print "Transients: %s" % str(self.transients)
+            print("Transients: %s" % str(self.transients))
             if len(self.transients) == 0:
                 if self.lastPage != None:
-                    print "Moving back to page: %s" % self.lastPage.name
+                    print("Moving back to page: %s" % self.lastPage.name)
                     self.select(self.lastPage.name)
             
     def getPages(self):
         with self.lock:
-            return self.pages.values()
+            return list(self.pages.values())
 
     def close(self):
         def _close(res):
@@ -329,8 +332,8 @@ class Workspace(object):
     def _page_added(self, nb, child, page_num):
         self.logger.debug("page added %d" % page_num)
         with self.lock:
-            if not self.pages_w.has_key(child):
-                pageobj = child.get_data('ig_page')
+            if child not in self.pages_w:
+                pageobj = child.ig_page
                 self.pages[pageobj.name] = pageobj
                 self.pages_w[child] = pageobj
                 pageobj.parent = self
@@ -342,14 +345,14 @@ class Workspace(object):
         self.logger.debug("page removed %d" % page_num)
         with self.lock:
             try:
-                pageobj = child.get_data('ig_page')
+                pageobj = child.ig_page
                 if self.lastPage == pageobj:
                     self.lastPage = None
                 while pageobj.name in self.transients:
                     self.transients.remove(pageobj.name)
                 del self.pages[pageobj.name]
                 del self.pages_w[child]
-            except Exception, e:
+            except Exception as e:
                 self.logger.error('Error removing page: %s' % str(e))
             return True
     

@@ -1,15 +1,18 @@
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jun  7 18:49:54 HST 2013
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
+from __future__ import print_function
 import time
 import threading
 
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Pango
+from gi.repository import GdkPixbuf
 
-import common
+from . import common
 
 dialog_count = 0
 
@@ -24,7 +27,7 @@ def register_dialog(tag, dialog):
         # dialog is not associated with a remote task
         return
     with dialog_table_lock:
-        print "Registering dialog %s" % tag
+        print("Registering dialog %s" % tag)
         dialog_table[tag] = dialog
 
 def unregister_dialog(tag):
@@ -32,7 +35,7 @@ def unregister_dialog(tag):
     if not tag:
         return
     with dialog_table_lock:
-        print "Unregistering dialog %s" % tag
+        print("Unregistering dialog %s" % tag)
         try:
             del dialog_table[tag]
         except KeyError:
@@ -43,20 +46,20 @@ def cancel_dialog(tag):
     """Cancel any dialogs associated with a remote task.
     """
     with dialog_table_lock:
-        items = dialog_table.items()
+        items = list(dialog_table.items())
 
     # Search the dialog table for a tag that starts with this tag
     for key, obj in items:
         if key.startswith(tag):
             # Found one--it must be associated with that command
-            print "Command cancelled--closing dialog %s" % key
+            print("Command cancelled--closing dialog %s" % key)
             unregister_dialog(key)
             if obj.w:
                 obj.close(obj.w)
     
 
 # NOTE [1]:
-#   There seems to be a bug in the gtk.FileChooserDialog() where if the
+#   There seems to be a bug in the Gtk.FileChooserDialog() where if the
 # directory contents are changing while the dialog is open it will sometimes
 # crash the program.  For this reason I changed the class to create the
 # widget each time it is needed and destroy it afterwards
@@ -74,19 +77,19 @@ class FileSelection(object):
         
         self.callfn(filepath)
 
-    def __init__(self, action=gtk.FILE_CHOOSER_ACTION_OPEN):
+    def __init__(self, action=Gtk.FileChooserAction.OPEN):
         self.action = action
 
     def _create_widget(self, action):
         # Create a new file selection widget
-        self.filew = gtk.FileChooserDialog(title="Select a file",
+        self.filew = Gtk.FileChooserDialog(title="Select a file",
                                            action=action)
         # See NOTE [1]
         #self.filew.connect("destroy", self.close)
-        if action == gtk.FILE_CHOOSER_ACTION_SAVE:
-            self.filew.add_buttons(gtk.STOCK_SAVE, 1, gtk.STOCK_CANCEL, 0)
+        if action == Gtk.FileChooserAction.SAVE:
+            self.filew.add_buttons(Gtk.STOCK_SAVE, 1, Gtk.STOCK_CANCEL, 0)
         else:
-            self.filew.add_buttons(gtk.STOCK_OPEN, 1, gtk.STOCK_CANCEL, 0)
+            self.filew.add_buttons(Gtk.STOCK_OPEN, 1, Gtk.STOCK_CANCEL, 0)
         self.filew.set_default_response(1)
         
         # Connect the ok_button to file_ok_sel method
@@ -119,7 +122,7 @@ class FileSelection(object):
         self.filew = None
 
 class MultFileSelection(FileSelection):
-    def __init__(self, action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=None):
+    def __init__(self, action=Gtk.FileChooserAction.OPEN, buttons=None):
         super(MultFileSelection, self).__init__(action=action)
         self.buttons = buttons
 
@@ -141,7 +144,7 @@ class MultFileSelection(FileSelection):
 
     def _create_widget(self, action):
         # Create a new file selection widget
-        self.filew = gtk.FileChooserDialog(title="Select file(s)",
+        self.filew = Gtk.FileChooserDialog(title="Select file(s)",
                                            action=action)
         # See NOTE [1]
         if self.buttons:
@@ -149,10 +152,10 @@ class MultFileSelection(FileSelection):
                 button_text, response_id = button
                 self.filew.add_buttons(button_text, response_id)
         else:
-            if action == gtk.FILE_CHOOSER_ACTION_SAVE:
-                self.filew.add_buttons(gtk.STOCK_SAVE, 1, gtk.STOCK_CANCEL, 0)
+            if action == Gtk.FILE_CHOOSER_ACTION_SAVE:
+                self.filew.add_buttons(Gtk.STOCK_SAVE, 1, Gtk.STOCK_CANCEL, 0)
             else:
-                self.filew.add_buttons(gtk.STOCK_OPEN, 1, gtk.STOCK_CANCEL, 0)
+                self.filew.add_buttons(Gtk.STOCK_OPEN, 1, Gtk.STOCK_CANCEL, 0)
         self.filew.set_default_response(1)
 
         # Connect the ok_button to file_ok_sel method
@@ -164,14 +167,14 @@ class MultFileSelection(FileSelection):
                                              filename=initialfile)
 
         if initialfile:
-            if self.action == gtk.FILE_CHOOSER_ACTION_OPEN:
+            if self.action == Gtk.FILE_CHOOSER_ACTION_OPEN:
                 self.filew.set_filename(initialfile)
-            elif self.action == gtk.FILE_CHOOSER_ACTION_SAVE:
+            elif self.action == Gtk.FILE_CHOOSER_ACTION_SAVE:
                 self.filew.set_current_name(initialfile)
 
         self.filew.set_select_multiple(multiple)
 
-class MyDialog(gtk.Dialog):
+class MyDialog(Gtk.Dialog):
     def __init__(self, title=None, flags=None, buttons=None,
                  callback=None):
 
@@ -202,7 +205,7 @@ class SearchReplace(object):
 
         if not embed_dialogs:
             self.w = MyDialog(title=self.title,
-                              flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
                               buttons=buttons,
                               callback=callback)
         else:
@@ -217,37 +220,37 @@ class SearchReplace(object):
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
 
-        lbl = gtk.Label('Search string:')
+        lbl = Gtk.Label('Search string:')
         lbl.show()
         self.cvbox.pack_start(lbl, True, False, 0)
-        self._search_widget = gtk.Entry()
+        self._search_widget = Gtk.Entry()
         if self.what:
             self._search_widget.set_text(self.what)
         self._search_widget.set_activates_default(True)
         self._search_widget.show()
         self.cvbox.pack_start(self._search_widget, True, True, 0)
 
-        lbl = gtk.Label('Replacement string:')
+        lbl = Gtk.Label('Replacement string:')
         lbl.show()
         self.cvbox.pack_start(lbl, True, False, 0)
-        self._replace_widget = gtk.Entry()
+        self._replace_widget = Gtk.Entry()
         if self.replacement:
             self._replace_widget.set_text(self.replacement)
         self._replace_widget.set_activates_default(True)
         self._replace_widget.show()
         self.cvbox.pack_start(self._replace_widget, True, True, 0)
 
-        self._case_sensitive = gtk.CheckButton("Case sensitive")
+        self._case_sensitive = Gtk.CheckButton("Case sensitive")
         self._case_sensitive.set_active(True)
         self._case_sensitive.set_sensitive(False)
         self._case_sensitive.show()
         self.cvbox.pack_start(self._case_sensitive, False, False, 0)
 
-        self._reverse = gtk.CheckButton("Reverse")
+        self._reverse = Gtk.CheckButton("Reverse")
         self._reverse.show()
         self.cvbox.pack_start(self._reverse, False, False, 0)
 
-        self._message = gtk.Label('')
+        self._message = Gtk.Label('')
         self._message.show()
         self.cvbox.pack_start(self._message, True, True, 0)
         
@@ -313,13 +316,13 @@ class Confirmation(object):
         embed_dialogs = settings.get('embed_dialogs', False)
 
         if not embed_dialogs:
-            ## self.w = gtk.Dialog(title=self.title,
-            ##                     flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+            ## self.w = Gtk.Dialog(title=self.title,
+            ##                     flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
             ##                     buttons=buttons)
             ## #self.w.connect("close", self.close)
             ## self.w.connect("response", callback)
             self.w = MyDialog(title=self.title,
-                              flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                              flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
                               buttons=buttons,
                               callback=callback)
         else:
@@ -333,14 +336,14 @@ class Confirmation(object):
             
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
-        tw = gtk.TextView()
+        tw = Gtk.TextView()
         # TODO: parameterize this
-        pangoFont = pango.FontDescription("Sans Bold 14")
+        pangoFont = Pango.FontDescription("Sans Bold 14")
         tw.modify_font(pangoFont)
         tw.set_editable(False)
         tw.set_cursor_visible(False)
         tw.set_size_request(425, -1)
-        tw.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+        tw.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
         txtbuf = tw.get_buffer()
@@ -349,12 +352,12 @@ class Confirmation(object):
         self.tw = tw
         tw.show()
 
-        self.icon = gtk.Image()
+        self.icon = Gtk.Image()
         self.icon.set_from_file(iconfile)
-        cvbox.pack_start(self.icon, expand=False, padding=2)
-        cvbox.pack_start(tw, expand=False, padding=5)
+        cvbox.pack_start(self.icon, False, False, 2)
+        cvbox.pack_start(tw, False, False, 5)
 
-        self.anim = gtk.gdk.PixbufAnimation(iconfile)
+        self.anim = GdkPixbuf.PixbufAnimation.new_from_file(iconfile)
         self.icon.set_from_animation(self.anim)
         self.icon.show_all()
         
@@ -384,7 +387,7 @@ class Confirmation(object):
         
         self.w.show()
         #self.timeraction(soundfn)
-        self.timertask = gobject.timeout_add(self.interval,
+        self.timertask = GObject.timeout_add(self.interval,
                                              self.timeraction,
                                              soundfn)
 
@@ -393,7 +396,10 @@ class Confirmation(object):
         widget.destroy()
         self.w = None
         if self.timertask:
-            gobject.source_remove(self.timertask)
+            try:
+                GObject.source_remove(self.timertask)
+            except Exception:
+                pass
         self.timertask = None
 
     def timeraction(self, soundfn):
@@ -403,7 +409,7 @@ class Confirmation(object):
                 soundfn()
             
                 # Schedule next sound event
-                self.timertask = gobject.timeout_add(self.interval,
+                self.timertask = GObject.timeout_add(self.interval,
                                                      self.timeraction,
                                                      soundfn)
         else:
@@ -441,32 +447,33 @@ class UserInput(Confirmation):
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
-        tbl = gtk.Table(rows=len(itemlist), columns=2)
+        tbl = Gtk.Table(rows=len(itemlist), columns=2)
         tbl.set_row_spacings(2)
         tbl.set_col_spacings(2)
 
         row = 0
         for name, val in itemlist:
-            lbl = gtk.Label(name)
+            lbl = Gtk.Label(name)
             lbl.set_alignment(1.0, 0.5)
-            ent = gtk.Entry()
+            ent = Gtk.Entry()
             val_s = str(val)
             ent.set_text(val_s)
             resDict[name] = ent
 
-            tbl.attach(lbl, 0, 1, row, row+1, xoptions=gtk.FILL)
-            tbl.attach(ent, 1, 2, row, row+1, xoptions=gtk.EXPAND|gtk.FILL)
+            tbl.attach(lbl, 0, 1, row, row+1, xoptions=Gtk.AttachOptions.FILL)
+            tbl.attach(ent, 1, 2, row, row+1,
+                       xoptions=Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL)
             row += 1
 
         tbl.show_all()
-        self.cvbox.pack_start(tbl, fill=True, expand=False, padding=2)
+        self.cvbox.pack_start(tbl, False, True, 2)
         
         self.tag = tag
         register_dialog(tag, self)
 
         self.w.show()
         #self.timeraction(soundfn)
-        self.timertask = gobject.timeout_add(self.interval,
+        self.timertask = GObject.timeout_add(self.interval,
                                              self.timeraction,
                                              soundfn)
 
@@ -479,11 +486,11 @@ class Timer(Confirmation):
         # override time interval to 1 sec
         self.interval = 1000
 
-        self.fmtstr = '<span size="120000" weight="bold">%s</span>'
+        self.fmtstr = '<span foreground="#008800" background="#FFFFFF" size="12800" weight="bold">%s</span>'
         
         # rgb triplets we use
-        self.green = gtk.gdk.Color(0.0, 0.5, 0.0)
-        self.white = gtk.gdk.Color(1.0, 1.0, 1.0)
+        ## self.green = Gdk.Color(0.0, 0.5, 0.0)
+        ## self.white = Gdk.Color(1.0, 1.0, 1.0)
 
     def redraw(self):
         s = self.timestr.rjust(5)
@@ -512,18 +519,17 @@ class Timer(Confirmation):
         self.timestr = str(int(val)).rjust(5)
         self.timer_val = time.time() + val
         
-        self.area = gtk.Label()
-        self.area.modify_bg(gtk.STATE_NORMAL, self.white)
-        self.area.modify_fg(gtk.STATE_NORMAL, self.green)
+        self.area = Gtk.Label()
+        #self.area.modify_bg(Gtk.StateType.NORMAL, self.white)
+        #self.area.modify_fg(Gtk.StateType.NORMAL, self.green)
+        self.cvbox.pack_start(self.area, True, True, 2)
         self.area.show()
 
-        self.pbar = gtk.ProgressBar()
-        self.pbar.show()
-        self.pbar.set_orientation(gtk.PROGRESS_LEFT_TO_RIGHT)
+        self.pbar = Gtk.ProgressBar()
         self.pbar.set_fraction(0.0)
         self.pbar.set_text("0%")
-        self.cvbox.pack_start(self.area, fill=True, expand=False, padding=2)
-        self.cvbox.pack_start(self.pbar, fill=True, expand=False, padding=2)
+        self.cvbox.pack_start(self.pbar, False, True, 2)
+        self.pbar.show()
 
         self.tag = tag
         register_dialog(tag, self)
@@ -531,7 +537,7 @@ class Timer(Confirmation):
         self.w.show()
         self.redraw()
 
-        self.timertask = gobject.timeout_add(1000, self.timeraction,
+        self.timertask = GObject.timeout_add(1000, self.timeraction,
                                              soundfn)
 
     def timeraction(self, soundfn):
@@ -545,7 +551,7 @@ class Timer(Confirmation):
             frac = 1.0 - diff/self.duration
             self.pbar.set_fraction(frac)
             self.pbar.set_text("%d%%" % int(frac*100))
-            self.timertask = gobject.timeout_add(1000, self.timeraction,
+            self.timertask = GObject.timeout_add(1000, self.timeraction,
                                                  soundfn)
         else:
             self.timertask = None
@@ -586,7 +592,7 @@ class ComboBox(Confirmation):
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
-        combobox = gtk.combo_box_new_text()
+        combobox = Gtk.ComboBoxText()
 
         for item in itemlist:
             combobox.append_text(item)
@@ -597,14 +603,14 @@ class ComboBox(Confirmation):
             combobox.set_wrap_width(int(len(itemlist)/20))
 
         combobox.show()
-        self.cvbox.pack_start(combobox, fill=True, expand=False, padding=2)
+        self.cvbox.pack_start(combobox, False, True, 2)
 
         self.tag = tag
         register_dialog(tag, self)
 
         self.w.show()
         #self.timeraction(soundfn)
-        self.timertask = gobject.timeout_add(self.interval,
+        self.timertask = GObject.timeout_add(self.interval,
                                              self.timeraction,
                                              soundfn)
 

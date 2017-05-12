@@ -1,15 +1,16 @@
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Mon Mar  7 12:21:01 HST 2011
-#]
+# Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import threading
 
-import gtk
+from gi.repository import Gtk
+from gi.repository import Gdk
 
-import Bunch
-import common
+from ginga.misc import Bunch
+from . import common
 
 # constants
 LEFT  = 'left'
@@ -66,27 +67,25 @@ class ButtonPage(Page):
         self.add_menubar()
         
         # bottom buttons
-        self.btnframe = gtk.HBox()
+        self.btnframe = Gtk.HBox()
         
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns = Gtk.HButtonBox()
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        self.btnframe.pack_start(self.leftbtns, fill=False, expand=False,
-                                 padding=4)
+        self.btnframe.pack_start(self.leftbtns, False, False, 4)
         btns.show()
 
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns = Gtk.HButtonBox()
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.rightbtns = btns
         
-        self.btnframe.pack_end(self.rightbtns, fill=False, expand=False,
-                               padding=4)
+        self.btnframe.pack_end(self.rightbtns, False, False, 4)
         btns.show()
 
-        frame.pack_end(self.btnframe, fill=True, expand=False, padding=2)
+        frame.pack_end(self.btnframe, False, True, 2)
         self.btnframe.show()
 
     def _get_side(self, side):
@@ -97,16 +96,16 @@ class ButtonPage(Page):
         return None
     
     def add_close(self, side=RIGHT):
-        self.btn_close = gtk.Button("Close")
+        self.btn_close = Gtk.Button("Close")
         self.btn_close.connect("clicked", lambda w: self.close())
         self.btn_close.show()
         w = self._get_side(side)
-        w.pack_end(self.btn_close, padding=4)
+        w.pack_end(self.btn_close, False, False, 4)
 
     def add_menubar(self):
-        self.menubar = gtk.MenuBar()
+        self.menubar = Gtk.MenuBar()
         self._menus = {}
-        self.frame.pack_start(self.menubar, fill=True, expand=False, padding=0)
+        self.frame.pack_start(self.menubar, False, True, 0)
         self.menubar.show()
         return self.menubar
 
@@ -120,25 +119,25 @@ class ButtonPage(Page):
         except KeyError:
             pass
         # No such menu, so go ahead and create it
-        menu = gtk.Menu()
+        menu = Gtk.Menu()
         self._menus[name] = menu
         menu.show()
-        item = gtk.MenuItem(label=name)
+        item = Gtk.MenuItem(label=name)
         self.menubar.append(item)
         item.show()
         item.set_submenu(menu)
         return menu
 
     def add_menu(self, side=RIGHT):
-        self.btn_menu = gtk.Button("Menu")
-        self.menu = gtk.Menu()
+        self.btn_menu = Gtk.Button("Menu")
+        self.menu = Gtk.Menu()
         self.btn_menu.connect_object("event", self.popup_menu, self.menu)
         self.btn_menu.show()
         w = self._get_side(side)
-        w.pack_end(self.btn_menu, padding=4)
+        w.pack_end(self.btn_menu, False, False, 4)
 
     def popup_menu(self, w, event):
-        if event.type == gtk.gdk.BUTTON_PRESS:
+        if event.type == Gdk.EventType.BUTTON_PRESS:
             self.menu.popup(None, None, None, event.button, event.time)
             return True
         return False
@@ -175,7 +174,7 @@ class CommandPage(ButtonPage):
         controller.tm_resume(self.tm_queueName)
 
     def toggle_pause(self, w):
-        print "toggle pause!"
+        print("toggle pause!")
         common.controller.playSound(common.sound.pause_toggle)
         if self.paused:
             self.resume()
@@ -266,7 +265,7 @@ class TextPage(Page):
                 out_f.write(buf)
                 out_f.close()
                 #self.statusMsg("%s saved." % self.filepath)
-            except IOError, e:
+            except IOError as e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
                         filepath, str(e)))
 
@@ -292,9 +291,8 @@ class TextPage(Page):
         loc = self.buf.get_start_iter()
         loc.set_line(lineno)
         self.buf.move_mark(self.mark, loc)
-        #res = self.tw.scroll_to_iter(loc, 0.5)
-        #res = self.tw.scroll_to_mark(self.mark, 0.2)
-        res = self.tw.scroll_to_mark(self.mark, 0.2, True)
+        #res = self.tw.scroll_to_iter(loc, 0.5, False, 0.0, 0.0)
+        res = self.tw.scroll_to_mark(self.mark, 0.2, True, 0.0, 0.0)
         if not res:
             res = self.tw.scroll_mark_onscreen(self.mark)
         #print "line->%d res=%s" % (lineno, res)
@@ -304,7 +302,7 @@ class TextPage(Page):
         self.scroll_to_lineno(lineno)
         
     def focus_in(self, *args):
-        print args
+        print(args)
         self.tw.grab_focus()
         return True
     

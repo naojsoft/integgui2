@@ -1,14 +1,17 @@
 # 
 # Eric Jeschke (eric@naoj.org)
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import re
 import lex
 import yacc
 import logging
 import pprint
 
-import Bunch
-import ssdlog
+from ginga.misc import Bunch
+
+from g2base import ssdlog
 from SOSS.parse.sk_common import ASTNode
 
 lex_tab_module  = 'lex_tab_launcher'
@@ -418,7 +421,7 @@ class LauncherManager(object):
 
 def printTokens(tokens):
     for token in tokens:
-        print token
+        print(token)
 
         
 def main(options, args):
@@ -449,7 +452,7 @@ def main(options, args):
                     raise ScanError("I don't understand action='%s'" % (
                             options.action))
 
-            except (ScanError, ParseError), e:
+            except (ScanError, ParseError) as e:
                 # Print error message and continue to next file
                 logger.error(str(e))
 
@@ -461,9 +464,9 @@ def main(options, args):
             if (res.tokens != None) and options.verbose:
                 printTokens(res.tokens)
             
-                print "%d errors" % (res.errors)
+                print("%d errors" % (res.errors))
 
-        except (ScanError, ParseError), e:
+        except (ScanError, ParseError) as e:
             # Print error message
             logger.error(str(e))
 
@@ -501,7 +504,7 @@ if __name__ == '__main__':
     elif options.profile:
         import profile
 
-        print "%s profile:" % sys.argv[0]
+        print("%s profile:" % sys.argv[0])
         profile.run('main(options, args)')
 
     else:

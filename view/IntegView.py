@@ -3,15 +3,22 @@
 #
 
 # Standard library imports
+from __future__ import absolute_import
+from __future__ import print_function
 import sys, os, glob
 import re
-import thread, threading, Queue
+import six.moves._thread, threading, six.moves.queue
 import traceback
 
 # Special library imports
-import pygtk
-pygtk.require('2.0')
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+
+from six.moves import map
 
 # SSD/Gen2 imports
 import cfg.g2soss as g2soss
@@ -19,16 +26,25 @@ from ginga.misc import Bunch, Future
 from ginga.misc import Settings
 
 # Local integgui2 imports
-import common
-from pages import *
-import Page as PG
-import Workspace as WS
-import dialogs
+from . import common
+from .pages import *
+from . import Page as PG
+from . import Workspace as WS
+from . import dialogs
 
 # Parse our gtk resource file
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
-rc_file = os.path.join(thisDir, "gtk_rc")
-gtk.rc_parse(rc_file) 
+css_file = os.path.join(thisDir, "gtk_css")
+with open(css_file, 'rb') as css_f:
+    css_data = css_f.read()
+
+style_provider = Gtk.CssProvider()
+#style_provider.load_from_data(css_data)
+
+## Gtk.StyleContext.add_provider_for_screen(
+##     Gdk.Screen.get_default(), style_provider,
+##     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+##     )
 
 # Formatting string used to format History table
 fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed)7.7s %(result)s %(queue)8.8s  %(cmdstr)s"
@@ -48,7 +64,7 @@ class IntegView(object):
         # ugh--ugly race condition hack
         common.set_view(self)
 
-        self.gui_queue = Queue.Queue()
+        self.gui_queue = six.moves.queue.Queue()
         self.placeholder = '--notdone--'
         self.gui_thread_id = None
 
@@ -77,29 +93,30 @@ class IntegView(object):
         self.set_procdir(procdir, 'SUKA')
         
         # hack required to use threads with GTK
-        gobject.threads_init()
-        gtk.gdk.threads_init()
+        GObject.threads_init()
+        Gdk.threads_init()
 
         # Create top-level window
-        root = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        root = Gtk.Window()
         root.set_size_request(1900, 1050)
         root.set_title('Gen2 Integrated GUI II')
         root.connect("delete_event", self.delete_event)
         root.set_border_width(2)
 
         # These are sometimes needed
-        self.display = gtk.gdk.display_manager_get().get_default_display()
-        self.clipboard = gtk.Clipboard(self.display, "CLIPBOARD")
+        screen = root.get_screen()
+        self.display = screen.get_display()
+        self.clipboard = Gtk.Clipboard()
 
         # create main frame
-        self.w.mframe = gtk.VBox(spacing=2)
+        self.w.mframe = Gtk.VBox(spacing=2)
         root.add(self.w.mframe)
         #self.w.mframe.show()
 
         self.w.root = root
 
-        self.w.menubar = gtk.MenuBar()
-        self.w.mframe.pack_start(self.w.menubar, expand=False)
+        self.w.menubar = Gtk.MenuBar()
+        self.w.mframe.pack_start(self.w.menubar, False, False, 0)
 
         # Create a "desktop" the holder for workspaces
         self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
@@ -175,7 +192,7 @@ class IntegView(object):
         self.ds.restore_ws(ws.name)
 
     def toggle_var(self, widget, key):
-        if widget.active: 
+        if widget.get_active(): 
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
@@ -208,8 +225,8 @@ class IntegView(object):
     def add_menus(self, menubar):
 
         # create a File pulldown menu, and add it to the menu bar
-        filemenu = gtk.Menu()
-        file_item = gtk.MenuItem(label="File")
+        filemenu = Gtk.Menu()
+        file_item = Gtk.MenuItem(label="File")
         menubar.append(file_item)
         file_item.show()
         file_item.set_submenu(filemenu)
@@ -226,49 +243,49 @@ class IntegView(object):
             }
         self.add_load_menus(filemenu, d)
         
-        item = gtk.MenuItem(label="Config from session")
+        item = Gtk.MenuItem(label="Config from session")
         filemenu.append(item)
         item.connect("activate", lambda w: self.reconfig())
         item.show()
 
-        sep = gtk.SeparatorMenuItem()
+        sep = Gtk.SeparatorMenuItem()
         filemenu.append(sep)
         sep.show()
-        quit_item = gtk.MenuItem(label="Exit")
+        quit_item = Gtk.MenuItem(label="Exit")
         filemenu.append(quit_item)
         quit_item.connect("activate", self.quit)
         quit_item.show()
 
         # create a Queue pulldown menu, and add it to the menu bar
-        queuemenu = gtk.Menu()
-        item = gtk.MenuItem(label="Queue")
+        queuemenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Queue")
         menubar.append(item)
         item.show()
         item.set_submenu(queuemenu)
 
-        item = gtk.MenuItem(label="New queue ...")
+        item = Gtk.MenuItem(label="New queue ...")
         queuemenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(self.queuepage),
                              "queue.Create queue")
         item.show()
 
         # create a Misc pulldown menu, and add it to the menu bar
-        miscmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Misc")
+        miscmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Misc")
         menubar.append(item)
         item.show()
         item.set_submenu(miscmenu)
 
-        item = gtk.MenuItem(label="Sound check")
+        item = Gtk.MenuItem(label="Sound check")
         miscmenu.append(item)
         item.connect("activate", lambda w: common.controller.sound_check())
         item.show()
 
-        sep = gtk.SeparatorMenuItem()
+        sep = Gtk.SeparatorMenuItem()
         miscmenu.append(sep)
         sep.show()
 
-        item = gtk.MenuItem(label="Reset Executer")
+        item = Gtk.MenuItem(label="Reset Executer")
         miscmenu.append(item)
         item.connect("activate",
                      lambda w: common.controller.reset_executer())
@@ -290,76 +307,76 @@ class IntegView(object):
 
         ws = Bunch.Bunch()
         
-        loadmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Load source")
+        loadmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Load source")
         filemenu.append(item)
         item.show()
         item.set_submenu(loadmenu)
 
         _get_ws(ws, 'executers', where)
         
-        item = gtk.MenuItem(label="ope")
+        item = Gtk.MenuItem(label="ope")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_ope(ws.executers),
                              "file.Load ope")
         item.show()
 
-        item = gtk.MenuItem(label="sk")
+        item = Gtk.MenuItem(label="sk")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_sk(ws.executers),
                              "file.Load sk")
         item.show()
 
-        item = gtk.MenuItem(label="task")
+        item = Gtk.MenuItem(label="task")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_task(ws.executers),
                              "file.Load task")
         item.show()
 
-        item = gtk.MenuItem(label="launcher")
+        item = Gtk.MenuItem(label="launcher")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_launcher_source(ws.executers),
                              "file.Load launcher")
         item.show()
 
-        item = gtk.MenuItem(label="handset")
+        item = Gtk.MenuItem(label="handset")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_handset_source(ws.executers),
                              "file.Load handset")
         item.show()
 
-        item = gtk.MenuItem(label="inf")
+        item = Gtk.MenuItem(label="inf")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_inf(ws.executers),
                              "file.Load inf")
         item.show()
 
-        item = gtk.MenuItem(label="eph")
+        item = Gtk.MenuItem(label="eph")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_ephem(ws.executers),
                              "file.Load eph")
         item.show()
 
-        item = gtk.MenuItem(label="tsc track")
+        item = Gtk.MenuItem(label="tsc track")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_tscTrack(ws.executers),
                              "file.Load tsc")
         item.show()
 
-        loadmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Load")
+        loadmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Load")
         filemenu.append(item)
         item.show()
         item.set_submenu(loadmenu)
 
-        item = gtk.MenuItem(label="directory")
+        item = Gtk.MenuItem(label="directory")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_folder(ws.executers, '*'),
                              "file.Load dir")
         item.show()
 
         # _get_ws(ws, 'fits', where)
-        # item = gtk.MenuItem(label="fits")
+        # item = Gtk.MenuItem(label="fits")
         # loadmenu.append(item)
         # item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
         #                      "file.Load fits")
@@ -367,7 +384,7 @@ class IntegView(object):
 
         _get_ws(ws, 'launchers', where)
 
-        item = gtk.MenuItem(label="launcher")
+        item = Gtk.MenuItem(label="launcher")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_launcher(ws.launchers),
                              "file.Load launcher")
@@ -375,7 +392,7 @@ class IntegView(object):
 
         _get_ws(ws, 'handsets', where)
 
-        item = gtk.MenuItem(label="handset")
+        item = Gtk.MenuItem(label="handset")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_handset(ws.handsets),
                              "file.Load handset")
@@ -383,40 +400,40 @@ class IntegView(object):
 
         _get_ws(ws, 'logs', where)
 
-        item = gtk.MenuItem(label="log")
+        item = Gtk.MenuItem(label="log")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_log(ws.logs),
                              "file.Load log")
         item.show()
         
-        item = gtk.MenuItem(label="monlog")
+        item = Gtk.MenuItem(label="monlog")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_monlog(ws.logs),
                              "file.Load mon log")
         item.show()
         
         # "New" submenu
-        newmenu = gtk.Menu()
-        item = gtk.MenuItem(label="New")
+        newmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="New")
         filemenu.append(item)
         item.show()
         item.set_submenu(newmenu)
 
         # New->Source sub-sub-menu
-        newsrcmenu = gtk.Menu()
-        item = gtk.MenuItem(label="Source")
+        newsrcmenu = Gtk.Menu()
+        item = Gtk.MenuItem(label="Source")
         newmenu.append(item)
         item.show()
         item.set_submenu(newsrcmenu)
 
-        item = gtk.MenuItem(label="Command page")
+        item = Gtk.MenuItem(label="Command page")
         newsrcmenu.append(item)
         item.connect_object ("activate", lambda w: self.new_source('command',
                                                                    ws.executers),
                              "file.New command page")
         item.show()
 
-        item = gtk.MenuItem(label="OPE file")
+        item = Gtk.MenuItem(label="OPE file")
         newsrcmenu.append(item)
         item.connect_object ("activate", lambda w: self.new_source('ope',
                                                                    ws.executers),
@@ -425,7 +442,7 @@ class IntegView(object):
 
         # end of New->Source
         
-        item = gtk.MenuItem(label="Terminal page")
+        item = Gtk.MenuItem(label="Terminal page")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.add_terminal(ws.executers),
                              "file.New terminal")
@@ -433,7 +450,7 @@ class IntegView(object):
         
         _get_ws(ws, 'queues', where)
 
-        item = gtk.MenuItem(label="Queue ...")
+        item = Gtk.MenuItem(label="Queue ...")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_queue(ws.queues),
                              "file.New queue")
@@ -441,40 +458,39 @@ class IntegView(object):
 
         _get_ws(ws, 'journals', where)
 
-        item = gtk.MenuItem(label="Workspace ...")
+        item = Gtk.MenuItem(label="Workspace ...")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_create_workspace(ws.journals),
                              "file.New Workspace")
         item.show()
 
     def add_dialogs(self):
-        self.filesel = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_OPEN)
-        self.filesave = dialogs.FileSelection(action=gtk.FILE_CHOOSER_ACTION_SAVE)
+        self.filesel = dialogs.FileSelection(action=Gtk.FileChooserAction.OPEN)
+        self.filesave = dialogs.FileSelection(action=Gtk.FileChooserAction.SAVE)
 
     def add_statusbar(self):
-        hbox = gtk.HBox()
-        btns = gtk.HButtonBox()
+        hbox = Gtk.HBox()
+        btns = Gtk.HButtonBox()
 
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
 
-        self.btn_kill = gtk.Button("Kill")
+        self.btn_kill = Gtk.Button("Kill")
         self.btn_kill.connect("clicked", lambda w: self.kill())
-        self.btn_kill.modify_bg(gtk.STATE_NORMAL,
+        self.btn_kill.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['killbtn'])
 
-        btns.pack_end(self.btn_kill, fill=False, expand=False, padding=4)
+        btns.pack_end(self.btn_kill, False, False, 4)
 
-        hbox.pack_end(btns, fill=False, expand=False, padding=4)
+        hbox.pack_end(btns, False, False, 4)
 
         # TODO: should we use a TextWidget so we can use tags?
-        self.w.status = gtk.Label("")
+        self.w.status = Gtk.Label("")
 
-        hbox.pack_start(self.w.status, fill=True, expand=True,
-                        padding=4)
+        hbox.pack_start(self.w.status, True, True, 4)
 
         hbox.show_all()
-        self.w.mframe.pack_end(hbox, expand=False, fill=True)
+        self.w.mframe.pack_end(hbox, False, True, 0)
 
 
     def statusMsg(self, format, *args):
@@ -498,16 +514,16 @@ class IntegView(object):
         if size:
             match = re.match(r'^(\d+)x(\d+)$', size)
             if match:
-                width, height = map(int, match.groups())
+                width, height = list(map(int, match.groups()))
                 self.w.root.set_default_size(width, height)
 
         # TODO: placement
         if pos:
             pass
 
-        #self.root.set_gravity(gtk.gdk.GRAVITY_NORTH_WEST)
+        #self.root.set_gravity(Gdk.GRAVITY_NORTH_WEST)
         ##width, height = window.get_size()
-        ##window.move(gtk.gdk.screen_width() - width, gtk.gdk.screen_height() - height)
+        ##window.move(Gdk.screen_width() - width, Gdk.screen_height() - height)
         # self.root.move(x, y)
 
 
@@ -515,9 +531,10 @@ class IntegView(object):
 #         self.controller = controller
 
     def popup_error(self, errstr):
-        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                              type=gtk.MESSAGE_WARNING,
-                              buttons=gtk.BUTTONS_OK,
+        self.logger.error(errstr)
+        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                              type=Gtk.MessageType.WARNING,
+                              buttons=Gtk.ButtonsType.OK,
                               message_format=errstr)
         #w.connect("close", self.close)
         w.connect("response", lambda w, id: w.destroy())
@@ -526,16 +543,16 @@ class IntegView(object):
 
 
     def popup_confirm(self, title, qstr, f_res, *args, **kwdargs):
-        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                              type=gtk.MESSAGE_QUESTION,
-                              buttons=gtk.BUTTONS_YES_NO,
+        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                              type=Gtk.MessageType.QUESTION,
+                              buttons=Gtk.ButtonsType.YES_NO,
                               message_format=qstr)
         w.set_title(title)
 
         def f(w, rsp):
             w.destroy()
             res = 'no'
-            if rsp == gtk.RESPONSE_YES:
+            if rsp == Gtk.RESPONSE_YES:
                 res = 'yes'
             f_res(res, *args, **kwdargs)
             
@@ -543,8 +560,8 @@ class IntegView(object):
         w.show()
 
     def popup_info(self, title, qstr):
-        w = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                              type=gtk.MESSAGE_INFO,
+        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                              type=Gtk.MessageType.INFO,
                               message_format=qstr)
         w.set_title(title)
         w.show()
@@ -576,7 +593,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot start terminal: %s" % (str(e)))
             return None
 
@@ -585,19 +602,19 @@ class IntegView(object):
         def pick_log(w, rsp, cbox, names):
             logName = names[cbox.get_active()].strip()
             w.hide()
-            if rsp == gtk.RESPONSE_OK:
+            if rsp == Gtk.RESPONSE_OK:
                 self.load_monlog(workspace, logName)
             return True
             
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
-                                   buttons=gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
+                                   buttons=Gtk.ButtonsType.OK_CANCEL,
                                    message_format="Select a log to view")
         dialog.set_title("Choose Log")
         # Add a combo box to the content area containing the names of the
         # logs
         vbox = dialog.get_content_area()
-        cbox = gtk.combo_box_new_text()
+        cbox = Gtk.ComboBoxText()
         index = 0
         names = list(common.controller.valid_monlogs)
         names.sort()
@@ -627,7 +644,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load log '%s': %s" % (
                     logname, str(e)))
             return None
@@ -660,7 +677,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
             return None
@@ -732,7 +749,7 @@ class IntegView(object):
                 for filepath1 in filepath: # OPEN button (not currently in use)
                     self.load_generic(workspace, filepath1, TSCTrackPage)
 
-        dialog = dialogs.MultFileSelection(buttons=((gtk.STOCK_COPY, 1), (gtk.STOCK_CANCEL, 0)))
+        dialog = dialogs.MultFileSelection(buttons=((Gtk.STOCK_COPY, 1), (Gtk.STOCK_CANCEL, 0)))
         dialog.popup('Select File(s):', callback, initialdir)
 
     def gui_load_launcher_source(self, workspace):
@@ -771,7 +788,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
             return None
@@ -820,7 +837,7 @@ class IntegView(object):
 
             return self.open_generic(workspace, buf, filepath, pageKlass)
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
 
@@ -834,7 +851,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load directory '%s': %s" % (
                     dirpath, str(e)))
             return None
@@ -866,7 +883,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
             return None
@@ -898,7 +915,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
                     filepath, str(e)))
             return None
@@ -948,7 +965,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load history page: %s" % (
                     str(e)))
             return None
@@ -985,7 +1002,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load tag page: %s" % (
                     str(e)))
             return None
@@ -1001,7 +1018,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load frame info page: %s" % (
                     str(e)))
             return None
@@ -1013,7 +1030,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load options page: %s" % (
                     str(e)))
             return None
@@ -1027,7 +1044,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load obs info page: %s" % (
                     str(e)))
             return None
@@ -1041,7 +1058,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot load monitor page: %s" % (
                     str(e)))
             return None
@@ -1090,7 +1107,7 @@ class IntegView(object):
             self.dialogs.select(page.name)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot create dialog '%s': %s" % (
                     title, str(e)))
             return None
@@ -1107,7 +1124,7 @@ class IntegView(object):
                     # Recurse into workspace pages
                     self.close_pages_workspace(page, pageKlass, exclude=exclude)
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error closing pages: %s" % str(e))
             
     def close_pages_desktop(self, desktop, pageKlass, exclude=[]):
@@ -1139,7 +1156,7 @@ class IntegView(object):
         try:
             common.controller.ctl_do(common.controller.config_from_session,
                                      'main')
-        except Exception, e:
+        except Exception as e:
             self.gui.popup_error("Failed to initialize from session: %s" % (
                 str(e)))
 
@@ -1205,13 +1222,13 @@ class IntegView(object):
                 self.add_queue(workspace, queueName)
             return True
 
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
                                    message_format="Please enter a name for the new queue:")
         dialog.set_title("Create Queue")
         dialog.add_buttons("Ok", 1, "Cancel", 0)
         vbox = dialog.get_content_area()
-        ent = gtk.Entry()
+        ent = Gtk.Entry()
         vbox.add(ent)
         ent.show()
         dialog.connect("response", create_queue_res, ent)
@@ -1221,7 +1238,7 @@ class IntegView(object):
         queueName = name.strip().lower()
         try:
             if create:
-                if self.queue.has_key(queueName):
+                if queueName in self.queue:
                     raise Exception("A queue with that name already exists!")
                 queue = common.controller.addQueue(queueName, self.logger)
             else:
@@ -1234,7 +1251,7 @@ class IntegView(object):
             workspace.select(page.name)
             return page
         
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot add queue page '%s': %s" % (
                     name, str(e)))
             return None
@@ -1248,13 +1265,13 @@ class IntegView(object):
                 self.add_workspace(workspace, name)
             return True
 
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
                                    message_format="Please enter a name for the new workspace:")
         dialog.set_title("Create Workspace")
         dialog.add_buttons("Ok", 1, "Cancel", 0)
         vbox = dialog.get_content_area()
-        ent = gtk.Entry()
+        ent = Gtk.Entry()
         vbox.add(ent)
         ent.show()
         dialog.connect("response", create_workspace_res, ent)
@@ -1272,7 +1289,7 @@ class IntegView(object):
             #self.add_load_menus(page.wsmenu, page)
             return page
 
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot create workspace page: %s" % (
                     str(e)))
             return None
@@ -1284,19 +1301,19 @@ class IntegView(object):
 
             # Bring Commands tab to front
             self.exws.select('Commands')
-        except Exception, e:
+        except Exception as e:
             self.popup_error("Cannot edit command: %s" % (
                     str(e)))
 
     def delete_event(self, widget, event, data=None):
         self.ev_quit.set()
-        #gtk.main_quit()
+        #Gtk.main_quit()
         return False
 
     # callback to quit the program
     def quit(self, widget):
         self.ev_quit.set()
-        #gtk.main_quit()
+        #Gtk.main_quit()
         return False
 
     def reset_pause(self):
@@ -1306,7 +1323,7 @@ class IntegView(object):
                 for page in ws.getPages():
                     if isinstance(page, PG.CommandPage):
                         page.reset_pause()
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Error resetting pages: %s" % str(e))
 
     ############################################################
@@ -1338,12 +1355,12 @@ class IntegView(object):
 
     def obs_fileselection(self, tag, title, callfn, initialdir=None, initialfile=None, multiple=True, button='open'):
         if button.lower() == 'copy':
-            button = (gtk.STOCK_COPY, 1)
+            button = (Gtk.STOCK_COPY, 1)
         elif button.lower() == 'ok':
-            button = (gtk.STOCK_OK, 1)
+            button = (Gtk.STOCK_OK, 1)
         else:
-            button = (gtk.STOCK_OPEN, 1)
-        dialog = dialogs.MultFileSelection(buttons=(button, (gtk.STOCK_CANCEL, 0)))
+            button = (Gtk.STOCK_OPEN, 1)
+        dialog = dialogs.MultFileSelection(buttons=(button, (Gtk.STOCK_CANCEL, 0)))
         self.gui_do(dialog.popup, title, callfn, initialdir, initialfile, multiple)
 
     def add_tscTrackPage(self, title, callfn, fileSelectionPath, checkFormat):
@@ -1394,7 +1411,7 @@ class IntegView(object):
     def update_history(self, key, info):
         if hasattr(self, 'history'):
             #self.gui_do(self.history.update_table, key, info)
-            print "INFO IS", info
+            print("INFO IS", info)
             msgstr = fmt_history % info
             self.gui_do(self.history.push, msgstr)
            
@@ -1450,13 +1467,13 @@ class IntegView(object):
         return self.gui_do(method, *args, **kwdargs)
     
     def assert_gui_thread(self):
-        my_id = thread.get_ident() 
+        my_id = six.moves._thread.get_ident() 
         assert my_id == self.gui_thread_id, \
                Exception("Non-GUI thread (%d) is executing GUI code!" % (
             my_id))
         
     def assert_nongui_thread(self):
-        my_id = thread.get_ident() 
+        my_id = six.moves._thread.get_ident() 
         assert my_id != self.gui_thread_id, \
                Exception("GUI thread (%d) is executing non-GUI code!" % (
             my_id))
@@ -1466,12 +1483,12 @@ class IntegView(object):
         
         # Process "out-of-band" GTK events
         #print "PROCESSING OUT-BAND"
-        #gtk.gdk.threads_enter()
+        #Gdk.threads_enter()
         try:
-            while gtk.events_pending():
-                gtk.main_iteration(False)
+            while Gtk.events_pending():
+                Gtk.main_iteration()
         finally:
-            #gtk.gdk.threads_leave()
+            #Gdk.threads_leave()
             pass
 
         done = False
@@ -1483,12 +1500,12 @@ class IntegView(object):
                                             timeout=timeout)
 
                 # Execute the GUI method
-                #gtk.gdk.threads_enter()
+                #Gdk.threads_enter()
                 try:
                     try:
                         res = future.thaw(suppress_exception=False)
 
-                    except Exception, e:
+                    except Exception as e:
                         future.resolve(e)
 
                         self.logger.error("gui error: %s" % str(e))
@@ -1497,40 +1514,40 @@ class IntegView(object):
                             tb_str = "".join(traceback.format_tb(tb))
                             self.logger.error("Traceback:\n%s" % (tb_str))
 
-                        except Exception, e:
+                        except Exception as e:
                             self.logger.error("Traceback information unavailable.")
 
                 finally:
-                    #gtk.gdk.threads_leave()
+                    #Gdk.threads_leave()
                     pass
 
                     
-            except Queue.Empty:
+            except six.moves.queue.Empty:
                 done = True
                 
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Main GUI loop error: %s" % str(e))
                 #pass
                 
             # Process "out-of-band" GTK events
             #print "PROCESSING OUT-BAND"
-            #gtk.gdk.threads_enter()
+            #Gdk.threads_enter()
             try:
-                while gtk.events_pending():
-                    gtk.main_iteration(False)
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
             finally:
-                #gtk.gdk.threads_leave()
+                #Gdk.threads_leave()
                 pass
             
 
     def mainloop(self, timeout=0.001):
         # Mark our thread id
-        self.gui_thread_id = thread.get_ident()
+        self.gui_thread_id = six.moves._thread.get_ident()
 
         while not self.ev_quit.isSet():
             self.update_pending(timeout=timeout)
 
-        #gtk.main_quit()
+        #Gtk.main_quit()
 
 
 #END

@@ -1,20 +1,20 @@
 # 
-#[ Russell Kackley (rkackley@naoj.org) --
-#  Last edit: Wed Jul 17 15:28:36 HST 2013
-#]
-
+# Russell Kackley (rkackley@naoj.org)
+#
+from __future__ import absolute_import
 import os, glob
-import gtk
 
-import myproc
+from gi.repository import Gtk
 
-import common
-import CodePage
-import TSCTrackPage
+from g2base import myproc
+
+from . import common
+from . import CodePage
+from . import TSCTrackPage
 import cfg.g2soss as g2soss
 
-import astro.jplHorizonsIF as jplHorizonsIF
-import astro.TSCTrackFile as TSCTrackFile
+## import astro.jplHorizonsIF as jplHorizonsIF
+## import astro.TSCTrackFile as TSCTrackFile
 
 class EphemPage(CodePage.CodePage):
 
@@ -23,15 +23,15 @@ class EphemPage(CodePage.CodePage):
         super(EphemPage, self).__init__(frame, name, title)
 
         # add some bottom buttons
-        self.btn_convertToTSC = gtk.Button("Convert to TSC format")
+        self.btn_convertToTSC = Gtk.Button("Convert to TSC format")
         self.btn_convertToTSC.connect("clicked", lambda w: self.convertToTSCcb())
         self.btn_convertToTSC.show()
-        self.leftbtns.pack_end(self.btn_convertToTSC)
+        self.leftbtns.pack_end(self.btn_convertToTSC, False, False, 0)
 
-        self.btn_copyTSC = gtk.Button("Convert and Copy to TSC")
+        self.btn_copyTSC = Gtk.Button("Convert and Copy to TSC")
         self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
         self.btn_copyTSC.show()
-        self.leftbtns.pack_end(self.btn_copyTSC)
+        self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
 
         self.tscFilePath = None
 

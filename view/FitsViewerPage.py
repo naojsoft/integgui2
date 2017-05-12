@@ -2,6 +2,7 @@
 # Eric Jeschke (eric@naoj.org)
 #
 # stdlib imports
+from __future__ import absolute_import
 import os.path
 import time
 import numpy
@@ -9,10 +10,10 @@ import pyfits
 import threading
 
 # GUI imports
-import gtk
+from gi.repository import Gtk
 
-import common
-import Page
+from . import common
+from . import Page
 
 import astro.fitsdata as fitsdata
 from ginga.misc import Bunch, Datasrc
@@ -37,18 +38,18 @@ class FitsViewerPage(Page.ButtonPage):
 
         self.lock = threading.RLock()
 
-        vbox = gtk.VBox()
-        hbox1 = gtk.HPaned()
+        vbox = Gtk.VBox()
+        hbox1 = Gtk.HPaned()
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        self.fitsinfo = gtk.TextView()
+        self.fitsinfo = Gtk.TextView()
         self.fitsinfo.set_editable(False)
-        self.fitsinfo.set_wrap_mode(gtk.WRAP_NONE)
+        self.fitsinfo.set_wrap_mode(Gtk.WrapMode.NONE)
         self.fitsinfo.set_left_margin(4)
         self.fitsinfo.set_right_margin(4)
         scrolled_window.add(self.fitsinfo)
@@ -74,23 +75,23 @@ class FitsViewerPage(Page.ButtonPage):
                            data=data, header={})
         self.datasrc['__'] = self.image
 
-        vbox.pack_start(hbox1, expand=True, fill=True)
+        vbox.pack_start(hbox1, True, True, 0)
 
         self.add_close()
         
-        self.btn_load = gtk.Button("Load")
+        self.btn_load = Gtk.Button("Load")
         self.btn_load.connect("clicked", lambda w: self.load_fits())
         self.btn_load.show()
-        self.leftbtns.pack_end(self.btn_load, padding=4)
+        self.leftbtns.pack_end(self.btn_load, False, False, 4)
 
-##         self.btn_save = gtk.Button("Save")
+##         self.btn_save = Gtk.Button("Save")
 ##         self.btn_save.connect("clicked", lambda w: self.save())
 ##         self.btn_save.show()
-##         self.leftbtns.pack_end(self.btn_save, padding=4)
+##         self.leftbtns.pack_end(self.btn_save, False, False, 4)
 
         vbox.show()
         
-        frame.pack_start(vbox, expand=True, fill=True)
+        frame.pack_start(vbox, True, True, 0)
 
         frame.show_all()
         
@@ -138,7 +139,7 @@ class FitsViewerPage(Page.ButtonPage):
             #self.image = self.datasrc[self.cursor]
             self.image = self.datasrc[name]
 
-            imagelist = self.datasrc.keys()
+            imagelist = list(self.datasrc.keys())
 
 ##             w = self.history
 ##             clear_tv(w)

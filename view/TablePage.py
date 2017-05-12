@@ -1,15 +1,18 @@
 #
 # TablePage.py -- an integgui2 page that shows a table
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jan 20 13:20:32 HST 2012
-#]
+# Eric Jeschke (eric@naoj.org)
+#
+from __future__ import absolute_import
 import sys
 import os.path
-import gtk
-import Bunch
 
-import Page
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+
+from ginga.misc import Bunch
+
+from . import Page
 
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
@@ -24,20 +27,20 @@ class TablePage(Page.ButtonPage):
         self.columns = []
         self.index = {}
 
-        sw = gtk.ScrolledWindow()
+        sw = Gtk.ScrolledWindow()
         sw.set_border_width(2)
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.show()
         self.sw = sw
-        frame.pack_start(sw, fill=True, expand=True, padding=2)
+        frame.pack_start(sw, True, True, 2)
 
         # bottom buttons
-        btns = gtk.HButtonBox()
-        btns.set_layout(gtk.BUTTONBOX_START)
+        btns = Gtk.HButtonBox()
+        btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.btns = btns
 
-        frame.pack_end(btns, fill=False, expand=False, padding=2)
+        frame.pack_end(btns, False, False, 2)
 
         menu = self.add_pulldownmenu("Page")
 
@@ -46,7 +49,7 @@ class TablePage(Page.ButtonPage):
         self.cell_sort_funcs = []
 
         # create the TreeView
-        treeview = gtk.TreeView()
+        treeview = Gtk.TreeView()
         
         # create the TreeViewColumns to display the data
         tvcolumn = [None] * len(self.columns)
@@ -54,12 +57,12 @@ class TablePage(Page.ButtonPage):
         for header, kwd, dtype in self.columns:
             self.cell_sort_funcs.append(self._mksrtfnN(kwd, dtype))
             if dtype == 'icon':
-                cell = gtk.CellRendererPixbuf()
+                cell = Gtk.CellRendererPixbuf()
             else:
-                cell = gtk.CellRendererText()
+                cell = Gtk.CellRendererText()
             cell.set_padding(2, 0)
             #header, kwd = self.columns[n]
-            tvc = gtk.TreeViewColumn(header, cell)
+            tvc = Gtk.TreeViewColumn(header, cell)
             tvc.set_resizable(True)
             tvc.connect('clicked', self.sort_cb, n)
             tvc.set_clickable(True)
@@ -69,7 +72,7 @@ class TablePage(Page.ButtonPage):
             treeview.append_column(tvcolumn[n])
             n += 1
 
-        self.listmodel = gtk.ListStore(object)
+        self.listmodel = Gtk.ListStore(object)
         treeview.set_model(self.listmodel)
         self.treeview = treeview
         
@@ -79,7 +82,7 @@ class TablePage(Page.ButtonPage):
     def sort_cb(self, column, idx):
         treeview = column.get_tree_view()
         model = treeview.get_model()
-        model.set_sort_column_id(idx, gtk.SORT_ASCENDING)
+        model.set_sort_column_id(idx, Gtk.SORT_ASCENDING)
         fn = self.cell_sort_funcs[idx]
         model.set_sort_func(idx, fn)
         return True
@@ -95,11 +98,11 @@ class TablePage(Page.ButtonPage):
             filename = bnch[kwd]
             filepath = os.path.join(icondir, filename)
             #pb = self.treeview.render_icon(stock,
-            #                               gtk.ICON_SIZE_MENU, None)
+            #                               Gtk.ICON_SIZE_MENU, None)
             width = 16
             height = width
-            pb = gtk.gdk.pixbuf_new_from_file_at_size(filepath,
-                                                      width, height)
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_size(filepath,
+                                                        width, height)
             cell.set_property('pixbuf', pb)
 
         if dtype == 'icon':
@@ -156,7 +159,7 @@ class TablePage(Page.ButtonPage):
 
     def clear(self):
         # Delete all current items
-        self.listmodel = gtk.ListStore(object)
+        self.listmodel = Gtk.ListStore(object)
         self.treeview.set_model(self.listmodel)
         self.index = {}
 

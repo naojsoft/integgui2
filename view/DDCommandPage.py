@@ -1,13 +1,14 @@
 # 
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Sep 25 12:36:37 HST 2010
+#  Last edit: Tue May  9 16:52:44 HST 2017
 #]
 
+from __future__ import absolute_import
 import gtk
 
-import common
-import Page
-import CommandObject
+from . import common
+from . import Page
+from . import CommandObject
 
 class DDCommandPage(Page.CommandPage):
 
@@ -18,22 +19,22 @@ class DDCommandPage(Page.CommandPage):
         self.queueName = 'default'
         self.tm_queueName = 'executer'
 
-        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
 
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC,
-                                   gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
+                                   Gtk.PolicyType.AUTOMATIC)
 
-        tw = gtk.TextView()
+        tw = Gtk.TextView()
         tw.set_editable(True)
-        tw.set_wrap_mode(gtk.WRAP_WORD)
+        tw.set_wrap_mode(Gtk.WrapMode.WORD)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
         scrolled_window.add(tw)
         tw.show()
         scrolled_window.show()
 
-        frame.pack_start(scrolled_window, expand=True, fill=True)
+        frame.pack_start(scrolled_window, True, True, 0)
 
         self.tw = tw
         self.buf = tw.get_buffer()
@@ -41,45 +42,45 @@ class DDCommandPage(Page.CommandPage):
         ## self.add_menu()
         ## self.add_close()
         
-        self.btn_exec = gtk.Button("Exec")
+        self.btn_exec = Gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: self.execute())
-        self.btn_exec.modify_bg(gtk.STATE_NORMAL,
+        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['execbtn'])
         self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec)
+        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
-        self.btn_append = gtk.Button("Append")
+        self.btn_append = Gtk.Button("Append")
         self.btn_append.connect("clicked", lambda w: self.insert())
         self.btn_append.show()
-        self.leftbtns.pack_end(self.btn_append)
+        self.leftbtns.pack_end(self.btn_append, False, False, 0)
 
-        self.btn_prepend = gtk.Button("Prepend")
+        self.btn_prepend = Gtk.Button("Prepend")
         self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
         self.btn_prepend.show()
-        self.leftbtns.pack_end(self.btn_prepend)
+        self.leftbtns.pack_end(self.btn_prepend, False, False, 0)
 
-        self.btn_cancel = gtk.Button("Cancel")
+        self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(gtk.STATE_NORMAL,
+        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel)
+        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
 
-        self.btn_pause = gtk.Button("Pause")
+        self.btn_pause = Gtk.Button("Pause")
         self.btn_pause.connect("clicked", self.toggle_pause)
         self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause)
+        self.leftbtns.pack_end(self.btn_pause, False, False, 0)
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Page")
 
-        item = gtk.MenuItem(label="Clear text")
+        item = Gtk.MenuItem(label="Clear text")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.clear_text(),
                              "menu.Clear")
         item.show()
 
-        item = gtk.MenuItem(label="Close")
+        item = Gtk.MenuItem(label="Close")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.close(),
                              "menu.Close")
@@ -87,7 +88,7 @@ class DDCommandPage(Page.CommandPage):
 
         menu = self.add_pulldownmenu("Command")
 
-        item = gtk.MenuItem(label="Exec as launcher")
+        item = Gtk.MenuItem(label="Exec as launcher")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.execute_as_launcher(),
                              "menu.Execute_as_launcher")
@@ -95,13 +96,13 @@ class DDCommandPage(Page.CommandPage):
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = gtk.MenuItem(label="Clear All")
+        item = Gtk.MenuItem(label="Clear All")
         menu.append(item)
         item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
                              "menu.Clear_All")
         item.show()
 
-        item = gtk.MenuItem(label="Attach to ...")
+        item = Gtk.MenuItem(label="Attach to ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.attach_queue(),
                              "menu.Attach_to")
@@ -120,15 +121,15 @@ class DDCommandPage(Page.CommandPage):
 
     # TODO: this is code share with OpePage.  Should be shared.
     def attach_queue(self):
-        dialog = gtk.MessageDialog(flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=gtk.MESSAGE_QUESTION,
-                                   buttons=gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
+                                   type=Gtk.MESSAGE_QUESTION,
+                                   buttons=Gtk.BUTTONS_OK_CANCEL,
                                    message_format="Pick the destination queue:")
         dialog.set_title("Connect Queue")
         # Add a combo box to the content area containing the names of the
         # current queues
         vbox = dialog.get_content_area()
-        cbox = gtk.combo_box_new_text()
+        cbox = Gtk.ComboBoxText()
         index = 0
         names = []
         for name in common.controller.queue.keys():
@@ -144,8 +145,8 @@ class DDCommandPage(Page.CommandPage):
     def attach_queue_res(self, w, rsp, cbox, names):
         queueName = names[cbox.get_active()].strip().lower()
         w.destroy()
-        if rsp == gtk.RESPONSE_OK:
-            if not common.view.queue.has_key(queueName):
+        if rsp == Gtk.RESPONSE_OK:
+            if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
                 return True
             self.queueName = queueName
@@ -187,7 +188,7 @@ class DDCommandPage(Page.CommandPage):
             cmdObj = self.get_dd_command()
 
             common.controller.execOne(cmdObj, self.tm_queueName)
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
     def execute_as_launcher(self):
@@ -197,7 +198,7 @@ class DDCommandPage(Page.CommandPage):
             cmdObj = self.get_dd_command()
             common.controller.execOne(cmdObj, 'launcher')
 
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
     def insert(self, loc=None, queueName='default'):
@@ -212,7 +213,7 @@ class DDCommandPage(Page.CommandPage):
             else:
                 queue.insert(loc, [cmdObj])
 
-        except Exception, e:
+        except Exception as e:
             common.view.popup_error(str(e))
 
 
