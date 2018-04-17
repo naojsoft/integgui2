@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 
@@ -35,16 +35,16 @@ from . import dialogs
 # Parse our gtk resource file
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 css_file = os.path.join(thisDir, "gtk_css")
-with open(css_file, 'rb') as css_f:
+with open(css_file, 'r') as css_f:
     css_data = css_f.read()
 
 style_provider = Gtk.CssProvider()
-#style_provider.load_from_data(css_data)
+style_provider.load_from_data(bytes(css_data.encode()))
 
-## Gtk.StyleContext.add_provider_for_screen(
-##     Gdk.Screen.get_default(), style_provider,
-##     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-##     )
+Gtk.StyleContext.add_provider_for_screen(
+    Gdk.Screen.get_default(), style_provider,
+    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
 
 # Formatting string used to format History table
 fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed)7.7s %(result)s %(queue)8.8s  %(cmdstr)s"
@@ -81,7 +81,7 @@ class IntegView(object):
             wrap_lines = False,
             show_line_numbers = False,
             clear_obs_info = True)
-        
+
         # This is the home directory for loading all kinds of files
         self.procdir = None
         # This is the list of directories to search for include
@@ -91,7 +91,7 @@ class IntegView(object):
         # Set default location, until changed
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
         self.set_procdir(procdir, 'SUKA')
-        
+
         # hack required to use threads with GTK
         GObject.threads_init()
         Gdk.threads_init()
@@ -124,7 +124,7 @@ class IntegView(object):
         self.ds.logger = self.logger
 
         self.add_statusbar()
-        
+
         # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
         self.oiws = self.ds.addws('ur', 'obsinfo', "Upper Right Workspace")
@@ -165,7 +165,7 @@ class IntegView(object):
         # Populate "Command Executors" ws
         self.add_terminal(self.exws)
         self.new_source('command', self.exws, title='Commands')
-        
+
         self.add_dialogs()
         self.add_menus(self.w.menubar)
 
@@ -192,14 +192,14 @@ class IntegView(object):
         self.ds.restore_ws(ws.name)
 
     def toggle_var(self, widget, key):
-        if widget.get_active(): 
+        if widget.get_active():
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
 
     def get_settings(self):
         return self.settings
-    
+
     def set_procdir(self, path, inst):
         topprocdir = common.topprocdir
         inst = inst.upper()
@@ -208,7 +208,7 @@ class IntegView(object):
             path = os.path.join(topprocdir, inst)
             if not os.path.isdir(path):
                 path = topprocdir
-            
+
         self.procdir = path
 
         # Calculate list of include directories for this path
@@ -221,7 +221,7 @@ class IntegView(object):
             os.path.join(topprocdir, 'COMMON'),
             ]
         self.logger.info("include_dirs: %s" % str(self.include_dirs))
-        
+
     def add_menus(self, menubar):
 
         # create a File pulldown menu, and add it to the menu bar
@@ -242,7 +242,7 @@ class IntegView(object):
              'queues': self.queuepage,
             }
         self.add_load_menus(filemenu, d)
-        
+
         item = Gtk.MenuItem(label="Config from session")
         filemenu.append(item)
         item.connect("activate", lambda w: self.reconfig())
@@ -306,7 +306,7 @@ class IntegView(object):
                 name, where))
 
         ws = Bunch.Bunch()
-        
+
         loadmenu = Gtk.Menu()
         item = Gtk.MenuItem(label="Load source")
         filemenu.append(item)
@@ -314,7 +314,7 @@ class IntegView(object):
         item.set_submenu(loadmenu)
 
         _get_ws(ws, 'executers', where)
-        
+
         item = Gtk.MenuItem(label="ope")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_ope(ws.executers),
@@ -405,13 +405,13 @@ class IntegView(object):
         item.connect_object ("activate", lambda w: self.gui_load_log(ws.logs),
                              "file.Load log")
         item.show()
-        
+
         item = Gtk.MenuItem(label="monlog")
         loadmenu.append(item)
         item.connect_object ("activate", lambda w: self.gui_load_monlog(ws.logs),
                              "file.Load mon log")
         item.show()
-        
+
         # "New" submenu
         newmenu = Gtk.Menu()
         item = Gtk.MenuItem(label="New")
@@ -441,13 +441,13 @@ class IntegView(object):
         item.show()
 
         # end of New->Source
-        
+
         item = Gtk.MenuItem(label="Terminal page")
         newmenu.append(item)
         item.connect_object ("activate", lambda w: self.add_terminal(ws.executers),
                              "file.New terminal")
         item.show()
-        
+
         _get_ws(ws, 'queues', where)
 
         item = Gtk.MenuItem(label="Queue ...")
@@ -477,8 +477,8 @@ class IntegView(object):
 
         self.btn_kill = Gtk.Button("Kill")
         self.btn_kill.connect("clicked", lambda w: self.kill())
-        self.btn_kill.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['killbtn'])
+        common.modify_bg(self.btn_kill,
+                         common.launcher_colors['killbtn'])
 
         btns.pack_end(self.btn_kill, False, False, 4)
 
@@ -507,7 +507,7 @@ class IntegView(object):
                          geom)
         if not match:
             return
-        
+
         size = match.group('size')
         pos = match.group('pos')
 
@@ -555,7 +555,7 @@ class IntegView(object):
             if rsp == Gtk.RESPONSE_YES:
                 res = 'yes'
             f_res(res, *args, **kwdargs)
-            
+
         w.connect("response", f)
         w.show()
 
@@ -605,7 +605,7 @@ class IntegView(object):
             if rsp == Gtk.RESPONSE_OK:
                 self.load_monlog(workspace, logName)
             return True
-            
+
         dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                    type=Gtk.MessageType.QUESTION,
                                    buttons=Gtk.ButtonsType.OK_CANCEL,
@@ -639,7 +639,7 @@ class IntegView(object):
 
             # Add standard error regex matching
             page.add_regexes(common.error_regexes)
-            
+
             # Bring log tab to front
             workspace.select(page.name)
             return page
@@ -652,7 +652,7 @@ class IntegView(object):
 
     def gui_load_log(self, workspace):
         initialdir = os.path.abspath(os.environ['LOGHOME'])
-        
+
         self.filesel.popup("Follow log",
                            lambda filepath: self.load_log(workspace, filepath),
                            initialdir=initialdir)
@@ -670,7 +670,7 @@ class IntegView(object):
 
             # Add standard error regex matching
             page.add_regexes(common.error_regexes)
-            
+
             page.load(filepath)
 
             # Bring log tab to front
@@ -695,7 +695,7 @@ class IntegView(object):
 
     def gui_load_sk(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load skeleton file",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -704,7 +704,7 @@ class IntegView(object):
 
     def gui_load_task(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load python task",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -722,7 +722,7 @@ class IntegView(object):
     def gui_load_inf(self, workspace):
         initialdir = os.path.join(os.environ['HOME'], 'Procedure',
                                   'COMICS')
-        
+
         self.filesel.popup("Load inf file",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -731,7 +731,7 @@ class IntegView(object):
 
     def gui_load_ephem(self, workspace):
         initialdir = self.procdir
-        
+
         self.filesel.popup("Load eph file",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -754,7 +754,7 @@ class IntegView(object):
 
     def gui_load_launcher_source(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load launcher source",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -764,7 +764,7 @@ class IntegView(object):
 
     def gui_load_handset_source(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load handset source",
                            lambda filepath: self.load_generic(workspace,
                                                               filepath,
@@ -859,7 +859,7 @@ class IntegView(object):
 
     def gui_load_launcher(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load launcher",
                            lambda filepath: self.load_launcher(workspace,
                                                                filepath),
@@ -891,7 +891,7 @@ class IntegView(object):
 
     def gui_load_handset(self, workspace):
         initialdir = os.environ['OBSHOME']
-        
+
         self.filesel.popup("Load handset",
                            lambda filepath: self.load_handset(workspace,
                                                               filepath),
@@ -992,7 +992,7 @@ class IntegView(object):
     ##         self.popup_error("Cannot load history page: %s" % (
     ##                 str(e)))
     ##         return None
-        
+
     def add_tagpage(self, workspace):
         try:
             page = workspace.addpage('tags', "Tags", TagPage)
@@ -1006,7 +1006,7 @@ class IntegView(object):
             self.popup_error("Cannot load tag page: %s" % (
                     str(e)))
             return None
-        
+
     def add_frameinfo(self, workspace):
         try:
             page = workspace.addpage('frames', "Frames", FrameInfoPage)
@@ -1022,7 +1022,7 @@ class IntegView(object):
             self.popup_error("Cannot load frame info page: %s" % (
                     str(e)))
             return None
-        
+
     def add_options(self, workspace):
         try:
             page = workspace.addpage('options', "Options", OptionsPage)
@@ -1034,7 +1034,7 @@ class IntegView(object):
             self.popup_error("Cannot load options page: %s" % (
                     str(e)))
             return None
-        
+
     def add_obsinfo(self, workspace):
         try:
             page = workspace.addpage('obsinfo', "Obsinfo", ObsInfoPage)
@@ -1048,7 +1048,7 @@ class IntegView(object):
             self.popup_error("Cannot load obs info page: %s" % (
                     str(e)))
             return None
-        
+
     def add_monitor(self, workspace):
         try:
             page = workspace.addpage('moninfo', "Monitor", SkMonitorPage)
@@ -1062,7 +1062,7 @@ class IntegView(object):
             self.popup_error("Cannot load monitor page: %s" % (
                     str(e)))
             return None
-        
+
     def get_launcher_paths(self, insname, launcherpfx):
         insname = insname.upper()
         filename = '%s*.yml' % launcherpfx
@@ -1071,7 +1071,7 @@ class IntegView(object):
 
         res = glob.glob(pathmatch)
         return res
-        
+
     def get_file_paths_workspace(self, workspace, regex=None):
         """This returns a list of all the paths of files loaded into
         windows in workspace, that match regular expression _regex_.
@@ -1083,17 +1083,17 @@ class IntegView(object):
                 if (not regex) or re.match(regex, path):
                     res.append(path)
         return res
-        
+
     def get_file_paths_desktop(self, desktop, regex=None):
         res = []
         for ws in desktop.getWorkspaces():
             res.extend(self.get_file_paths_workspace(ws, regex=regex))
 
         return res
-            
+
     def get_ope_paths(self):
         return self.get_file_paths_desktop(self.ds, regex='^.*\.(ope|OPE)$')
-    
+
     def create_dialog(self, name, title):
         try:
             try:
@@ -1126,14 +1126,14 @@ class IntegView(object):
 
         except Exception as e:
             self.logger.error("Error closing pages: %s" % str(e))
-            
+
     def close_pages_desktop(self, desktop, pageKlass, exclude=[]):
         for ws in desktop.getWorkspaces():
             self.close_pages_workspace(ws, pageKlass, exclude=exclude)
 
     def close_pages(self, pageKlass, exclude=[]):
         self.close_pages_desktop(self.ds, pageKlass)
-            
+
     def close_launchers(self):
         return self.close_pages(LauncherPage)
 
@@ -1170,7 +1170,7 @@ class IntegView(object):
             except:
                 # possibly they don't have this page open
                 pass
-            
+
         # TODO: breaks abstraction to know that the controller has this.
         # Fix!
         #common.controller.fits.clear()
@@ -1183,7 +1183,7 @@ class IntegView(object):
 
         res = glob.glob(pathmatch)
         return res
-        
+
     def get_log_path(self, insname):
         filename = '%s.log' % insname
         filepath = os.path.join(os.environ['LOGHOME'], filename)
@@ -1191,13 +1191,13 @@ class IntegView(object):
 
     # def gui_load_fits(self, workspace):
     #     initialdir = os.environ['DATAHOME']
-        
+
     #     self.filesel.popup("Load FITS file",
     #                        lambda filepath: self.load_fits(workspace, filepath),
     #                        initialdir=initialdir)
-        
+
     # def load_fits(self, workspace, filepath):
-            
+
     #     (filedir, filename) = os.path.split(filepath)
     #     (filepfx, fileext) = os.path.splitext(filename)
     #     try:
@@ -1207,14 +1207,14 @@ class IntegView(object):
     #         # Bring FITS tab to front
     #         workspace.select(page.name)
     #         return page
-        
+
     #     except Exception, e:
     #         self.popup_error("Cannot load '%s': %s" % (
     #                 filepath, str(e)))
     #         return None
 
     def gui_create_queue(self, workspace):
-        
+
         def create_queue_res(w, rsp, went):
             queueName = went.get_text()
             w.destroy()
@@ -1250,14 +1250,14 @@ class IntegView(object):
 
             workspace.select(page.name)
             return page
-        
+
         except Exception as e:
             self.popup_error("Cannot add queue page '%s': %s" % (
                     name, str(e)))
             return None
 
     def gui_create_workspace(self, workspace):
-        
+
         def create_workspace_res(w, rsp, went):
             name = went.get_text()
             w.destroy()
@@ -1293,7 +1293,7 @@ class IntegView(object):
             self.popup_error("Cannot create workspace page: %s" % (
                     str(e)))
             return None
-        
+
     def edit_command(self, cmdstr):
         try:
             page = self.exws.getPage('Commands')
@@ -1337,12 +1337,12 @@ class IntegView(object):
         dialog = dialogs.Timer()
         self.gui_do(dialog.popup, title, iconfile, soundfn, time_sec, callfn,
                     tag=tag)
-    
+
     def obs_confirmation(self, tag, title, iconfile, soundfn, btnlist, callfn):
         dialog = dialogs.Confirmation()
         self.gui_do(dialog.popup, title, iconfile, soundfn, btnlist, callfn,
                     tag=tag)
-    
+
     def obs_userinput(self, tag, title, iconfile, soundfn, itemlist, callfn):
         dialog = dialogs.UserInput()
         self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
@@ -1389,7 +1389,7 @@ class IntegView(object):
 
     def cancel_dialog(self, tag):
         self.gui_do(dialogs.cancel_dialog, tag)
-        
+
     def update_frame(self, frameinfo):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frame, frameinfo)
@@ -1407,26 +1407,26 @@ class IntegView(object):
         self.logger.debug("OBSINFO=%s" % str(infodict))
         if hasattr(self, 'obsinfo'):
             self.gui_do(self.obsinfo.update_obsinfo, infodict)
-   
+
     def update_history(self, key, info):
         if hasattr(self, 'history'):
             #self.gui_do(self.history.update_table, key, info)
             print("INFO IS", info)
             msgstr = fmt_history % info
             self.gui_do(self.history.push, msgstr)
-           
-   
+
+
     def update_loginfo(self, logname, infodict):
         if hasattr(self, 'logpage'):
             try:
                 page = self.logpage.getPage(logname)
-                #print "%s --> %s" % (logname, str(infodict)) 
+                #print "%s --> %s" % (logname, str(infodict))
                 self.gui_do(page.add2log, infodict)
             except KeyError:
                 # No log page for this log loaded, so silently drop message
                 # TODO: drop into the integgui2 log page?
                 pass
-   
+
     def process_ast(self, ast_id, vals):
         if hasattr(self, 'monpage'):
             self.gui_do(self.monpage.process_ast, ast_id, vals)
@@ -1442,7 +1442,7 @@ class IntegView(object):
 
     def update_statusMsg(self, format, *args):
         self.gui_do(self.statusMsg, format, *args)
-        
+
     def gui_do(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
         """
@@ -1451,7 +1451,7 @@ class IntegView(object):
         future.freeze(method, *args, **kwdargs)
         self.gui_queue.put(future)
         return future
-   
+
     def gui_do_future(self, future):
         """General method for calling into the GUI.
         """
@@ -1463,24 +1463,24 @@ class IntegView(object):
         # Note: I suppose there may be a valid reason for the GUI thread
         # to create one of these, but better safe than sorry...
         self.assert_nongui_thread()
-        
+
         return self.gui_do(method, *args, **kwdargs)
-    
+
     def assert_gui_thread(self):
-        my_id = six.moves._thread.get_ident() 
+        my_id = six.moves._thread.get_ident()
         assert my_id == self.gui_thread_id, \
                Exception("Non-GUI thread (%d) is executing GUI code!" % (
             my_id))
-        
+
     def assert_nongui_thread(self):
-        my_id = six.moves._thread.get_ident() 
+        my_id = six.moves._thread.get_ident()
         assert my_id != self.gui_thread_id, \
                Exception("GUI thread (%d) is executing non-GUI code!" % (
             my_id))
-        
+
 
     def update_pending(self, timeout=0.0):
-        
+
         # Process "out-of-band" GTK events
         #print "PROCESSING OUT-BAND"
         #Gdk.threads_enter()
@@ -1496,7 +1496,7 @@ class IntegView(object):
             #print "PROCESSING IN-BAND"
             # Process "in-band" GTK events
             try:
-                future = self.gui_queue.get(block=True, 
+                future = self.gui_queue.get(block=True,
                                             timeout=timeout)
 
                 # Execute the GUI method
@@ -1521,14 +1521,14 @@ class IntegView(object):
                     #Gdk.threads_leave()
                     pass
 
-                    
+
             except six.moves.queue.Empty:
                 done = True
-                
+
             except Exception as e:
                 self.logger.error("Main GUI loop error: %s" % str(e))
                 #pass
-                
+
             # Process "out-of-band" GTK events
             #print "PROCESSING OUT-BAND"
             #Gdk.threads_enter()
@@ -1538,7 +1538,7 @@ class IntegView(object):
             finally:
                 #Gdk.threads_leave()
                 pass
-            
+
 
     def mainloop(self, timeout=0.001):
         # Mark our thread id

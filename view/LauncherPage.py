@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -22,7 +22,7 @@ class LauncherError(Exception):
     pass
 
 class Launcher(object):
-    
+
     def __init__(self, frame, name, title, execfn):
         self.frame = frame
         self.params = Bunch.Bunch()
@@ -47,7 +47,7 @@ class Launcher(object):
                           xpadding=1, ypadding=1)
 
         frame.pack_start(self.table, False, True, 0)
-        
+
 
     def addParam(self, name):
         self.paramList.append(name)
@@ -69,7 +69,7 @@ class Launcher(object):
         self.table.resize(self.row+1, self.max_col+1)
 
     def add_input(self, name, width, defVal, label):
-        
+
         lbl = Gtk.Label(label)
         lbl.show()
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
@@ -91,7 +91,7 @@ class Launcher(object):
 
 
     def add_list(self, name, optionList, label):
-        
+
         lbl = Gtk.Label(label)
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
                           xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
@@ -112,20 +112,20 @@ class Launcher(object):
         self.bump_col()
 
         name = name.lower()
-        self.params[name] = Bunch.Bunch(widget=combobox, 
+        self.params[name] = Bunch.Bunch(widget=combobox,
                                         get_fn=self.get_list,
                                         options=options)
         self.addParam(name)
 
 
     def add_radio(self, name, optionList, label):
-        
+
         lbl = Gtk.Label(label)
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
                           xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
                           xpadding=1, ypadding=1)
         lbl.show()
-        
+
         btn = None
         options = []
         for opt, val in optionList:
@@ -160,7 +160,7 @@ class Launcher(object):
 
     def getcmd(self):
         cmdstr = self.cmdstr
-        
+
         for var in self.paramList:
             dvar = '$%s' % var.upper()
             if dvar in cmdstr:
@@ -178,16 +178,16 @@ class Launcher(object):
         if state == 'queued':
             state = 'normal'
 
-        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors[state])
+        common.modify_bg(self.btn_exec,
+                         common.launcher_colors[state])
 
     def reset(self):
-        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['normal'])
+        common.modify_bg(self.btn_exec,
+                         common.launcher_colors['normal'])
 
 
 class LauncherList(object):
-    
+
     def __init__(self, frame, name, title, execfn):
         self.llist = []
         self.ldict = {}
@@ -208,12 +208,12 @@ class LauncherList(object):
         frame.show()
         self.vbox.pack_start(frame, False, True, 0)
         self.count += 1
-        
+
         launcher = Launcher(frame, name, title, self.execfn)
-        
+
         self.llist.append(launcher)
         self.ldict[name.lower()] = launcher
-        
+
         return launcher
 
     def getLauncher(self, name):
@@ -233,7 +233,7 @@ class LauncherList(object):
 
         for ast in ast_body.items:
             assert ast.tag in ('cmd', 'list', 'select', 'input', 'break')
-            
+
             if ast.tag == 'break':
                 launcher.add_break()
 
@@ -241,7 +241,7 @@ class LauncherList(object):
                 var, width, val, lbl = ast.items
                 width = int(width)
                 launcher.add_input(var, width, val, lbl)
-        
+
             elif ast.tag == 'select':
                 var, ast_list, lbl = ast.items
                 vallst = []
@@ -249,15 +249,15 @@ class LauncherList(object):
                 if ast_list.tag == 'pure_val_list':
                     for item in ast_list.items:
                         vallst.append((item, item))
-                
+
                 elif ast_list.tag == 'subst_val_list':
                     for item_ast in ast_list.items:
                         assert item_ast.tag == 'value_pair'
                         lhs, rhs = item_ast.items
                         vallst.append((lhs, rhs))
-                        
+
                 launcher.add_radio(var, vallst, lbl)
-        
+
             elif ast.tag == 'list':
                 var, ast_list, lbl = ast.items
                 vallst = []
@@ -265,15 +265,15 @@ class LauncherList(object):
                 if ast_list.tag == 'pure_val_list':
                     for item in ast_list.items:
                         vallst.append((item, item))
-                
+
                 elif ast_list.tag == 'subst_val_list':
                     for item_ast in ast_list.items:
                         assert item_ast.tag == 'value_pair'
                         lhs, rhs = item_ast.items
                         vallst.append((lhs, rhs))
-                        
+
                 launcher.add_list(var, vallst, lbl)
-        
+
             elif ast.tag == 'cmd':
                 cmd, ast_params = ast.items
                 cmd_l = [cmd.upper()]
@@ -289,10 +289,10 @@ class LauncherList(object):
 
             else:
                 pass
-        
+
     def addFromDefs(self, ast):
         assert ast.tag == 'launchers'
-        
+
         for ast in ast.items:
             if ast.tag == 'sep':
                 self.addSeparator()
@@ -303,13 +303,13 @@ class LauncherList(object):
     def _validate_elt(self, elt):
         if isinstance(elt, list) and len(elt) == 2:
             return elt
-        
+
         elt_s = str(elt)
         if not '=' in elt_s:
             return [elt_s, elt_s]
         else:
             return elt_s.split('=')
-        
+
     def addLauncherFromYAMLdef(self, d):
         assert isinstance(d, dict) and 'label' in d, \
                LauncherError("Malformed launcher def: expected key 'label': %s" % (
@@ -393,8 +393,8 @@ class LauncherList(object):
                 else:
                     # don't know what we are looking at
                     continue
-                
-        
+
+
     def loadLauncher(self, d):
         for d in d['launchers']:
             if d == 'sep':
@@ -415,23 +415,23 @@ class LauncherPage(Page.CommandPage):
 
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
-        
+
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
                                    Gtk.PolicyType.AUTOMATIC)
         frame.pack_start(scrolled_window, True, True, 0)
-        
+
         scrolled_window.show()
 
         self.fw = Gtk.VBox()
         scrolled_window.add_with_viewport(self.fw)
-        
+
         self.llist = LauncherList(self.fw, name, title,
                                   self.execute)
 
         self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['cancelbtn'])
+        common.modify_bg(self.btn_cancel,
+                         common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_start(self.btn_cancel, False, False, 4)
 
@@ -498,7 +498,7 @@ class LauncherCommandObject(CommandObject.CommandObject):
     def __init__(self, format, queueName, logger, launcher, cmdstr):
         self.launcher = launcher
         self.cmdstr = cmdstr
-        
+
         super(LauncherCommandObject, self).__init__(format, queueName,
                                                     logger)
 
@@ -508,7 +508,7 @@ class LauncherCommandObject(CommandObject.CommandObject):
 
     def get_preview(self):
         return self.get_cmdstr()
-    
+
     def get_cmdstr(self):
         return self.cmdstr
 

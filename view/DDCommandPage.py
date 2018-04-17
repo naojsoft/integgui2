@@ -1,6 +1,6 @@
-# 
+#
 #[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Tue May  9 16:52:44 HST 2017
+#  Last edit: Sun Apr 15 17:10:51 HST 2018
 #]
 
 from __future__ import absolute_import
@@ -41,11 +41,11 @@ class DDCommandPage(Page.CommandPage):
 
         ## self.add_menu()
         ## self.add_close()
-        
+
         self.btn_exec = Gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: self.execute())
-        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['execbtn'])
+        common.modify_bg(self.btn_exec,
+                         common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
@@ -61,7 +61,7 @@ class DDCommandPage(Page.CommandPage):
 
         self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
+        common.modify_bg(self.btn_cancel,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
@@ -111,13 +111,13 @@ class DDCommandPage(Page.CommandPage):
     def clear_text(self):
         start, end = self.buf.get_bounds()
         self.buf.delete(start, end)
-        
+
     def set_text(self, text):
         self.clear_text()
         itr = self.buf.get_end_iter()
         self.buf.insert(itr, text)
         itr = self.buf.get_end_iter()
-        self.buf.place_cursor(itr)         
+        self.buf.place_cursor(itr)
 
     # TODO: this is code share with OpePage.  Should be shared.
     def attach_queue(self):
@@ -151,11 +151,11 @@ class DDCommandPage(Page.CommandPage):
                 return True
             self.queueName = queueName
         return True
-        
+
     def get_dd_command(self):
         # Clear the selection
         itr = self.buf.get_end_iter()
-        self.buf.place_cursor(itr)         
+        self.buf.place_cursor(itr)
 
         # Get the entire buffer from the page's text widget
         start, end = self.buf.get_bounds()
@@ -168,7 +168,7 @@ class DDCommandPage(Page.CommandPage):
 
         if len(cmdstr) == 0:
             raise Exception("No text in command buffer!")
-            
+
         # tag the text so we can manipulate it later
         cmdObj = DDCommandObject('dd%d', self.queueName,
                                  self.logger, self, cmdstr)
@@ -224,10 +224,10 @@ class DDCommandObject(CommandObject.CommandObject):
         self.cmdstr = cmdstr
 
         super(DDCommandObject, self).__init__(format, queueName, logger)
-        
+
     def get_preview(self):
         return self.get_cmdstr()
-    
+
     def get_cmdstr(self):
         return self.cmdstr
 

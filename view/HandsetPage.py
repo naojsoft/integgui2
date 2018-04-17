@@ -17,7 +17,7 @@ from . import CommandObject
 
 from ginga.misc import Bunch
 from six.moves import range
-        
+
 compass_template = """
   %(n)s
 %(e)s + %(w)s
@@ -52,17 +52,17 @@ class HandsetPage(Page.CommandPage):
         frame.pack_start(scrolled_window, True, True, 0)
 
         self.lw = lw
-        
+
         self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
+        common.modify_bg(self.btn_cancel,
                                 common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
 
         ## menu = self.add_menu()
         ## self.add_close()
-        
+
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
@@ -105,10 +105,10 @@ class HandsetPage(Page.CommandPage):
         img.show()
         btn.show()
         return btn
-    
+
     def build_handset(self):
         self.arrow_stepval = 1.0
-        
+
         widgets = {}
 
         # Place arrow buttons
@@ -171,7 +171,7 @@ class HandsetPage(Page.CommandPage):
             lbl.show()
             lbls[name] = lbl
             self.lw.put(lbl, x, y)
-            
+
         # Compass
         lbl = self._make_compass('N', 'S', 'E', 'W')
         lbls['compass'] = lbl
@@ -194,19 +194,19 @@ class HandsetPage(Page.CommandPage):
         self.lw.put(cbox, 20, 50)
 
         self.widgets = widgets
-        
+
     def reset(self):
         # Reset button backgrounds
         for name in ('left1', 'left2', 'left3', 'up1', 'up2', 'up3',
                      'right1', 'right2', 'right3', 'down1', 'down2',
                      'down3', 'move'):
             btn = self.widgets['buttons'][name]
-            btn.modify_bg(Gtk.StateType.NORMAL,
-                          common.launcher_colors['normal'])
+            common.modify_bg(btn,
+                             common.launcher_colors['normal'])
 
     def addModes(self, modes):
         cbox = self.widgets['buttons']['mode']
-        
+
         # remove old labels
         try:
             for i in range(0, 100):
@@ -225,7 +225,7 @@ class HandsetPage(Page.CommandPage):
             cbox.insert_text(index, name)
             self.modes.append(d)
             index += 1
-            
+
         cbox.set_active(0)
 
 
@@ -277,7 +277,7 @@ class HandsetPage(Page.CommandPage):
             # Set central entry widget to step value
             mainstep = self.widgets['entries']['mainstep']
             mainstep.set_text(str(self.stepval))
-            
+
             # Get number of decimal places in step value
             s = str(self.stepval)
             if not '.' in s:
@@ -285,7 +285,7 @@ class HandsetPage(Page.CommandPage):
             else:
                 xx, dec = s.split('.')
                 numdigits = len(dec)
-                
+
             # Adjust spin widgets to step value
             lspin = self.widgets['entries']['lspin']
             lspin.set_digits(numdigits)
@@ -336,7 +336,7 @@ class HandsetPage(Page.CommandPage):
         except Exception as e:
             self.logger.error("error loading handset: %s" % (str(e)))
             raise e
-        
+
     def load(self, buf):
         d = yaml.load(buf)
 
@@ -349,7 +349,7 @@ class HandsetPage(Page.CommandPage):
         if 'tabname' in d:
             self.setLabel(d['tabname'])
 
-            
+
     def arrowMove(self, w, axis, mult):
         """Callback when an arrow button is pressed.
         """
@@ -368,10 +368,10 @@ class HandsetPage(Page.CommandPage):
             var = info.dec_var
         else:
             var = info.ra_var
-        
+
         cmdstr = "%s %s=%s" % (info.cmd, var, val)
         self.logger.info("Move by arrow: %s" % (cmdstr))
-                         
+
         try:
             # tag the text so we can manipulate it later
             cmdObj = HandsetCommandObject('hs%d', self.queueName,
@@ -395,7 +395,7 @@ class HandsetPage(Page.CommandPage):
         cmdstr = "%s %s=%s %s=%s" % (info.cmd, info.dec_var, decoff,
                                      info.ra_var, raoff)
         self.logger.info("Move by button: %s" % (cmdstr))
-                         
+
         try:
             # tag the text so we can manipulate it later
             cmdObj = HandsetCommandObject('hs%d', self.queueName,
@@ -413,10 +413,10 @@ class HandsetCommandObject(CommandObject.CommandObject):
         self.cmdstr = cmdstr
 
         super(HandsetCommandObject, self).__init__(format, queueName, logger)
-        
+
     def get_preview(self):
         return self.get_cmdstr()
-    
+
     def get_cmdstr(self):
         return self.cmdstr
 
@@ -424,16 +424,16 @@ class HandsetCommandObject(CommandObject.CommandObject):
         if state == 'queued':
             state = 'normal'
 
-        self.widget.modify_bg(Gtk.StateType.NORMAL,
-                              common.launcher_colors[state])
-        
+        common.modify_bg(self.widget,
+                         common.launcher_colors[state])
+
     def mark_status(self, txttag):
         # This MAY be called from a non-gui thread
         common.gui_do(self._show_state, txttag)
 
 
 ##### Icon data #####
-    
+
 _icon_left1 = [
 "26 26 4 1 0 0",
 "       s none  m none  c none",
@@ -835,12 +835,12 @@ icons = { 'left1': _icon_left1,
           'left3': _icon_left3,
           'right1': _icon_right1,
           'right2': _icon_right2,
-          'right3': _icon_right3,          
+          'right3': _icon_right3,
           'up1': _icon_up1,
           'up2': _icon_up2,
-          'up3': _icon_up3,          
+          'up3': _icon_up3,
           'down1': _icon_down1,
           'down2': _icon_down2,
-          'down3': _icon_down3,          
+          'down3': _icon_down3,
           }
 #END

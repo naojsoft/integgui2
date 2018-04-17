@@ -26,18 +26,18 @@ color_white = 'white'
 color_bg = 'light grey'
 
 # Gtk color objects used to set widgets dynamically
-launcher_colors = Bunch.Bunch(error = Gdk.color_parse('salmon'),
-                              done = Gdk.color_parse('skyblue'),
-                              normal = Gdk.color_parse('#dcdad5'),
-                              executing =  Gdk.color_parse('palegreen'),
+launcher_colors = Bunch.Bunch(error = 'salmon',
+                              done = 'skyblue',
+                              normal = '#dcdad5',
+                              executing =  'palegreen',
 
-                              #execbtn = Gdk.color_parse('royalblue'),
-                              #execbtn = Gdk.color_parse('steelblue1'),
-                              execbtn = Gdk.color_parse('#82a8db'),
-                              cancelbtn = Gdk.color_parse('palevioletred'),
-                              killbtn = Gdk.color_parse('salmon'),
+                              #execbtn = 'royalblue',
+                              #execbtn = 'steelblue1',
+                              execbtn = '#82a8db',
+                              cancelbtn = 'palevioletred',
+                              killbtn = 'salmon',
 
-                              badtags = Gdk.color_parse('red1'))
+                              badtags = 'red1')
 
 # Colors for embedded terminals
 terminal_colors = Bunch.Bunch(fg=Gdk.color_parse('black'),
@@ -150,10 +150,10 @@ def set_controller(pcontroller):
 
 def gui_do(method, *args, **kwdargs):
     return view.gui_do(method, *args, **kwdargs)
-    
+
 def gui_do_res(method, *args, **kwdargs):
     return view.gui_do_res(method, *args, **kwdargs)
-    
+
 def update_line(buf, row, text, tags=None):
     """Update a line of the text widget _tw_, defined by _row_,
     with the value _val_.
@@ -163,7 +163,7 @@ def update_line(buf, row, text, tags=None):
     if start.get_line() == row:
         end = start.copy()
         end.forward_to_line_end()
-    
+
         buf.delete(start, end)
     else:
         # append some rows so we can go to the correct row
@@ -233,7 +233,7 @@ def get_region_lines(txtbuf, tagname):
         start.set_line(frow)
     if not end.ends_line():
         end.forward_to_line_end()
-    
+
     return (start, end)
 
 
@@ -295,7 +295,7 @@ def clear_selection(widget):
             txtbuf.select_range(first, first)
         except ValueError:
             return
-        
+
 
 class TagError(Exception):
     pass
@@ -311,5 +311,19 @@ def combo_box_new_text():
     combobox.pack_start(cell, True)
     combobox.add_attribute(cell, 'text', 0)
     return combobox
+
+def modify_bg(widget, color):
+    # NOTE: there is a hard-coded hack here to force the background color
+    # under hover status, because it seems to get reset if we just change
+    # the .button type
+    css_data = """
+.button { background-image: none; background-color: %s; }
+.button:hover { background-image: none; background-color: forestgreen; }
+""" % (color)
+    css_provider = Gtk.CssProvider()
+    css_provider.load_from_data(bytes(css_data.encode()))
+    widget.get_style_context().add_provider(css_provider,
+                                            Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
 
 #END

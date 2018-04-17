@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -54,7 +54,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         self.cursor = 0
         self.moving_cursor = False
-        
+
         # keyboard shortcuts
         self.tw.connect("key-press-event", self.keypress)
         # Can't seem to get focus follows mouse effect
@@ -98,14 +98,14 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         # add some bottom buttons
         self.btn_exec = Gtk.Button("Resume")
         self.btn_exec.connect("clicked", lambda w: self.resume())
-        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['execbtn'])
+        common.modify_bg(self.btn_exec,
+                         common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
         self.btn_step = Gtk.Button("Step")
         self.btn_step.connect("clicked", lambda w: self.step())
-        self.btn_step.modify_bg(Gtk.StateType.NORMAL,
+        common.modify_bg(self.btn_step,
                                 common.launcher_colors['execbtn'])
         self.btn_step.show()
         self.leftbtns.pack_end(self.btn_step, False, False, 0)
@@ -150,7 +150,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.queueObj = queueObj
         # Hmmm...asking for GC troubles?
         queueObj.add_view(self)
-        
+
         # change our tab title to match the queue
         tabName = queueObj.name.capitalize()
         self.setLabel(tabName)
@@ -172,7 +172,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def _redraw(self):
         common.view.assert_gui_thread()
-        
+
         with self.lock:
             #self.moving_cursor = True
             common.clear_tv(self.tw)
@@ -191,8 +191,8 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                 except Exception as e:
                     text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
                     tag = 'badref'
-                    
-                # Insert text icon at end of the 
+
+                # Insert text icon at end of the
                 loc1 = self.buf.get_end_iter()
                 self.buf.insert_with_tags_by_name(loc1, text, tag)
                 loc2 = self.buf.get_end_iter()
@@ -224,11 +224,11 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                 ## insline = insiter.get_line()
                 res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
                 #print "2. scrolling res is %s insline=%d" % (res, insline)
-                
+
 
     def redraw(self):
         common.gui_do(self._redraw)
-        
+
     def set_selection(self):
         # Clear previous selection, if any
         first, last = self.buf.get_bounds()
@@ -251,7 +251,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             first = self.buf.get_iter_at_mark(insmark)
             last = first.copy()
             last.forward_to_line_end()
-            
+
         frow = first.get_line()
         lrow = last.get_line()
 
@@ -271,7 +271,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.buf.apply_tag_by_name('selected', first, last)
         self.sel_i = first.get_line()
         self.sel_j = last.get_line()
-        
+
     def clear_selection(self):
         first, last = self.buf.get_bounds()
         self.buf.remove_tag_by_name('selected', first, last)
@@ -283,12 +283,12 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def has_selection(self):
         return self.sel_i != None
-    
+
     def cut(self):
         if not self.has_selection():
             # Try to set a selection if none provided
             self.set_selection()
-            
+
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
             print("i=%d j=%d" % (i, j))
@@ -302,7 +302,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         if not self.has_selection():
             # Try to set a selection if none provided
             self.set_selection()
-            
+
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
             print("i=%d j=%d" % (i, j))
@@ -315,14 +315,14 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
     def set_clip(self, clip):
         # clip must contain CommandObjects!
         self.clip = clip
-        
+
     def paste(self, clip=None):
         if clip == None:
             clip = self.clip
         if len(clip) == 0:
             common.view.popup_error("Please cut/copy the selection first.")
             return
-        
+
         insmark = self.buf.get_insert()
         if insmark == None:
             common.view.popup_error("Please set insertion mark first.")
@@ -333,7 +333,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         self.queueObj.insert(k, clip)
         #self.clip = []
-        
+
     def move(self):
         if not self.has_selection():
             common.view.popup_error("Please make a selection with 's' first.")
@@ -343,24 +343,24 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         if insmark == None:
             common.view.popup_error("Please set insertion mark first.")
             return
-        
+
         (i, j) = (self.sel_i, self.sel_j)
         print("i=%d j=%d" % (i, j))
         self.clear_selection()
-        
+
         deleted = self.queueObj.delete(i, j+1)
-        
+
         insmark = self.buf.get_insert()
         if insmark != None:
             insiter = self.buf.get_iter_at_mark(insmark)
         else:
             insiter = self.buf.get_end_iter()
-            
+
         k = insiter.get_line()
 
         self.queueObj.insert(k, deleted)
 
-        
+
     def insbreak(self, line=None):
         if line == None:
             insmark = self.buf.get_insert()
@@ -386,7 +386,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                 continue
             break
         return line
-    
+
     def _resume(self, w_break=False):
         """Callback when the Resume button is pressed.
         """
@@ -399,7 +399,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         # Get length of queued items, if any
         num_queued = len(self.queueObj)
-        
+
         if num_queued == 0:
             common.view.popup_error("No %s queued commands!" % (
                 self.queueName))
@@ -473,11 +473,11 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         common.view.statusMsg("I don't understand that key: %s", keyname)
         return True
-    
+
     def show_cursor(self, tbuf, titer, tmark):
         if self.moving_cursor:
             return False
-        
+
         insmark = tbuf.get_insert()
         if insmark != tmark:
             return False
@@ -504,11 +504,11 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         finally:
             self.moving_cursor = False
         return True
-    
+
     def grabdata(self, tw, context, selection, info, tstamp):
         print("grabbing!")
         return True
-    
+
     def rearrange(self, tw, context, x, y, tstamp):
         print("rearrange!")
         buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
@@ -519,6 +519,6 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         print('\n'.join([str(t) for t in context.targets]))
         context.finish(True, False, tstamp)
         return True
-    
+
 
 #END

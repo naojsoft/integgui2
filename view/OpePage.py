@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -24,7 +24,7 @@ thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
 
 warning_close = """
-WARNING:        
+WARNING:
 You are attempting to delete text in this buffer that is needed
 by queued commands.
 
@@ -37,7 +37,7 @@ Please choose one of the following options:
 """
 
 warning_reload = """
-WARNING:        
+WARNING:
 You are attempting to replace text in this buffer that is needed
 by queued commands.
 
@@ -51,7 +51,7 @@ Please choose one of the following options:
 """
 
 warning_queued = """
-WARNING:        
+WARNING:
 There are queued commands.
 
 Please choose one of the following options:
@@ -82,7 +82,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         number_lines = settings.get('show_line_numbers', False)
         self.line_numbering(number_lines)
-        
+
         # this is for variable definition popups
         self.tw.set_property("has-tooltip", True)
         self.tw.connect("query-tooltip", self.query_vardef)
@@ -115,8 +115,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # add some bottom buttons
         self.btn_exec = Gtk.Button("Exec")
         self.btn_exec.connect("clicked", lambda w: self.execute())
-        self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['execbtn'])
+        common.modify_bg(self.btn_exec, common.launcher_colors['execbtn'])
         self.btn_exec.show()
         self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
@@ -132,8 +131,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.btn_cancel = Gtk.Button("Cancel")
         self.btn_cancel.connect("clicked", lambda w: self.cancel())
-        self.btn_cancel.modify_bg(Gtk.StateType.NORMAL,
-                                common.launcher_colors['cancelbtn'])
+        common.modify_bg(self.btn_cancel, common.launcher_colors['cancelbtn'])
         self.btn_cancel.show()
         self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
 
@@ -144,7 +142,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Buffer")
-        
+
         item = Gtk.MenuItem(label="Recolor")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.color(),
@@ -214,7 +212,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
 
     def toggle_var(self, widget, key):
-        if widget.get_active(): 
+        if widget.get_active():
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
@@ -302,11 +300,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if rsp == 2:
             self.unlink_my_commands()
             self._close()
-            
+
         elif rsp == 3:
             self.unqueue_my_commands()
             self._close()
-            
+
         return True
 
     def _close(self):
@@ -320,23 +318,23 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def unqueue_my_commands(self):
         tags = self.my_queued_commands()
         common.controller.remove_by_tags(tags)
-        
+
     def unlink_my_commands(self):
         tags = self.my_queued_commands()
         self._convert_linked_commands(tags)
         return True
-            
+
     def my_queued_commands(self):
         """Return the list of tags from our text buffer that are referenced
         from active queues."""
         tags = common.controller.get_all_queued_tags()
         return self.sift_tags(tags)
-        
+
     def remove_commands(self, tags):
         """Remove from any queues commands corresponding to this
         list of tags."""
         common.controller.remove_by_tag(tags)
-        
+
     def sift_tags(self, taglist):
         """From a list of tags (taglist), return the subset that are
         defined in our buffer."""
@@ -361,7 +359,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             return self.varDict[varname]
         except KeyError:
             raise Exception("No definition found for '%s'" % varname)
-        
+
     def color(self, reporterror=True, eraseall=False):
         try:
             # Get the text from the code buffer
@@ -389,7 +387,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # Get "Tags" page
             tagpage = common.view.tagpage
             # TODO: what if user closed Tags page?
-            
+
             # Remove everything from the tag buffer
             self.logger.debug("Preparing tags.")
             tagpage.initialize(self)
@@ -439,7 +437,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             for bnch in res.reflist:
                 #print bnch
                 lineno = bnch.lineno - 1
-                
+
                 start.set_line(lineno)
                 start.forward_chars(bnch.start)
                 end.set_line(lineno)
@@ -491,20 +489,20 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     common.view.popup_error(errmsg)
                 else:
                     common.view.statusMsg(errmsg)
-                    
+
                 tagpage.tablbl.set_markup('<span background="orange">Tags</span>')
 
             else:
                 tagpage.tablbl.set_markup('<span>Tags</span>')
-                
-                
+
+
         except Exception as e:
             errmsg = "Error coloring buffer: %s" % (str(e))
             self.logger.error(errmsg)
             common.view.statusMsg(errmsg)
             if reporterror:
                 common.view.popup_error(errmsg)
-            
+
 
     def focus_in(self, w, evt):
         self.logger.debug("got focus!")
@@ -532,7 +530,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if res:
             self.scroll_to_lineno(start.get_line())
             return
-        
+
         # If we can't find a mark then look for tags
         # It might be better to scroll to the mark than these tags
         for tag in ('executing', 'queued', 'error', 'done'):
@@ -568,7 +566,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         varref = tagtbl.lookup('varref')
         if not varref:
             return False
-        
+
         # Check if we are in the middle of a varref
         result = txtiter.has_tag(varref)
         if not result:
@@ -593,7 +591,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             ttw.set_text(res)
         except Exception as e:
             ttw.set_text(str(e))
-            
+
         return True
 
 
@@ -611,7 +609,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         text = self.buf.get_text(start, end, True)
         common.view.clipboard.set_text(text, -1)
 
-        
+
     def keypress(self, w, event):
         keyname = Gdk.keyval_name(event.keyval)
         #print "key pressed --> %s" % keyname
@@ -620,37 +618,37 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             if keyname == 't':
                 common.view.raise_page('tags')
                 return True
-        
+
             elif keyname == 'r':
                 self.color()
                 return True
-        
+
             ## elif keyname == 'e':
             ##     self.color(eraseall=True)
             ##     return True
-        
+
             elif keyname == 'l':
                 self.current()
                 return True
-        
+
             elif keyname == 'q':
                 common.view.raise_page('queues')
                 return True
-        
+
             elif keyname == 'h':
                 common.view.raise_page('handset')
                 return True
-        
+
             elif keyname == 'c':
                 self.copy()
                 return True
-        
+
             elif keyname == 'f':
                 self.find()
                 return True
-        
+
         return False
-    
+
 
     def process_cmdstr(self, txtbuf, cmdstr):
         cmdstr = cmdstr.strip()
@@ -667,7 +665,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.logger.debug("Processed command is: %s" % p_cmdstr)
 
             return p_cmdstr
-        
+
         except Exception as e:
             errstr = "Error parsing command: %s" % (str(e))
             raise Exception(errstr)
@@ -692,14 +690,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             start, end = common.get_region_lines(self.buf, tag)
             cmds[tag] = self.buf.get_text(start, end, True)
 
-        # Define a mapping 
+        # Define a mapping
         # NOTE: enclosed function captures values of tags, cmds and
         #   txtbuf
         def f(cmdObj):
             tag = str(cmdObj)
             if not (tag in tags):
                 return cmdObj
-            
+
             cmdstr = self.process_cmdstr(txtbuf, cmds[tag])
             return CommandObject.SimpleCommandObject('cp%d', self.queueName,
                                                      self.logger,
@@ -719,20 +717,20 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         if copytext == None:
             copytext = self.add_frozen
-            
+
         if copytext:
             # If copytext==True then we are not storing a reference
             # to the command in the page, but the command string
             # already pre-expanded
             start, end = self.buf.get_bounds()
             txtbuf = self.buf.get_text(start, end, True)
-        
+
         # Get the range of text selected
         try:
             first, last = self.buf.get_selection_bounds()
         except ValueError:
             raise common.SelectionError("Error getting selection--no selection?")
-            
+
         frow = first.get_line()
         lrow = last.get_line()
         if last.starts_line():
@@ -794,13 +792,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             first, last = self.buf.get_selection_bounds()
             self.sel_first = first
             self.sel_last = last
-            
+
         except ValueError:
             raise Exception("Error getting selection--no selection?")
 
         first = first.copy()
         last = last.copy()
-        
+
         tag = 'savedselection'
         tt = self.buf.get_tag_table()
 
@@ -851,7 +849,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         settings = common.view.get_settings()
         suppress_confirm_exec = settings.get('suppress_confirm_exec', True)
-        
+
         if not self.buf.get_has_selection():
             # No selection.  See if there are previously queued commands
             if num_queued == 0:
@@ -865,7 +863,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     common.controller.execQueue(self.queueName,
                                                 tm_queueName=self.tm_queueName)
                 #------------------
-        
+
                 if suppress_confirm_exec:
                     _execute_1('yes')
                 else:
@@ -873,7 +871,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                                               "No selection--resume execution of %s queued commands?" % (
                         self.queueName),
                                               _execute_1)
-                
+
             return
 
         #------------------
@@ -973,13 +971,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 return True
             self.queueName = queueName
         return True
-        
+
 
 class OpeCommandObject(CommandObject.CommandObject):
 
     def __init__(self, format, queueName, logger, opepage):
         self.page = opepage
-        
+
         super(OpeCommandObject, self).__init__(format, queueName, logger)
 
 
@@ -1019,7 +1017,7 @@ class OpeCommandObject(CommandObject.CommandObject):
         cmdstr = buf.get_text(start, end, True)
 
         return (txtbuf, cmdstr)
-    
+
     def get_cmdstr(self):
         common.view.assert_nongui_thread()
 
@@ -1070,19 +1068,19 @@ class OpeCommandObject(CommandObject.CommandObject):
             # annotate line with error mark
             common.remove_all_marks(buf)
             buf.create_source_mark(None, 'error', start)
-            
+
         buf.apply_tag_by_name(txttag, start, end)
 
     def mark_status(self, txttag):
         # This MAY be called from a non-gui thread
         common.gui_do(self._mark_status, txttag)
-        
+
 
 class OpeCommentCommandObject(CommandObject.CommandObject):
 
     def __init__(self, format, queueName, logger, opepage):
         self.page = opepage
-        
+
         super(OpeCommentCommandObject, self).__init__(format,
                                                       queueName, logger)
 
@@ -1105,12 +1103,12 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
 
     def _get_cmdstr(self):
         return '== NOP =='
-    
+
     def get_cmdstr(self):
         return '== NOP =='
-        
+
     def mark_status(self, txttag):
         pass
-        
+
 
 #END
