@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 # 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Thu Feb  6 13:38:35 HST 2014
-#]
+# Eric Jeschke (eric@naoj.org) 
+#
 
 # Standard library imports
 import sys, os

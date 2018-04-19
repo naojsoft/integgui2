@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 
@@ -22,7 +22,8 @@ class IntegGUINotify(object):
         # Dict used to flag processed files so they are not repeated
         self.framecache = {}
         self.framelist = []
-        self.needsort = False
+        self._max_time_alloc = 0.0
+        self._max_time_frameid = ''
         self.lock = threading.RLock()
 
     def update_framelist(self):
@@ -37,8 +38,10 @@ class IntegGUINotify(object):
         with self.lock:
             self.framecache = {}
             self.framelist = []
+            self._max_time_alloc = 0.0
+            self._max_time_frameid = ''
             self.update_framelist()
-        
+
     def _getframe(self, frameid, **kwdargs):
         with self.lock:
             if self.framecache.has_key(frameid):
@@ -50,29 +53,40 @@ class IntegGUINotify(object):
             dct = dict.fromkeys(headers, '')
             dct['frameid'] = frameid
             dct['status'] = 'A'
-            
+
             d = Bunch.Bunch(dct)
             d.update(kwdargs)
 
             self.framecache[frameid] = d
-            try:
-                lastid = self.framelist[-1]
-                if frameid < lastid:
-                    self.needsort = True
-            except IndexError:
-                # First frame
-                pass
             self.framelist.append(d)
 
             return d
 
 
-    def frame_allocated(self, frameid):
+    def _sort_helper(self, finfo):
+        return finfo.get('time_alloc', sys.float_info.max)
+
+    def frame_allocated(self, frameid, time_alloc):
         """Called when _frameid_ is allocated.
         """
         with self.lock:
             # Create a new entry
             d = self._getframe(frameid)
+            # check if the allocation time is less then some other
+            # frame we have recorded so far.  If so, we may need to
+            # reorder the list shown
+            if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
+                d['time_alloc'] = time_alloc
+                if time_alloc < self._max_time_alloc:
+                    if frameid != self._max_time_frameid:
+                        self.framelist = sorted(self.framelist,
+                                                key=self._sort_helper)
+                        self.gui.update_frames(self.framelist)
+                        return
+                else:
+                    self._max_time_alloc = time_alloc
+                    self._max_time_frameid = frameid
+
             # self.gui adds 'row' item--if not present, update gui
             if not d.has_key('row'):
                 self.output_line(d)
@@ -130,17 +144,17 @@ class IntegGUINotify(object):
             self.output_line(d)
             return ro.OK
 
-    
+
     def frameSvc_hdlr(self, frameid, vals):
         """Called with information provided by the frame service."""
 
         if vals.has_key('time_alloc'):
-            self.frame_allocated(frameid)
+            self.frame_allocated(frameid, vals['time_alloc'])
 
 
     def INSint_hdlr(self, frameid, vals):
         """Called with information provided by the instrument interface."""
-        
+
         if Monitor.has_keys(vals, ['done', 'time_done', 'status',
                                    'filepath']):
             self.transfer_done(frameid, vals['status'])
@@ -151,7 +165,7 @@ class IntegGUINotify(object):
 
     def Archiver_hdlr(self, frameid, vals):
         """Called with information provided by the Archiver."""
-        
+
         # TODO: check vals['PROP-ID'] against propid for this
         # integgui before proceeding
         self.fits_info(frameid, vals)
@@ -188,9 +202,11 @@ class HSC_IntegGUINotify(IntegGUINotify):
         gui.set_format(header, format_str)
 
         # Total number of frames in exposure
-        self.total_count = dict(SUP=10, HSC=112)
+        self.total_count = dict(SUPA=10, HSCA=112,
+                                PFSA=12, PFSB=4, PFSC=1, PFSD=1,
+                                SWSB=2, SWSR=2)
 
-        
+
     def get_hsc_expid(self, frameid):
         """
         Get HSC exposure id from a individual frame id.
@@ -208,15 +224,25 @@ class HSC_IntegGUINotify(IntegGUINotify):
             frame.number = (frame.number // 10) * 10
             return str(frame)
 
+        elif frame.inscode == 'PFS':
+            # PFS allocates 100 frameids per exposure.
+            frame.number = (frame.number // 100) * 100
+            return str(frame)
+
+        elif frame.inscode == 'SWS':
+            # SWIMS allocates 10 frameids per exposure.
+            frame.number = (frame.number // 10) * 10 + 1
+            return str(frame)
+
         else:
             # other instruments: e.g. VGW, etc.
             return frameid
-        
+
 
     def _getframe(self, frameid, **kwdargs):
 
         frameid = self.get_hsc_expid(frameid)
-        
+
         with self.lock:
             d = super(HSC_IntegGUINotify, self)._getframe(frameid, **kwdargs)
             if not d.has_key('count_xfers'):
@@ -224,11 +250,11 @@ class HSC_IntegGUINotify(IntegGUINotify):
             if not d.has_key('count_stars'):
                 d.count_stars = 0
             return d
-            
+
 
     def transfer_done(self, frameid, status):
 
-        total_count = self.total_count.get(frameid[0:3], 1)
+        total_count = self.total_count.get(frameid[0:4], 1)
         with self.lock:
             d = self._getframe(frameid)
             if d.status in ('X', 'A'):
@@ -244,7 +270,7 @@ class HSC_IntegGUINotify(IntegGUINotify):
 
     def in_stars(self, frameid, status):
 
-        total_count = self.total_count.get(frameid[0:3], 1)
+        total_count = self.total_count.get(frameid[0:4], 1)
         with self.lock:
             d = self._getframe(frameid)
             if total_count == 1:
@@ -258,5 +284,5 @@ class HSC_IntegGUINotify(IntegGUINotify):
                     self.output_line(d)
             return ro.OK
 
-    
+
 # END
