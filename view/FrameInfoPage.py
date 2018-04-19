@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org) --
 #
 
@@ -26,7 +26,7 @@ frame_tags = [
     ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow')),
     ]
 
-    
+
 class FrameInfoPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
@@ -35,7 +35,7 @@ class FrameInfoPage(LogPage.NotePage):
 
         self.header = header
         self.format_str = format_str
-        
+
         # bottom buttons
         btns = gtk.HButtonBox()
         btns.set_layout(gtk.BUTTONBOX_START)
@@ -96,22 +96,27 @@ class FrameInfoPage(LogPage.NotePage):
             else:
                 end = self.buf.get_end_iter()
                 frameinfo.row = end.get_line()
-                
+
                 self.append(text+'\n', tags)
 
-        
+
     def update_frames(self, framelist):
 
-        # Delete frames text
-        start, end = self.buf.get_bounds()
-        self.buf.delete(start, end)
-        
-        # Create header
-        self.append(self.header+'\n', [])
+        framelist = list(framelist)
+        with self.lock:
+            # Delete frames text
+            start, end = self.buf.get_bounds()
+            self.buf.delete(start, end)
 
-        # add frames
-        for frameinfo in framelist:
-            self.update_frame(frameinfo)
+            # Create header
+            self.append(self.header + '\n', [])
+            row = 1
+
+            # add frames
+            for frameinfo in framelist:
+                frameinfo.row = row
+                row += 1
+                self.update_frame(frameinfo)
 
 
     def select_frame(self, w, evt):
@@ -127,18 +132,10 @@ class FrameInfoPage(LogPage.NotePage):
             line = startiter.get_line()
             print "%d: %s" % (line, frameno)
 
-            # Load into a fits viewer page
-            common.view.load_frame(frameno)
+            #self._select_frames = [frameno]
 
-##             try:
-##                 self.image = self.datasrc[line]
-##                 self.cursor = line
-##                 self.update_img()
-##             except IndexError:
-##                 pass
-            
         return True
-        
+
 
     def load_frames(self):
         if not self.buf.get_has_selection():
@@ -151,7 +148,7 @@ class FrameInfoPage(LogPage.NotePage):
         lrow = last.get_line()
 
         # Clear the selection
-        self.buf.move_mark_by_name("insert", first)         
+        self.buf.move_mark_by_name("insert", first)
         self.buf.move_mark_by_name("selection_bound", first)
 
         # Break selection into individual lines
@@ -173,8 +170,13 @@ class FrameInfoPage(LogPage.NotePage):
             frameno = line.split()[0]
             frames.append(frameno, [])
 
-        #print "Loading frames", frames
         common.controller.load_frames(frames)
+
+    def clear(self):
+        super(FrameInfoPage, self).clear()
+
+        # Create header
+        self.append(self.header + '\n', [])
 
     def save_journal(self):
         homedir = os.path.join(os.environ['HOME'], 'Procedure')

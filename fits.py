@@ -24,6 +24,7 @@ class IntegGUINotify(object):
         self.framelist = []
         self._max_time_alloc = 0.0
         self._max_time_frameid = ''
+        self.sort_feature_on = False
         self.lock = threading.RLock()
 
     def update_framelist(self):
@@ -78,7 +79,7 @@ class IntegGUINotify(object):
             if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
                 d['time_alloc'] = time_alloc
                 if time_alloc < self._max_time_alloc:
-                    if frameid != self._max_time_frameid:
+                    if frameid != self._max_time_frameid and self.sort_feature_on:
                         self.framelist = sorted(self.framelist,
                                                 key=self._sort_helper)
                         self.gui.update_frames(self.framelist)
