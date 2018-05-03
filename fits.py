@@ -1,3 +1,4 @@
+
 #
 # Eric Jeschke (eric@naoj.org)
 #
@@ -32,7 +33,7 @@ class IntegGUINotify(object):
             return self.gui.update_frames(self.framelist)
 
     def output_line(self, frameinfo):
-        #print "output line: %s" % str(frameinfo)
+        #print("output line: %s" % str(frameinfo))
         self.gui.update_frame(frameinfo)
 
     def clear(self):
@@ -73,22 +74,36 @@ class IntegGUINotify(object):
         with self.lock:
             # Create a new entry
             d = self._getframe(frameid)
-            # check if the allocation time is less then some other
-            # frame we have recorded so far.  If so, we may need to
-            # reorder the list shown
-            if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
-                d['time_alloc'] = time_alloc
-                if time_alloc < self._max_time_alloc:
-                    if frameid != self._max_time_frameid and self.sort_feature_on:
-                        self.framelist = sorted(self.framelist,
-                                                key=self._sort_helper)
-                        self.gui.update_frames(self.framelist)
-                        return
+
+            if self.sort_feature_on:
+                # check if the allocation time is less then some other
+                # frame we have recorded so far.  If so, we may need to
+                # reorder the list shown
+
+                #print(frameid, 'time_alloc', time_alloc, d, type(d))
+                if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
+                    #print('assigning time_alloc')
+                    d['time_alloc'] = time_alloc
+                    if time_alloc < self._max_time_alloc:
+                        #print('time_alloc is smaller')
+                        if frameid != self._max_time_frameid:
+                            #print('sorting framelist')
+                            self.framelist = sorted(self.framelist,
+                                                    key=self._sort_helper)
+                            #print('updating framelist')
+                            self.gui.update_frames(self.framelist)
+                            #print('returning')
+                            return
+                    else:
+                        #print('time_alloc is larger')
+                        self._max_time_alloc = time_alloc
+                        self._max_time_frameid = frameid
                 else:
-                    self._max_time_alloc = time_alloc
-                    self._max_time_frameid = frameid
+                    #print("time_alloc exists and is", d['time_alloc'])
+                    pass
 
             # self.gui adds 'row' item--if not present, update gui
+            #print('updating row')
             if not d.has_key('row'):
                 self.output_line(d)
 
