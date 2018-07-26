@@ -1,4 +1,3 @@
-
 #
 # Eric Jeschke (eric@naoj.org)
 #
@@ -161,11 +160,15 @@ class IntegGUINotify(object):
             return ro.OK
 
 
-    def frameSvc_hdlr(self, frameid, vals):
+    def frameSvc_hdlr(self, vals):
         """Called with information provided by the frame service."""
 
-        if vals.has_key('time_alloc'):
-            self.frame_allocated(frameid, vals['time_alloc'])
+        frame_ids = list(vals.keys())
+        frame_ids.sort()
+        for frameid in frame_ids:
+            info = vals[frameid]['frameSvc']
+            if 'time_alloc' in info:
+                self.frame_allocated(frameid, info['time_alloc'])
 
 
     def INSint_hdlr(self, frameid, vals):

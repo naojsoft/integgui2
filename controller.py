@@ -24,6 +24,7 @@ inscfg = INSdata()
 
 # Regex used to discover/parse frame info
 regex_frame = re.compile(r'^mon\.frame\.(\w+)\.(\w+)$')
+regex_frame2 = re.compile(r'^mon\.frame$')
 
 # Regex used to discover/parse log info
 regex_log = re.compile(r'^mon\.log\.(\w+)$')
@@ -48,6 +49,7 @@ valid_monlogs.update(inscfg.getNames())
 
 # remove g2cam instruments, for which there is no instrument log anymore
 # (their log is in taskmgr0)
+
 for code in inscfg.getCodes():
     info = inscfg.getOBCPInfoByCode(code)
     iface = info.get('interface', ('unknown', 1.0))
@@ -612,6 +614,17 @@ class IntegController(object):
                 self.logger.error("Error processing '%s': %s" % (
                     str(bnch.path), str(e)))
             return
+
+        match = regex_frame2.match(bnch.path)
+        if match:
+            # frameSvc only
+            try:
+                self.fits.frameSvc_hdlr(bnch.value)
+                return
+
+            except Exception, e:
+                self.logger.error("Error processing '%s': %s" % (
+                    str(bnch.path), str(e)))
 
         # Skip things that don't match the expected paths
         self.logger.error("No match for path '%s'" % bnch.path)
