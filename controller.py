@@ -634,7 +634,7 @@ class IntegController(object):
                 self.fits.frameSvc_hdlr(bnch.value)
                 return
 
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Error processing '%s': %s" % (
                     str(bnch.path), str(e)))
 
