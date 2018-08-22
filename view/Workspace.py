@@ -41,7 +41,7 @@ class Workspace(object):
         nb.set_scrollable(True)
         nb.set_show_tabs(True)
         nb.set_show_border(True)
-        nb.set_size_request(900, 500)
+        #nb.set_size_request(900, 500)
         # Allows drag-and-drop between notebooks
         nb.set_group_name('1')
         nb.connect("page-added", self._page_added)

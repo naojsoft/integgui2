@@ -12,11 +12,11 @@ GtkToggleButton {
     border: 1px solid shade (@theme_bg_color, 0.9) ;
     padding: 4px;
 }
-
+/*
 GtkToolbar GtkToggleButton:checked {
     background-color: shade (@theme_bg_color, 0.9);
 }
-
+*/
 /*
 GtkMenuBar {
     shadow_type: none;
@@ -28,8 +28,9 @@ GtkStatusbar {
 
 GtkPaned {
     handle_size: 5;
+    resize: true;
+    shrink: true;
 }
-
 */
 
 GtkWindow, GtkDialog, GtkFileSelection {

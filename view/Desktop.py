@@ -32,33 +32,33 @@ class Desktop(object):
         vframe = Gtk.VPaned()
 
         self.w.ulh = Gtk.HPaned()
-        self.w.ulh.set_size_request(-1, 400)
+        #self.w.ulh.set_size_request(-1, 400)
         self.w.llh = Gtk.HPaned()
         self.w.umh = Gtk.HPaned()
-        self.w.umh.set_size_request(-1, 400)
+        #self.w.umh.set_size_request(-1, 400)
         self.w.lmh = Gtk.HPaned()
-        self.w.ulh.add2(self.w.umh)
-        self.w.llh.add2(self.w.lmh)
+        self.w.ulh.pack2(self.w.umh, True, True)
+        self.w.llh.pack2(self.w.lmh, True, True)
         
         frame.pack_start(vframe, True, True, 0)
 
         ul = Gtk.VBox()
-        ul.set_size_request(850, 400)
+        #ul.set_size_request(850, 400)
         ll = Gtk.VBox()
-        ll.set_size_request(550, -1)
+        #ll.set_size_request(550, -1)
         um = Gtk.VBox()
-        um.set_size_request(0, -1)
+        #um.set_size_request(0, -1)
         lm = Gtk.VBox()
-        lm.set_size_request(460, -1)
+        #lm.set_size_request(460, -1)
         ur = Gtk.VBox()
         lr = Gtk.VBox()
 
-        self.w.ulh.add1(ul)
-        self.w.llh.add1(ll)
-        self.w.umh.add1(um)
-        self.w.lmh.add1(lm)
-        self.w.umh.add2(ur)
-        self.w.lmh.add2(lr)
+        self.w.ulh.pack1(ul, True, True)
+        self.w.llh.pack1(ll, True, True)
+        self.w.umh.pack1(um, True, True)
+        self.w.lmh.pack1(lm, True, True)
+        self.w.umh.pack2(ur, True, True)
+        self.w.lmh.pack2(lr, True, True)
         self.pane = Bunch.Bunch()
         for name in self.w.keys():
             bnch = Bunch.Bunch(name=name, pos=None, time=None,
@@ -66,8 +66,8 @@ class Desktop(object):
             self.pane[name] = bnch
             self.w[name].connect('notify', self._get_resize_fn(bnch))
 
-        vframe.add1(self.w.ulh)
-        vframe.add2(self.w.llh)
+        vframe.pack1(self.w.ulh, True, True)
+        vframe.pack2(self.w.llh, True, True)
 
         self.ws_fr = {
             'll': Bunch.Bunch(frame=ll, pane=self.pane.llh),
