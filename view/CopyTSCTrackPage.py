@@ -110,7 +110,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
         self.treeview.set_model(self.treestore)
 
         # Set some attributes of the TreeView widget
-        self.treeview.get_selection().set_mode(Gtk.SELECTION_NONE)
+        self.treeview.get_selection().set_mode(Gtk.SelectionMode.NONE)
         self.treeview.get_selection().unselect_all()
         self.treeview.show()
 
@@ -228,7 +228,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
     def _mkcolfnN(self, kwd, dtype):
         # Callback function that specifies how to display a cell in
         # the TreeView
-        def make_text(column, cell, model, iter):
+        def make_text(column, cell, model, iter, data):
             # For cells with text in them
             bnch = model.get_value(iter, 0)
             cell.set_property('markup', bnch[kwd])
@@ -244,7 +244,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
                     backgrd = 'white'
                 cell.set_property('background', backgrd)
 
-        def make_pb(column, cell, model, iter):
+        def make_pb(column, cell, model, iter, data):
             # For cells with icons in them
             bnch = model.get_value(iter, 0)
             filename = bnch[kwd]
