@@ -232,7 +232,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
             # For cells with text in them
             bnch = model.get_value(iter, 0)
             cell.set_property('markup', bnch[kwd])
-            cell.set_property('ellipsize', Pango.ELLIPSIZE_MIDDLE)
+            cell.set_property('ellipsize', Pango.EllipsizeMode.MIDDLE)
             if kwd == 'status':
                 if bnch.statusCode in (self.STATUS__FILE_PENDING, self.STATUS__FILE_READY_TO_COPY):
                     backgrd = 'yellow'
