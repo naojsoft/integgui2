@@ -1,11 +1,11 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
 from __future__ import print_function
 import re
-import lex
-import yacc
+from ply import lex
+from ply import yacc
 import logging
 import pprint
 
@@ -19,14 +19,14 @@ yacc_tab_module  = 'yacc_tab_launcher'
 
 
 #===================================================#
-# Launcher file Lexer 
+# Launcher file Lexer
 #===================================================#
 
 class ScanError(Exception):
     pass
 
 class launcherScanner(object):
-    
+
     tokens = ('COMMA', 'NEWLINE', 'ID', 'STR', 'IDREF',
               'BREAK', 'LCONT', 'COMMENT', 'SEMICOLON', 'SEPARATOR',
               'LABEL', 'LIST', 'SELECT', 'INPUT', 'CMD', 'ASSIGN',
@@ -38,7 +38,7 @@ class launcherScanner(object):
                 'LIST': 'LIST',
                 'BREAK': 'BREAK',
                 'CMD': 'CMD',
-                } 
+                }
 
     t_SEMICOLON = r';'
     t_ASSIGN = r'='
@@ -89,7 +89,7 @@ class launcherScanner(object):
     def t_error(self, t):
         self.logger.error("Illegal character in input '%s'" % (t.value[0]))
         t.skip(1)
-    
+
     def build(self, **kwdargs):
         self.lexer = lex.lex(object=self, **kwdargs)
 
@@ -99,8 +99,8 @@ class launcherScanner(object):
         if not logger:
             logger = logging.getLogger('launcher.lexer')
         self.logger = logger
-        
-        # these variables are used to determine 
+
+        # these variables are used to determine
         # if the token we are looking is an ID
         self.isTokenAnID = True
         self.isTokenWithinParenthesis = False
@@ -114,7 +114,7 @@ class launcherScanner(object):
         self.errors = 0
         self.errinfo = []
         self.lexer.lineno = lineno
-        
+
     def getTokens(self):
         return self.tokens
 
@@ -184,23 +184,23 @@ class launcherParser(object):
     def p_launcher1(self, p):
         '''launcher : label_def  body_def'''
         p[0] = ASTNode('launcher', p[1], p[2])
-        
+
     def p_launcher2(self, p):
         '''launcher : SEPARATOR'''
         p[0] = ASTNode('sep', p[1])
-        
+
     def p_launcher3(self, p):
         '''launcher : launcher NEWLINE'''
         p[0] = p[1]
-        
+
     def p_launcher4(self, p):
         '''launcher : NEWLINE launcher'''
         p[0] = p[2]
-        
+
     def p_label_def1(self, p):
         '''label_def : LABEL  id_or_str  NEWLINE'''
         p[0] = ASTNode('label', p[2])
-        
+
     def p_body_def1(self, p):
         '''body_def : body_def  line_def'''
         p[1].items.append(p[2])
@@ -254,12 +254,12 @@ class launcherParser(object):
         '''pure_val_list : id_or_str'''
         p[0] = ASTNode('pure_val_list', p[1])
 
-    def p_subst_val_list1(self, p):  
+    def p_subst_val_list1(self, p):
         '''subst_val_list : subst_val_list COMMA value_pair'''
         p[1].items.append(p[3])
         p[0] = p[1]
 
-    def p_subst_val_list2(self, p):  
+    def p_subst_val_list2(self, p):
         '''subst_val_list : value_pair'''
         p[0] = ASTNode('subst_val_list', p[1])
 
@@ -271,12 +271,12 @@ class launcherParser(object):
         '''command_def : CMD ID param_list NEWLINE'''
         p[0] = ASTNode('cmd', p[2], p[3])
 
-    def p_param_list1(self, p):  
+    def p_param_list1(self, p):
         '''param_list : param_list param_pair'''
         p[1].items.append(p[2])
         p[0] = p[1]
 
-    def p_param_list2(self, p):  
+    def p_param_list2(self, p):
         '''param_list : param_pair'''
         p[0] = ASTNode('param_list', p[1])
 
@@ -288,29 +288,29 @@ class launcherParser(object):
         '''id_or_str : ID
                      | strnq'''
         p[0] = p[1]
-        
+
     def p_rhs(self, p):
         '''rhs : ID
                | STR
                | IDREF'''
         p[0] = p[1]
-        
+
     def p_ctrl_label(self, p):
         '''ctrl_label : strnq'''
         p[0] = p[1]
-        
+
     def p_param(self, p):
         '''param : ID'''
         p[0] = p[1]
-        
+
     def p_break(self, p):
         '''break : BREAK NEWLINE'''
         p[0] = ASTNode('break')
-        
+
     def p_width(self, p):
         '''width : ID'''
         p[0] = p[1]
-        
+
     def p_def_val(self, p):
         '''def_val : id_or_str'''
         p[0] = p[1]
@@ -319,7 +319,7 @@ class launcherParser(object):
         '''strnq : STR'''
         # Just strip off the quotes
         p[0] = p[1][1:-1]
-        
+
     def p_epslion(self, p):
         """empty :"""
         pass
@@ -334,17 +334,17 @@ class launcherParser(object):
             self.logger.error("Syntax error; p=%s" % (str(p)))
             #? Try to recover to some sensible state
             self.parser.restart()
-    
+
 
     def __init__(self, lexer, logger=None, tabmodule=yacc_tab_module,
                  **kwdargs):
-        
+
         # Share lexer tokens
         self.lexer = lexer
         self.tokens = lexer.getTokens()
 
         self.tabmodule = tabmodule
-        
+
         if not logger:
             logger = logging.getLogger('launcher.parser')
         self.logger = logger
@@ -361,12 +361,12 @@ class launcherParser(object):
 
         self.lexer.reset(lineno=lineno)
 
-        
+
     def build(self, **kwdargs):
         self.parser = yacc.yacc(module=self, start='launchers',
                                 logger=self.logger, **kwdargs)
-    
-   
+
+
     def parse(self, buf, startline=1):
 
         # Initialize module level error variables
@@ -385,13 +385,12 @@ class launcherParser(object):
 
     def parse_file(self, launcherpath, name=None):
 
-        in_f = open(launcherpath, 'r')
-        buf = in_f.read()
-        in_f.close()
+        with open(launcherpath, 'r') as in_f:
+            buf = in_f.read()
 
         if not name:
             name = launcherpath
-            
+
         res = self.parse_buf(buf, name=name)
         return res
 
@@ -423,7 +422,7 @@ def printTokens(tokens):
     for token in tokens:
         print(token)
 
-        
+
 def main(options, args):
 
     logger = ssdlog.make_logger('launcher', options)
@@ -463,7 +462,7 @@ def main(options, args):
 
             if (res.tokens != None) and options.verbose:
                 printTokens(res.tokens)
-            
+
                 print("%d errors" % (res.errors))
 
         except (ScanError, ParseError) as e:
@@ -478,7 +477,7 @@ if __name__ == '__main__':
 
     usage = "usage: %prog [options]"
     optprs = OptionParser(usage=usage, version=('%%prog'))
-    
+
     optprs.add_option("--action", dest="action", metavar="WHAT",
                       default="parse",
                       help="'parse' or 'scan'; WHAT to do")
@@ -511,5 +510,3 @@ if __name__ == '__main__':
         main(options, args)
 
 #END
-            
-

@@ -32,7 +32,7 @@ class InfPage(CodePage.CodePage):
     def makeope(self, cmdstr):
         # get text to process
         start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end)
+        buf = self.buf.get_text(start, end, True)
 
         try:
             proc = myproc.myproc(cmdstr)

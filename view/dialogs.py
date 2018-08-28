@@ -167,9 +167,9 @@ class MultFileSelection(FileSelection):
                                              filename=initialfile)
 
         if initialfile:
-            if self.action == Gtk.FILE_CHOOSER_ACTION_OPEN:
+            if self.action == Gtk.FileChooserAction.OPEN:
                 self.filew.set_filename(initialfile)
-            elif self.action == Gtk.FILE_CHOOSER_ACTION_SAVE:
+            elif self.action == Gtk.FileChooserAction.SAVE:
                 self.filew.set_current_name(initialfile)
 
         self.filew.set_select_multiple(multiple)

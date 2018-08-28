@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -17,20 +17,21 @@ class TerminalPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
+        #super(TerminalPage, self)._binit__(frame, name, title)
         super(TerminalPage, self).__init__(frame, name, title)
 
         tw = Vte.Terminal()
         #tw.set_color_foreground(common.terminal_colors.fg)
         #tw.set_color_background(common.terminal_colors.bg)
-        
+
         tw.connect("child-exited", lambda w: self.close())
-        ## tw.spawn_sync(Vte.PtyFlags.DEFAULT,
-        ##                os.environ['HOME'],
-        ##                ["/bin/bash"],
-        ##                [],
-        ##                GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-        ##                None,
-        ##                None)
+        tw.spawn_sync(Vte.PtyFlags.DEFAULT,
+                       os.environ['HOME'],
+                       ["/bin/bash"],
+                       [],
+                       GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                       None,
+                       None)
         self.tw = tw
 
         tw.show()
@@ -46,6 +47,6 @@ class TerminalPage(Page.ButtonPage):
                              "menu.Close")
         item.show()
 
-        
+
 
 #END

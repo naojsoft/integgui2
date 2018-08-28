@@ -218,8 +218,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.__dict__[key] = False
 
     def build_dialog(self, title, text, func):
-        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=Gtk.MESSAGE_WARNING,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.WARNING,
                                    message_format=text)
         dialog.set_title(title)
         dialog.connect("response", func)
@@ -941,9 +941,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             common.view.popup_error(str(e))
 
     def attach_queue(self):
-        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=Gtk.MESSAGE_QUESTION,
-                                   buttons=Gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
+                                   buttons=Gtk.ButtonsType.OK_CANCEL,
                                    message_format="Pick the destination queue:")
         dialog.set_title("Connect Queue")
         # Add a combo box to the content area containing the names of the

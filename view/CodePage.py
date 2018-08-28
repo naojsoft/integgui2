@@ -322,11 +322,11 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         print_op.connect("draw-page", self.draw_page_cb, compositor)
         res = print_op.run(Gtk.PrintOperationAction.PRINT_DIALOG, window)
 
-        if res == Gtk.PRINT_OPERATION_RESULT_ERROR:
+        if res == Gtk.PrintOperationResult.ERROR:
             #error_dialog(window, "Error printing file:\n\n" + filename)
             return common.view.popup_error("Error printing file '%s'" % (
                 filename))
-        elif res == Gtk.PRINT_OPERATION_RESULT_APPLY:
+        elif res == Gtk.PrintOperationResult.APPLY:
             common.view.statusMsg('File printed: %s' % filename)
 
     ##### Find and Replace callbacks

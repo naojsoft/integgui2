@@ -552,7 +552,7 @@ class IntegView(object):
         def f(w, rsp):
             w.destroy()
             res = 'no'
-            if rsp == Gtk.RESPONSE_YES:
+            if rsp == Gtk.ResponseType.YES:
                 res = 'yes'
             f_res(res, *args, **kwdargs)
 
@@ -602,7 +602,7 @@ class IntegView(object):
         def pick_log(w, rsp, cbox, names):
             logName = names[cbox.get_active()].strip()
             w.hide()
-            if rsp == Gtk.RESPONSE_OK:
+            if rsp == Gtk.ResponseType.OK:
                 self.load_monlog(workspace, logName)
             return True
 

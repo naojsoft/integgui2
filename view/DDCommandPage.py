@@ -121,9 +121,9 @@ class DDCommandPage(Page.CommandPage):
 
     # TODO: this is code share with OpePage.  Should be shared.
     def attach_queue(self):
-        dialog = Gtk.MessageDialog(flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
-                                   type=Gtk.MESSAGE_QUESTION,
-                                   buttons=Gtk.BUTTONS_OK_CANCEL,
+        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                   type=Gtk.MessageType.QUESTION,
+                                   buttons=Gtk.ButtonsType.OK_CANCEL,
                                    message_format="Pick the destination queue:")
         dialog.set_title("Connect Queue")
         # Add a combo box to the content area containing the names of the
@@ -145,7 +145,7 @@ class DDCommandPage(Page.CommandPage):
     def attach_queue_res(self, w, rsp, cbox, names):
         queueName = names[cbox.get_active()].strip().lower()
         w.destroy()
-        if rsp == Gtk.RESPONSE_OK:
+        if rsp == Gtk.ResponseType.OK:
             if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
                 return True

@@ -82,7 +82,7 @@ class TablePage(Page.ButtonPage):
     def sort_cb(self, column, idx):
         treeview = column.get_tree_view()
         model = treeview.get_model()
-        model.set_sort_column_id(idx, Gtk.SORT_ASCENDING)
+        model.set_sort_column_id(idx, Gtk.SortType.ASCENDING)
         fn = self.cell_sort_funcs[idx]
         model.set_sort_func(idx, fn)
         return True
@@ -98,7 +98,7 @@ class TablePage(Page.ButtonPage):
             filename = bnch[kwd]
             filepath = os.path.join(icondir, filename)
             #pb = self.treeview.render_icon(stock,
-            #                               Gtk.ICON_SIZE_MENU, None)
+            #                               Gtk.IconSize.MENU, None)
             width = 16
             height = width
             pb = GdkPixbuf.Pixbuf.new_from_file_at_size(filepath,

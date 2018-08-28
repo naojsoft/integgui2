@@ -147,7 +147,7 @@ class Desktop(object):
         with self.lock:
             if name in self.ws:
                 raise Exception("A workspace with name '%s' already exists!" % name)
-            root = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
+            root = Gtk.Window(Gtk.WindowType.TOPLEVEL)
             root.set_title(title)
             # TODO: this needs to be more sophisticated
             root.connect("delete_event", lambda w, e: w.hide())
