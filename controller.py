@@ -1051,7 +1051,7 @@ class IntegController(object):
         res = self.gui.ds.getPages(filename)
         if len(res) == 0:
             # page is not open yet
-            self.gui.load_file(filepath)
+            self.gui.gui_do(self.gui.load_file, filepath)
         else:
             self.logger.debug("page exists, reloading...")
             ws, page = res[0]
