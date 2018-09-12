@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -33,18 +33,19 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         # Path of the file loaded into this buffer
         self.filepath = ''
-        
+
         # Used to strip out bogus characters from buffers
         if six.PY2:
             acceptchars = set(string.printable)
             self.deletechars = ''.join(set(string.maketrans('', '')) -
                                        acceptchars)
-            #self.transtbl = string.maketrans('\r', '\n') 
+            #self.transtbl = string.maketrans('\r', '\n')
             self.transtbl = string.maketrans('\r', ' ')
         else:
             acceptchars = set(string.printable.encode('iso-8859-1'))
-            self.deletechars = (''.join(map(chr, set(bytes.maketrans(b'', b'')) -
-                                            acceptchars))).encode('iso-8859-1')
+            self.deletechars = (''.join([chr(c)
+                                         for c in set(bytes.maketrans(b'', b'')) -
+                                             acceptchars])).encode('iso-8859-1')
             self.transtbl = bytes.maketrans(b'\r', b' ')
 
         self.border = Gtk.Frame()
@@ -142,7 +143,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         # "cleanse" text--change CR to NL, delete unprintable chars
         # TODO: what about unicode?
         buftxt = buftxt.encode('iso-8859-1')
-        
+
         buftxt = buftxt.translate(self.transtbl, self.deletechars)
         # translate tabs to 8 spaces
         buftxt = buftxt.replace(b'\t', b'        ')
@@ -195,7 +196,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #self.buf.set_modified(False)
 
         #self._do_save()
-        
+
     def reload(self):
         try:
             with open(self.filepath, 'r') as in_f:
@@ -231,10 +232,10 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             self._do_save()
 
         dirname, filename = os.path.split(self.filepath)
-        common.view.popup_confirm("Save file", 
+        common.view.popup_confirm("Save file",
                                   'Really save "%s"?' % filename,
                                   _save)
-        
+
     def build_dialog(self, title, text, func):
         dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                    type=Gtk.MessageType.WARNING,
@@ -252,7 +253,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             w.add_button("Save and Close", 3)
             w.show()
             return False
-        
+
         super(CodePage, self).close()
         return True
 
@@ -260,11 +261,11 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         w.destroy()
         if rsp == 2:
             super(CodePage, self).close()
-            
+
         elif rsp == 3:
             self._do_save()
             super(CodePage, self).close()
-            
+
         return True
 
     def get_filepath(self):
@@ -272,18 +273,18 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def line_numbering(self, onoff):
         self.tw.set_show_line_numbers(onoff)
-        
+
     def toggle_line_numbering(self, widget):
         self.line_numbering(widget.get_active())
         return True
-        
+
     def line_wrapping(self, kind):
         d = { 'none': Gtk.WrapMode.NONE,
               'char': Gtk.WrapMode.CHAR,
               'word': Gtk.WrapMode.WORD,
               'full': Gtk.WrapMode.WORD_CHAR }
         self.tw.set_wrap_mode(d[kind])
-        
+
     def toggle_line_wrapping(self, widget):
         if widget.get_active():
             self.line_wrapping('full')
@@ -292,7 +293,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         return True
 
     ##### Printing callbacks
-    
+
     def begin_print_cb(self, operation, context, compositor):
         while not compositor.paginate(context):
             pass
@@ -330,20 +331,20 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             common.view.statusMsg('File printed: %s' % filename)
 
     ##### Find and Replace callbacks
-    
+
     def _find(self, response):
         dialog = self.sr
 
         if response == 'close':
             common.clear_selection(self.tw)
             return True
-        
+
         if response == 'replace':
             if not self.buf.get_has_selection():
                 # No selection.
                 dialog.set_message("NO SELECTION")
                 return True
-                
+
             try:
                 start, end = self.buf.get_selection_bounds()
             except ValueError:
@@ -423,6 +424,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         if mark == buf.get_insert():
             self.buf.move_mark(self.searchmark, loc)
         return False
-            
+
 
 #END

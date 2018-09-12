@@ -10,20 +10,14 @@ import re
 import six.moves._thread, threading, six.moves.queue
 import traceback
 
-# Special library imports
-import gi
-gi.require_version('Gtk', '3.0')
-
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 
-from six.moves import map
+from ginga.gw import Widgets, GwMain, Desktop as GwDesktop
 
 # SSD/Gen2 imports
-import cfg.g2soss as g2soss
 from ginga.misc import Bunch, Future
-from ginga.misc import Settings
 
 # Local integgui2 imports
 from . import common
@@ -35,27 +29,22 @@ from . import dialogs
 # Parse our gtk resource file
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 css_file = os.path.join(thisDir, "gtk_css")
-with open(css_file, 'r') as css_f:
-    css_data = css_f.read()
-
-style_provider = Gtk.CssProvider()
-style_provider.load_from_data(bytes(css_data.encode()))
-
-Gtk.StyleContext.add_provider_for_screen(
-    Gdk.Screen.get_default(), style_provider,
-    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-    )
 
 # Formatting string used to format History table
 fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed)7.7s %(result)s %(queue)8.8s  %(cmdstr)s"
 
 
-class IntegView(object):
+class IntegView(GwMain.GwMain, Widgets.Application):
 
-    def __init__(self, logger, ev_quit, queues, logtype='normal'):
+    def __init__(self, logger, preferences,
+                 ev_quit, queues, logtype='normal'):
 
-        self.logger = logger
-        self.ev_quit = ev_quit
+        # Create the top level Gtk3 app
+        Widgets.Application.__init__(self, logger=logger)
+        GwMain.GwMain.__init__(self, logger=logger, ev_quit=ev_quit, app=self)
+
+        ## self.logger = logger
+        ## self.ev_quit = ev_quit
         self.queue = queues
         self.logtype = logtype
         self.lock = threading.RLock()
@@ -70,11 +59,9 @@ class IntegView(object):
 
         self.w = Bunch.Bunch()
 
-        basedir = os.path.join(g2soss.confhome, 'integgui2')
-        self.prefs = Settings.Preferences(basefolder=basedir,
-                                          logger=self.logger)
-        self.settings = self.prefs.createCategory('default')
-        self.settings.setDefaults(
+        self.prefs = preferences
+        self.settings = self.prefs.create_category('default')
+        self.settings.set_defaults(
             audible_errors = True,
             suppress_confirm_exec = True,
             embed_dialogs = False,
@@ -93,35 +80,56 @@ class IntegView(object):
         self.set_procdir(procdir, 'SUKA')
 
         # hack required to use threads with GTK
-        GObject.threads_init()
-        Gdk.threads_init()
+        #GObject.threads_init()
+        #Gdk.threads_init()
 
-        # Create top-level window
-        root = Gtk.Window()
-        root.set_size_request(1900, 1050)
+    def build_toplevel(self, layout):
+        # Dynamically create the desktop layout
+        self.desk = GwDesktop.Desktop(self)
+        self.desk.make_desktop(layout, widget_dict=self.w)
+        self.desk.add_callback('all-closed', self.quit)
+
+        # this is the old integgui2 desktop, grafted on to the
+        # ginga desktop
+        self.ds = Desktop(self.w, 'desktop', 'IntegGUI Desktop')
+        self.ds.logger = self.logger
+
+        root = self.desk.toplevels[0]
+        root_w = root.get_widget()
+        self.w.root = root_w
+        # TEMP: temporarily needed until "all-closed" callback from Desktop is working
+        root.add_callback('close', self.quit)
+
         root.set_title('Gen2 Integrated GUI II')
-        root.connect("delete_event", self.delete_event)
+        #root.connect("delete_event", self.delete_event)
         root.set_border_width(2)
 
         # These are sometimes needed
-        screen = root.get_screen()
+        screen = root_w.get_screen()
         self.display = screen.get_display()
         self.clipboard = Gtk.Clipboard()
 
-        # create main frame
-        self.w.mframe = Gtk.VBox(spacing=2)
-        root.add(self.w.mframe)
-        #self.w.mframe.show()
+        with open(css_file, 'r') as css_f:
+            css_data = css_f.read()
 
-        self.w.root = root
+        style_provider = Gtk.CssProvider()
+        style_provider.load_from_data(css_data.encode('latin1'))
+
+        Gtk.StyleContext.add_provider_for_screen(
+            #Gdk.Screen.get_default(), style_provider,
+            screen, style_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+
+        # Add menubar and menus
+        #self.add_menus()
+
+        # Add popup dialogs
+        #self.add_dialogs()
 
         self.w.menubar = Gtk.MenuBar()
-        self.w.mframe.pack_start(self.w.menubar, False, False, 0)
-
-        # Create a "desktop" the holder for workspaces
-        self.ds = Desktop(self.w.mframe, 'desktop', 'IntegGUI Desktop')
-        # Some attributes we force on our children
-        self.ds.logger = self.logger
+        hbox = self.w['menu'].get_widget()
+        hbox.pack_start(self.w.menubar, True, True, 0)
 
         self.add_statusbar()
 
@@ -469,7 +477,7 @@ class IntegView(object):
         self.filesave = dialogs.FileSelection(action=Gtk.FileChooserAction.SAVE)
 
     def add_statusbar(self):
-        hbox = Gtk.HBox()
+        hbox = self.w['status'].get_widget()
         btns = Gtk.HButtonBox()
 
         btns.set_layout(Gtk.ButtonBoxStyle.START)
@@ -490,7 +498,6 @@ class IntegView(object):
         hbox.pack_start(self.w.status, True, True, 4)
 
         hbox.show_all()
-        self.w.mframe.pack_end(hbox, False, True, 0)
 
 
     def statusMsg(self, format, *args):
@@ -514,7 +521,7 @@ class IntegView(object):
         if size:
             match = re.match(r'^(\d+)x(\d+)$', size)
             if match:
-                width, height = list(map(int, match.groups()))
+                width, height = [int(x) for x in match.groups()]
                 self.w.root.set_default_size(width, height)
 
         # TODO: placement

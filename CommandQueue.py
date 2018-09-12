@@ -1,21 +1,18 @@
 #
 # command.py -- command object and queue object definitions
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sat Apr 16 10:16:53 HST 2011
-#]
-
+# Eric Jeschke (eric@naoj.org)
+#
 from __future__ import absolute_import
 import threading
-from six.moves import filter
-from six.moves import map
+from six.moves import filter, map
 
 class QueueEmpty(Exception):
     pass
 
 
 class CommandQueue(object):
-    
+
     def __init__(self, name, logger):
         self.name = name
         self.logger = logger
@@ -38,7 +35,7 @@ class CommandQueue(object):
     def mark_status(self, cmdObjs, status):
         for cmdObj in cmdObjs:
             cmdObj.mark_status(status)
-        
+
     def update_status(self, cmdObjs):
         with self.lock:
             for cmdObj in cmdObjs:
@@ -46,14 +43,14 @@ class CommandQueue(object):
                     cmdObj.mark_status('queued')
                 else:
                     cmdObj.mark_status('unqueued')
-        
+
     def redraw(self):
         with self.lock:
             for view in self.views:
                 view.redraw()
             self.mark_status(self.queue, 'queued')
-                
-        
+
+
     def enabledP(self):
         return self.flag.isSet()
 
@@ -79,7 +76,7 @@ class CommandQueue(object):
             return list(map(str, self.queue))
 
     def get_by_tags(self, tags):
-        """Returns a list of all elements of the queue who have 
+        """Returns a list of all elements of the queue who have
         queue."""
         with self.lock:
             return [x for x in self.queue if str(x) in tags]
@@ -97,22 +94,22 @@ class CommandQueue(object):
             self.queue.append(cmdObj)
             #self.mark_status([cmdObj], 'queued')
             self.redraw()
-            
+
     add = append
-            
+
     def prepend(self, cmdObj):
         with self.lock:
             self.queue.insert(0, cmdObj)
             #self.mark_status([cmdObj], 'queued')
             self.redraw()
-            
+
     def extend(self, cmdObjs):
         lstcopy = list(cmdObjs)
         with self.lock:
             self.queue.extend(lstcopy)
             #self.mark_status(lstcopy, 'queued')
             self.redraw()
-            
+
     def replace(self, cmdObjs):
         with self.lock:
             oldObjs = self.queue
@@ -121,11 +118,11 @@ class CommandQueue(object):
             self.update_status(oldObjs)
             self.redraw()
             return oldObjs
-            
+
     def getslice(self, i, j):
         with self.lock:
             return self.queue[i:j]
-            
+
     def insert(self, i, cmdObjs):
         """Insert command objects before index _i_.
         Indexing is zero based."""
@@ -133,7 +130,7 @@ class CommandQueue(object):
             self.queue = self.queue[:i] + cmdObjs + self.queue[i:]
             #self.mark_status(cmdObjs, 'queued')
             self.redraw()
-            
+
     def delete(self, i, j):
         """Delete command objects from indexes _i_:_j_.
         Indexing is zero based."""
@@ -143,7 +140,7 @@ class CommandQueue(object):
             self.update_status(deleted)
             self.redraw()
             return deleted
-            
+
     def peek(self):
         with self.lock:
             try:
@@ -201,39 +198,39 @@ class CommandQueue(object):
     def __getitem__(self, key):
         with self.lock:
             return self.queue[key]
-    
+
     def __setitem__(self, key, val):
         with self.lock:
             oldval = self.queue[key]
             self.queue[key] = val
             self.update_status([oldval])
             self.redraw()
-    
+
     def __setslice__(self, i, j, sequence):
         with self.lock:
             oldvals = self.queue[i, j]
             self.queue[i:j] = sequence
             self.update_status(oldvals)
             self.redraw()
-    
+
     def __delslice__(self, i, j):
         return self.delete(i, j)
-    
+
     def __delitem__(self, key):
         with self.lock:
             oldval = self.queue[key]
             del self.queue[key]
             self.update_status([oldval])
             self.redraw()
-    
+
     def __iter__(self, i):
         raise Exception("Not yet implemented!")
-    
+
     def __contains__(self, val):
         with self.lock:
             return val in self.queue
 
     def __str__(self):
         return self.get_tags()
-    
+
 #END

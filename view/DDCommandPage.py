@@ -1,10 +1,9 @@
 #
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Sun Apr 15 17:10:51 HST 2018
-#]
-
+# Eric Jeschke (eric@naoj.org)
+#
 from __future__ import absolute_import
-import gtk
+
+from gi.repository import Gtk
 
 from . import common
 from . import Page

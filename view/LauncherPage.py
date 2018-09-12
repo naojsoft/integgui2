@@ -13,7 +13,6 @@ from ginga.misc import Bunch
 from . import common
 from . import Page
 from . import CommandObject
-from six.moves import map
 
 # Default width of the main launcher buttons
 default_width = 150
@@ -344,14 +343,16 @@ class LauncherList(object):
 
                     elif p_type == 'select':
                         var = param['name']
-                        vallst = list(map(self._validate_elt, param['values']))
+                        vallst = [self._validate_elt(e)
+                                  for e in param['values']]
                         lbl = param.get('label', '')
 
                         launcher.add_radio(var, vallst, lbl)
 
                     elif p_type == 'list':
                         var = param['name']
-                        vallst = list(map(self._validate_elt, param['values']))
+                        vallst = [self._validate_elt(e)
+                                  for e in param['values']]
                         lbl = param.get('label', '')
 
                         launcher.add_list(var, vallst, lbl)
@@ -375,7 +376,7 @@ class LauncherList(object):
                         launcher.add_input(var, width, val, lbl)
 
                     elif p_type == 'select':
-                        vallst = list(map(self._validate_elt, param[2]))
+                        vallst = [self._validate_elt(e) for e in param[2]]
                         lbl = ''
                         if len(param) > 3:
                             lbl = param[3]
@@ -383,7 +384,7 @@ class LauncherList(object):
                         launcher.add_radio(var, vallst, lbl)
 
                     elif p_type == 'list':
-                        vallst = list(map(self._validate_elt, param[2]))
+                        vallst = [self._validate_elt(e) for e in param[2]]
                         lbl = ''
                         if len(param) > 3:
                             lbl = param[3]

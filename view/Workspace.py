@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -18,7 +18,7 @@ drag_src = None
 
 
 class Workspace(object):
-    
+
     def __init__(self, frame, name, title):
 
         self.frame = frame
@@ -41,7 +41,6 @@ class Workspace(object):
         nb.set_scrollable(True)
         nb.set_show_tabs(True)
         nb.set_show_border(True)
-        #nb.set_size_request(900, 500)
         # Allows drag-and-drop between notebooks
         nb.set_group_name('1')
         nb.connect("page-added", self._page_added)
@@ -67,7 +66,7 @@ class Workspace(object):
             menu.popup(None, None, None, event.button, event.time)
             return True
         return False
-    
+
     def build_menu(self):
         wsmenu = Gtk.Menu()
 
@@ -124,7 +123,7 @@ class Workspace(object):
 
     def set_tab_pos(self, pos):
         self.nb.set_tab_pos(pos)
-        
+
     def makename(self, name):
         with self.lock:
             if name not in self.pages:
@@ -163,7 +162,7 @@ class Workspace(object):
 
             self.nb.set_tab_reorderable(child, True)
             self.nb.set_tab_detachable(child, True)
-            
+
             # Some attributes we force on our children
             pageobj.logger = self.logger
             # ?? cyclical reference causes problems for gc?
@@ -180,7 +179,7 @@ class Workspace(object):
 
             return pageobj
 
-        
+
     def addpage(self, name, title, klass, adjname=True):
         with self.lock:
             if name in self.pages:
@@ -235,10 +234,10 @@ class Workspace(object):
         with self.lock:
             for name in self.pages.keys():
                 self.delpage(name)
-            
+
     def clear(self):
         return self.delall()
-            
+
     def select(self, name):
         i = self.getIndexByName(name)
         self.nb.set_current_page(i)
@@ -265,7 +264,7 @@ class Workspace(object):
         with self.lock:
             page = self.getPage(name)
             return self.nb.page_num(page.frame)
-        
+
     def showTransient(self, name):
         with self.lock:
             # Get currently selected page
@@ -282,10 +281,10 @@ class Workspace(object):
 
             # Go to the new page
             self.select(name)
-            
+
     def hideTransient(self, name):
         # A dialog is finished.  Pop the page off the list of "transients"
-        # and go to the 
+        # and go to the
         with self.lock:
             try:
                 self.transients.remove(name)
@@ -297,7 +296,7 @@ class Workspace(object):
                 if self.lastPage != None:
                     print("Moving back to page: %s" % self.lastPage.name)
                     self.select(self.lastPage.name)
-            
+
     def getPages(self):
         with self.lock:
             return list(self.pages.values())
@@ -306,7 +305,7 @@ class Workspace(object):
         def _close(res):
             if res == 'yes':
                 return super(Workspace, self).close()
-        
+
         if len(self.pages) > 0:
             common.view.popup_confirm("Close Workspace",
                                       "Workspace '%s' has pages.  Really close?" % (
@@ -317,7 +316,7 @@ class Workspace(object):
             page.name, workspace.name))
         self.delpage(page.name)
         workspace._addpage(page.name, page.title, page.frame, page)
-        
+
 
     def _page_switched(self, nb, child, page_num):
         with self.lock:
@@ -326,7 +325,7 @@ class Workspace(object):
                     if not page.name in self.transients:
                         self.lastPage = page
                     break
-                    
+
 
     # DRAG AND DROP TABS
     def _page_added(self, nb, child, page_num):
@@ -338,7 +337,7 @@ class Workspace(object):
                 self.pages_w[child] = pageobj
                 pageobj.parent = self
                 #self.nb.set_tab_label_text(child, pageobj.title)
-                
+
             return True
 
     def _page_removed(self, nb, child, page_num):
@@ -355,7 +354,7 @@ class Workspace(object):
             except Exception as e:
                 self.logger.error('Error removing page: %s' % str(e))
             return True
-    
+
     def _detach_page(self, source, widget, x, y):
         # Detach page to new top-level workspace
         page = self.widgetToPage(widget)
@@ -365,7 +364,7 @@ class Workspace(object):
             self.transients.remove(page.name)
         if self.lastPage == page:
             self.lastPage = None
-        
+
         self.logger.info("detaching page %s" % (page.name))
         ws = self.parent.add_detached_noname(x=x, y=y)
         return ws.widget

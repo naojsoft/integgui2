@@ -1,8 +1,6 @@
-# 
-#[ Eric Jeschke (eric@naoj.org) --
-#  Last edit: Fri Jun  7 20:30:55 HST 2013
-#]
-
+#
+# Eric Jeschke (eric@naoj.org)
+#
 # meta import for all GUI object classes
 
 from __future__ import absolute_import
@@ -34,4 +32,3 @@ from .StatMonPage import *
 from .OptionsPage import *
 
 #END
-

@@ -560,6 +560,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                     x, y)
         txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
+        if hasattr(txtiter, 'iter'):
+            # Gtk3, it seems
+            txtiter = txtiter.iter
 
         buf = tw.get_buffer()
         tagtbl = buf.get_tag_table()

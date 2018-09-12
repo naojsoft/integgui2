@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -13,61 +13,46 @@ from ginga.misc import Bunch
 from . import common
 from . import Workspace
 
-from six.moves import map
-
 
 class Desktop(object):
-    
-    def __init__(self, frame, name, title):
-        self.frame = frame
+
+    def __init__(self, w_dict, name, title):
+        self.w_dict = w_dict
         self.name = name
         self.title = title
 
         self.count = 1
         self.detached = []
         self.w = Bunch.Bunch()
-        
-        # TODO: should generalize to number of rows and columns
 
-        vframe = Gtk.VPaned()
+        ## self.w.ulh = Gtk.HPaned()
+        ## self.w.llh = Gtk.HPaned()
+        ## self.w.umh = Gtk.HPaned()
+        ## self.w.lmh = Gtk.HPaned()
+        self.w.ulh = w_dict['ulh'].get_widget()
+        self.w.llh = w_dict['llh'].get_widget()
+        self.w.umh = self.w.ulh.get_child2()
+        self.w.lmh = self.w.llh.get_child2()
 
-        self.w.ulh = Gtk.HPaned()
-        #self.w.ulh.set_size_request(-1, 400)
-        self.w.llh = Gtk.HPaned()
-        self.w.umh = Gtk.HPaned()
-        #self.w.umh.set_size_request(-1, 400)
-        self.w.lmh = Gtk.HPaned()
-        self.w.ulh.pack2(self.w.umh, True, True)
-        self.w.llh.pack2(self.w.lmh, True, True)
-        
-        frame.pack_start(vframe, True, True, 0)
+        ## ul = Gtk.VBox()
+        ## ll = Gtk.VBox()
+        ## um = Gtk.VBox()
+        ## lm = Gtk.VBox()
+        ## ur = Gtk.VBox()
+        ## lr = Gtk.VBox()
+        ul = w_dict['ul'].get_widget()
+        ll = w_dict['ll'].get_widget()
+        um = w_dict['um'].get_widget()
+        lm = w_dict['lm'].get_widget()
+        ur = w_dict['ur'].get_widget()
+        lr = w_dict['lr'].get_widget()
 
-        ul = Gtk.VBox()
-        #ul.set_size_request(850, 400)
-        ll = Gtk.VBox()
-        #ll.set_size_request(550, -1)
-        um = Gtk.VBox()
-        #um.set_size_request(0, -1)
-        lm = Gtk.VBox()
-        #lm.set_size_request(460, -1)
-        ur = Gtk.VBox()
-        lr = Gtk.VBox()
-
-        self.w.ulh.pack1(ul, True, True)
-        self.w.llh.pack1(ll, True, True)
-        self.w.umh.pack1(um, True, True)
-        self.w.lmh.pack1(lm, True, True)
-        self.w.umh.pack2(ur, True, True)
-        self.w.lmh.pack2(lr, True, True)
         self.pane = Bunch.Bunch()
         for name in self.w.keys():
             bnch = Bunch.Bunch(name=name, pos=None, time=None,
                                widget=self.w[name])
             self.pane[name] = bnch
             self.w[name].connect('notify', self._get_resize_fn(bnch))
-
-        vframe.pack1(self.w.ulh, True, True)
-        vframe.pack2(self.w.llh, True, True)
 
         self.ws_fr = {
             'll': Bunch.Bunch(frame=ll, pane=self.pane.llh),
@@ -80,9 +65,6 @@ class Desktop(object):
 
         self.ws = {}
         self.lock = threading.RLock()
-
-        vframe.show_all()
-
 
     def get_wsframe(self, loc):
         with self.lock:
@@ -100,7 +82,7 @@ class Desktop(object):
                 pane_w.set_position(pos)
 
             return pos - cur_pos
-            
+
     def _restore_pane(self, loc):
         with self.lock:
             pinfo = self.ws_fr[loc].pane
@@ -119,12 +101,12 @@ class Desktop(object):
         with self.lock:
             bnch = self.ws[name]
             self._show_pane(bnch.loc, pos)
-    
+
     def restore_ws(self, name):
         with self.lock:
             bnch = self.ws[name]
             self._restore_pane(bnch.loc)
-    
+
     def addws(self, loc, name, title):
         with self.lock:
             if name in self.ws:
@@ -166,7 +148,7 @@ class Desktop(object):
             root.show_all()
             if x:
                 root.move(x, y)
-            
+
             self.count += 1
             self.ws[name] = Bunch.Bunch(ws=ws, frame=frame, loc=None)
             return ws
@@ -178,14 +160,14 @@ class Desktop(object):
             name = 'ws%d' % self.count
             title = 'Workspace %d' % self.count
             return self.add_detached(name, title, x=x, y=y)
-        
+
     def getWorkspace(self, name):
         with self.lock:
             return self.ws[name].ws
 
     def getWorkspaces(self):
         with self.lock:
-            return list(map(self.getWorkspace, list(self.ws.keys())))
+            return [self.getWorkspace(key) for key in self.ws.keys()]
 
     def getPages(self, name):
         """Return a list of tuples of (ws, page) for pages matching
@@ -206,13 +188,13 @@ class Desktop(object):
             return results[0]
 
         raise KeyError("There are multiple pages with the name '%s'" % name)
-    
+
     def getNames(self):
         with self.lock:
             return list(self.ws.keys())
 
     def gui_moveto_workspace(self, src_ws, page):
-        
+
         def move_page(w, rsp, went):
             name = went.get_text()
             w.destroy()
@@ -261,5 +243,5 @@ class Desktop(object):
                 bnch.pos = pos
 
         return _pane_resized
-        
+
 #END

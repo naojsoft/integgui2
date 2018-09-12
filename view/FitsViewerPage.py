@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 # stdlib imports
@@ -17,7 +17,7 @@ from . import Page
 
 import astro.fitsdata as fitsdata
 from ginga.misc import Bunch, Datasrc
-from ginga.gtkw.FitsImageCanvasGtk import FitsImageCanvas
+from ginga.gtk3w.ImageViewGtk import CanvasView, ScrolledView
 
 
 class FitsViewerPage(Page.ButtonPage):
@@ -25,7 +25,7 @@ class FitsViewerPage(Page.ButtonPage):
     def __init__(self, datasrc, logger, ev_quit=None):
         """Implements a fancier display with buttons and accouterments.
         """
-        
+
     def __init__(self, frame, name, title):
 
         super(FitsViewerPage, self).__init__(frame, name, title)
@@ -41,7 +41,7 @@ class FitsViewerPage(Page.ButtonPage):
         vbox = Gtk.VBox()
         hbox1 = Gtk.HPaned()
 
-        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window = ScrolledWindow()
         scrolled_window.set_border_width(2)
 
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
@@ -56,10 +56,9 @@ class FitsViewerPage(Page.ButtonPage):
         self.fitsinfo.show()
         scrolled_window.show()
 
-        scrolled_window.set_size_request(250, -1)
         hbox1.add1(scrolled_window)
 
-        self.fitsimage = FitsImageCanvas()
+        self.fitsimage = CanvasView(logger=self.logger)
         self.widget = self.fitsimage.get_widget()
 
         hbox1.add2(self.widget)
@@ -68,7 +67,7 @@ class FitsViewerPage(Page.ButtonPage):
         # Colormap we will use for image display
         #self.cmap = cm.gray
         self.cmap = 'gray'
-        
+
         # Initialize the viewer with an empty image
         data = numpy.zeros((512,512))
         self.image = Bunch.Bunch(name='', width=512, height=512,
@@ -78,7 +77,7 @@ class FitsViewerPage(Page.ButtonPage):
         vbox.pack_start(hbox1, True, True, 0)
 
         self.add_close()
-        
+
         self.btn_load = Gtk.Button("Load")
         self.btn_load.connect("clicked", lambda w: self.load_fits())
         self.btn_load.show()
@@ -90,11 +89,11 @@ class FitsViewerPage(Page.ButtonPage):
 ##         self.leftbtns.pack_end(self.btn_save, False, False, 4)
 
         vbox.show()
-        
+
         frame.pack_start(vbox, True, True, 0)
 
         frame.show_all()
-        
+
 
     def cut_levels(self, w):
         with self.lock:
@@ -114,7 +113,7 @@ class FitsViewerPage(Page.ButtonPage):
             except IndexError:
                 self.showStatus("No previous image!")
                 self.logger.error("No previous image!")
-            
+
         return True
 
 
@@ -147,7 +146,7 @@ class FitsViewerPage(Page.ButtonPage):
 
             self.update_img()
 
-                
+
     def load(self, fitspath):
         """Loads a command file from _path_ into the commands window.
         """
@@ -155,7 +154,7 @@ class FitsViewerPage(Page.ButtonPage):
             imgb = self.open_fits(fitspath)
 
             self.fitspath = fitspath
-            
+
             # Enqueue image to display datasrc
             self.datasrc[imgb.name] = imgb
 
@@ -192,7 +191,7 @@ class FitsViewerPage(Page.ButtonPage):
 
         return imgb
 
-    
+
     def update_img(self):
         """Update the image in the window, based on changes to the
         image data contained in self.image.data.
@@ -203,7 +202,7 @@ class FitsViewerPage(Page.ButtonPage):
             curtime = time.time()
             try:
                 self.fitsimage.set_data(self.image.data)
-                
+
                 # Update the header info
                 hdr_list = []
                 for (key, val) in self.image.header.items():
@@ -213,7 +212,7 @@ class FitsViewerPage(Page.ButtonPage):
                 common.clear_tv(w)
                 common.append_tv(w, '\n'.join(hdr_list))
                 self.logger.debug("Update fits kwds: %.4f sec" % (time.time() - curtime))
-                
+
                 tottime = time.time() - curtime
                 self.logger.debug("Update image end: time=%.4f sec" % tottime)
 

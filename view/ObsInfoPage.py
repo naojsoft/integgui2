@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 
@@ -70,7 +70,6 @@ class ObsInfoPage(Page.ButtonPage):
                                    Gtk.PolicyType.AUTOMATIC)
         # create cairo drawing area
         self.area = CairoDrawable(self.draw)
-        #self.area.set_size_request(400, 300)
         self.maxwd = 1200
         self.maxht = 1000
 
@@ -187,6 +186,6 @@ class ObsInfoPage(Page.ButtonPage):
             self.timertask = None
             self.obsdict['TIMER'] = ''
             self.redraw()
-        
+
 
 #END
