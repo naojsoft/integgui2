@@ -17,7 +17,6 @@ class TerminalPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
-        #super(TerminalPage, self)._binit__(frame, name, title)
         super(TerminalPage, self).__init__(frame, name, title)
 
         tw = Vte.Terminal()
@@ -25,13 +24,15 @@ class TerminalPage(Page.ButtonPage):
         #tw.set_color_background(common.terminal_colors.bg)
 
         tw.connect("child-exited", lambda w: self.close())
-        tw.spawn_sync(Vte.PtyFlags.DEFAULT,
-                       os.environ['HOME'],
-                       ["/bin/bash"],
-                       [],
-                       GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-                       None,
-                       None)
+        if hasattr(tw, 'spawn_sync'):
+            # python 3, but not python 2
+            tw.spawn_sync(Vte.PtyFlags.DEFAULT,
+                          os.environ['HOME'],
+                          ["/bin/bash"],
+                          [],
+                          GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                          None,
+                          None)
         self.tw = tw
 
         tw.show()
