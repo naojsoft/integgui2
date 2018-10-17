@@ -107,7 +107,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # These are sometimes needed
         screen = root_w.get_screen()
         self.display = screen.get_display()
-        self.clipboard = Gtk.Clipboard()
+        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
         with open(css_file, 'r') as css_f:
             css_data = css_f.read()
