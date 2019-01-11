@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -56,7 +56,7 @@ def cancel_dialog(tag):
             unregister_dialog(key)
             if obj.w:
                 obj.close(obj.w)
-    
+
 
 # NOTE [1]:
 #   There seems to be a bug in the Gtk.FileChooserDialog() where if the
@@ -66,7 +66,7 @@ def cancel_dialog(tag):
 #
 
 class FileSelection(object):
-    
+
     # Get the selected filename and print it to the console
     def file_ok_sel(self, w, rsp):
         filepath = w.get_filename()
@@ -74,7 +74,7 @@ class FileSelection(object):
         self.close(w)
         if rsp == 0:
             return
-        
+
         self.callfn(filepath)
 
     def __init__(self, action=Gtk.FileChooserAction.OPEN):
@@ -91,19 +91,19 @@ class FileSelection(object):
         else:
             self.filew.add_buttons(Gtk.STOCK_OPEN, 1, Gtk.STOCK_CANCEL, 0)
         self.filew.set_default_response(1)
-        
+
         # Connect the ok_button to file_ok_sel method
         #self.filew.ok_button.connect("clicked", self.file_ok_sel)
         self.filew.connect("response", self.file_ok_sel)
-    
+
         # Connect the cancel_button to destroy the widget
         #self.filew.cancel_button.connect("clicked", self.close)
-    
+
     def popup(self, title, callfn, initialdir=None,
               filename=None):
         # See NOTE [1]
         self._create_widget(self.action)
-        
+
         self.callfn = callfn
         self.filew.set_title(title)
         if initialdir:
@@ -187,7 +187,7 @@ class MyDialog(Gtk.Dialog):
         #self.w.connect("close", self.close)
         if callback:
             self.connect("response", callback)
-        
+
 
 class SearchReplace(object):
 
@@ -196,10 +196,10 @@ class SearchReplace(object):
 
         self.what = ''
         self.replacement = ''
-        
+
     def _create_widget(self, buttons, callback):
         global dialog_count
-        
+
         settings = common.view.get_settings()
         embed_dialogs = settings.get('embed_dialogs', False)
 
@@ -216,7 +216,7 @@ class SearchReplace(object):
             common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
             self.w.add_buttons(buttons, callback)
-            
+
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
 
@@ -253,7 +253,7 @@ class SearchReplace(object):
         self._message = Gtk.Label('')
         self._message.show()
         self.cvbox.pack_start(self._message, True, True, 0)
-        
+
     def popup(self, callfn):
         button_list = [['Close', 0], ['Replace', 1], ['Find', 2], ]
         button_vals = ['close', 'replace', 'find']
@@ -267,12 +267,12 @@ class SearchReplace(object):
 
             if val == 'close':
                 self.close(w)
-                
+
             return callfn(val)
-            
+
         self._create_widget(tuple(button_list), callback)
         self.set_message("Search begins at cursor")
-        
+
         self.w.show()
 
     def is_case_sensitive(self):
@@ -304,14 +304,14 @@ class Confirmation(object):
                  logger=None, soundfn=None, timefreq=5):
         self.title = title
         self.logger = logger
-        
+
         self.soundfn = soundfn
         self.timertask = None
         self.interval = timefreq * 1000
-        
+
     def _create_widget(self, title, iconfile, buttons, callback):
         global dialog_count
-        
+
         settings = common.view.get_settings()
         embed_dialogs = settings.get('embed_dialogs', False)
 
@@ -333,7 +333,7 @@ class Confirmation(object):
             common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
             self.w.add_buttons(buttons, callback)
-            
+
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
         tw = Gtk.TextView()
@@ -360,7 +360,7 @@ class Confirmation(object):
         self.anim = GdkPixbuf.PixbufAnimation.new_from_file(iconfile)
         self.icon.set_from_animation(self.anim)
         self.icon.show_all()
-        
+
     def popup(self, title, iconfile, soundfn, buttons, callfn, tag=None):
         button_list = []
         button_vals = []
@@ -379,12 +379,12 @@ class Confirmation(object):
 
             unregister_dialog(self.tag)
             return callfn(val, button_vals)
-            
+
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
         self.tag = tag
         register_dialog(tag, self)
-        
+
         self.w.show()
         #self.timeraction(soundfn)
         self.timertask = GObject.timeout_add(self.interval,
@@ -407,7 +407,7 @@ class Confirmation(object):
             if soundfn != None:
                 # play sound
                 soundfn()
-            
+
                 # Schedule next sound event
                 self.timertask = GObject.timeout_add(self.interval,
                                                      self.timeraction,
@@ -420,12 +420,12 @@ class UserInput(Confirmation):
     def __init__(self, title='OBS UserInput', logger=None, soundfn=None):
         super(UserInput, self).__init__(title=title, logger=logger,
                                         soundfn=soundfn)
-        
+
     def popup(self, title, iconfile, soundfn, itemlist, callfn, tag=None):
         button_vals = [1, 0]
         # NOTE: numbers here are INDEXES into self.button_vals, not values!
         button_list = [['OK', 0], ['Cancel', 1]]
-            
+
         resDict = {}
 
         def callback(w, rsp):
@@ -443,7 +443,7 @@ class UserInput(Confirmation):
             unregister_dialog(self.tag)
             self.close(w)
             return callfn(val, button_vals, d)
-            
+
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
@@ -467,7 +467,7 @@ class UserInput(Confirmation):
 
         tbl.show_all()
         self.cvbox.pack_start(tbl, False, True, 2)
-        
+
         self.tag = tag
         register_dialog(tag, self)
 
@@ -486,8 +486,8 @@ class Timer(Confirmation):
         # override time interval to 1 sec
         self.interval = 1000
 
-        self.fmtstr = '<span foreground="#008800" background="#FFFFFF" size="12800" weight="bold">%s</span>'
-        
+        self.fmtstr = '<span foreground="#008800" background="#F7F7F7" font="Sans Bold 120">%s</span>'
+
         # rgb triplets we use
         ## self.green = Gdk.Color(0.0, 0.5, 0.0)
         ## self.white = Gdk.Color(1.0, 1.0, 1.0)
@@ -500,7 +500,7 @@ class Timer(Confirmation):
         button_vals = [0]
         # NOTE: numbers here are INDEXES into self.button_vals, not values!
         button_list = [['Close', 0]]
-            
+
         def callback(w, rsp):
             self.close(w)
             if rsp < 0:
@@ -510,7 +510,7 @@ class Timer(Confirmation):
 
             unregister_dialog(self.tag)
             return callfn(val, button_vals)
-            
+
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
@@ -518,7 +518,7 @@ class Timer(Confirmation):
         self.duration = val
         self.timestr = str(int(val)).rjust(5)
         self.timer_val = time.time() + val
-        
+
         self.area = Gtk.Label()
         #self.area.modify_bg(Gtk.StateType.NORMAL, self.white)
         #self.area.modify_fg(Gtk.StateType.NORMAL, self.green)
@@ -562,9 +562,9 @@ class Timer(Confirmation):
 
             # Play sound
             soundfn()
-        
+
             self.close(self.w)
-            
+
 class ComboBox(Confirmation):
 
     def __init__(self, title='OBS ComboBox', logger=None, soundfn=None):

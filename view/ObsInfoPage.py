@@ -110,7 +110,7 @@ class ObsInfoPage(Page.ButtonPage):
     def draw(self, cr, width, height):
         self._draw_blank(cr, width, height)
 
-        cr.select_font_face("fixed",
+        cr.select_font_face("Sans",
                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_source_rgb(*self.black)
         cr.set_font_size(18.0)
