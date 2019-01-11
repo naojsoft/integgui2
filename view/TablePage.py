@@ -111,20 +111,23 @@ class TablePage(Page.ButtonPage):
             return make_text
 
     def _mksrtfnN(self, key, dtype):
+        def _cmp(x,y):
+            return (x > y) - (x < y)
+
         def fn_str(model, iter1, iter2):
             bnch1 = model.get_value(iter1, 0)
             bnch2 = model.get_value(iter2, 0)
             val1, val2 = bnch1[key], bnch2[key]
             val1 = val1.lower()
             val2 = val2.lower()
-            res = cmp(val1, val2)
+            res = _cmp(val1, val2)
             return res
 
         def fn_num(model, iter1, iter2):
             bnch1 = model.get_value(iter1, 0)
             bnch2 = model.get_value(iter2, 0)
             val1, val2 = bnch1[key], bnch2[key]
-            res = cmp(val1, val2)
+            res = _cmp(val1, val2)
             return res
 
         def fn_nop(model, iter1, iter2):
