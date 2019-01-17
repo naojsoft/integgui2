@@ -92,7 +92,7 @@ class FrameInfoPage(LogPage.NotePage):
                 tags = ['normal']
 
             #print tags, frameinfo
-            if hasattr(frameinfo, 'row'):
+            if 'row' in frameinfo:
                 row = frameinfo.row
                 #common.update_line(self.buf, row, text)
                 common.update_line(self.buf, row, text, tags=tags)
