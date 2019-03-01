@@ -38,7 +38,8 @@ GtkWindow, GtkDialog, GtkFileSelection {
 
 GtkTextView {
     color: black;
-    font: Monospace 10;
+    font-family: Monospace;
+    font-size: 10;
 }
 
 GtkButton, GtkComboBox {
