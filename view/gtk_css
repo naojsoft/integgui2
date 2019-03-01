@@ -42,6 +42,7 @@ GtkTextView {
     font-size: 10;
 }
 
+
 GtkButton, GtkComboBox {
     -GtkWidget-focus-line-width: 0;
     background-image: none;
@@ -49,6 +50,26 @@ GtkButton, GtkComboBox {
 
 GtkButton:hover, GtkComboBox:hover {
     background-color: forestgreen;
+    color: yellow;
+    background-image: none;
+}
+
+button {
+    -GtkWidget-focus-line-width: 0;
+    background-color: gray80;
+    padding: 2;
+    color: black;
+    background-image: none;
+}
+
+button:hover {
+    background-color: forestgreen;
+    color: yellow;
+    background-image: none;
+}
+
+button:active {
+    background-color: DeepSkyBlue;
     color: yellow;
     background-image: none;
 }
