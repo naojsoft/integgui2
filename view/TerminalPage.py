@@ -5,8 +5,10 @@ from __future__ import absolute_import
 
 import os
 
+import gi
 from gi.repository import Gtk
 from gi.repository import GLib
+gi.require_version('Vte', '2.91')
 from gi.repository import Vte
 
 from . import common

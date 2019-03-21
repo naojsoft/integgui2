@@ -92,7 +92,6 @@ def main(options, args):
     pub_channels = ['g2task']
 
     # Create a local monitor
-    #mymon = Monitor.Monitor(myMonName, logger, numthreads=options.numthreads)
     mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
 
     threadPool = mymon.get_threadPool()

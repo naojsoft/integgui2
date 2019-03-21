@@ -22,7 +22,7 @@ class Page(object):
     def __init__(self, frame, name, title):
 
         #super(Page, self).__init__()
-        
+
         self.frame = frame
         self.name = name
         self.title = title
@@ -65,10 +65,10 @@ class ButtonPage(Page):
         #super(ButtonPage, self).__init__(frame, name, title)
 
         self.add_menubar()
-        
+
         # bottom buttons
         self.btnframe = Gtk.HBox()
-        
+
         btns = Gtk.HButtonBox()
         btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
@@ -81,7 +81,7 @@ class ButtonPage(Page):
         btns.set_layout(Gtk.ButtonBoxStyle.START)
         btns.set_spacing(5)
         self.rightbtns = btns
-        
+
         self.btnframe.pack_end(self.rightbtns, False, False, 4)
         btns.show()
 
@@ -94,7 +94,7 @@ class ButtonPage(Page):
         elif side == RIGHT:
             return self.rightbtns
         return None
-    
+
     def add_close(self, side=RIGHT):
         self.btn_close = Gtk.Button("Close")
         self.btn_close.connect("clicked", lambda w: self.close())
@@ -141,7 +141,7 @@ class ButtonPage(Page):
             self.menu.popup(None, None, None, event.button, event.time)
             return True
         return False
-        
+
 
 class CommandPage(ButtonPage):
     """Mixin class adding methods for kill, cancel, pause, etc.
@@ -153,7 +153,7 @@ class CommandPage(ButtonPage):
 
         ButtonPage.__init__(self, frame, name, title)
         #super(CommandPage, self).__init__(frame, name, title)
-        
+
     def cancel(self):
         #controller = self.parent.get_controller()
         controller = common.controller
@@ -174,7 +174,7 @@ class CommandPage(ButtonPage):
         controller.tm_resume(self.tm_queueName)
 
     def toggle_pause(self, w):
-        print("toggle pause!")
+        #print("toggle pause!")
         common.controller.playSound(common.sound.pause_toggle)
         if self.paused:
             self.resume()
@@ -197,7 +197,7 @@ class TextPage(Page):
 
     ## def __init__(self, frame, name, title):
     ##     super(TextPage, self).__init__(frame, name, title)
-        
+
     def save(self, dirpath=None, filename=None):
         # If we have a filepath associated with this buffer, try to
         # use it, otherwise revert to a save_as()
@@ -217,7 +217,7 @@ class TextPage(Page):
             dirpath = os.path.join(os.environ['HOME'], 'Procedure')
 
         return dirpath
-    
+
     def save_as(self, dirpath=None, filename=None):
         def _save(filepath):
             self.filepath = filepath
@@ -225,7 +225,7 @@ class TextPage(Page):
 
         if not dirpath:
             dirpath = self._get_save_directory()
-            
+
         common.view.popup_save("Save buffer as", _save,
                                dirpath, filename=filename)
 
@@ -234,7 +234,7 @@ class TextPage(Page):
             first, last = self.buf.get_selection_bounds()
         except ValueError:
             return common.view.popup_error("Please make a selection first!")
-        
+
         def _save(filepath):
             return self._savefile(filepath, (first, last))
 
@@ -295,15 +295,15 @@ class TextPage(Page):
         res = self.tw.scroll_to_mark(self.mark, 0.2, True, 0.0, 0.0)
         if not res:
             res = self.tw.scroll_mark_onscreen(self.mark)
-        #print "line->%d res=%s" % (lineno, res)
+        #print("line->%d res=%s" % (lineno, res))
 
     def scroll_to_end(self):
         lineno = self.get_end_lineno()
         self.scroll_to_lineno(lineno)
-        
+
     def focus_in(self, *args):
-        print(args)
+        #print(args)
         self.tw.grab_focus()
         return True
-    
+
 #END

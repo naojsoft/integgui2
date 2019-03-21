@@ -784,7 +784,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                      title=None):
         try:
             dirname, filename = os.path.split(filepath)
-            #print pageKlass
+            #print(pageKlass)
 
             name = filename
             if not title:
@@ -1418,7 +1418,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_history(self, key, info):
         if hasattr(self, 'history'):
             #self.gui_do(self.history.update_table, key, info)
-            print("INFO IS", info)
+            #print("INFO IS", info)
             msgstr = fmt_history % info
             self.gui_do(self.history.push, msgstr)
 
@@ -1427,7 +1427,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         if hasattr(self, 'logpage'):
             try:
                 page = self.logpage.getPage(logname)
-                #print "%s --> %s" % (logname, str(infodict))
+                #print("%s --> %s" % (logname, str(infodict)))
                 self.gui_do(page.add2log, infodict)
             except KeyError:
                 # No log page for this log loaded, so silently drop message
@@ -1489,7 +1489,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_pending(self, timeout=0.0):
 
         # Process "out-of-band" GTK events
-        #print "PROCESSING OUT-BAND"
+        #print("PROCESSING OUT-BAND")
         #Gdk.threads_enter()
         try:
             while Gtk.events_pending():
@@ -1500,7 +1500,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         done = False
         while not done:
-            #print "PROCESSING IN-BAND"
+            #print("PROCESSING IN-BAND")
             # Process "in-band" GTK events
             try:
                 future = self.gui_queue.get(block=True,
@@ -1537,7 +1537,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                 #pass
 
             # Process "out-of-band" GTK events
-            #print "PROCESSING OUT-BAND"
+            #print("PROCESSING OUT-BAND")
             #Gdk.threads_enter()
             try:
                 while Gtk.events_pending():

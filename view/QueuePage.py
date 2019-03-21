@@ -213,7 +213,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             # restore cursor
             #self.moving_cursor = False
             self.cursor = min(self.cursor, numlines)
-            #print "2. cursor is %d numlines is %d" % (self.cursor, numlines)
+            #print("2. cursor is %d numlines is %d" % (self.cursor, numlines))
             loc = self.buf.get_iter_at_line(self.cursor)
             self.buf.place_cursor(loc)
 
@@ -223,7 +223,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                 ## insiter = self.buf.get_iter_at_mark(insmark)
                 ## insline = insiter.get_line()
                 res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
-                #print "2. scrolling res is %s insline=%d" % (res, insline)
+                #print("2. scrolling res is %s insline=%d" % (res, insline))
 
 
     def redraw(self):
@@ -265,7 +265,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             last.set_line(lrow)
         if not last.ends_line():
             last.forward_to_line_end()
-        #print "selection: %d-%d" % (frow, lrow)
+        #print("selection: %d-%d" % (frow, lrow))
 
         # Apply color to rows and save selection indexes
         self.buf.apply_tag_by_name('selected', first, last)
@@ -291,7 +291,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
-            print("i=%d j=%d" % (i, j))
+            #print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
             self.clip = self.queueObj.delete(i, j+1)
@@ -305,7 +305,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         if self.has_selection():
             (i, j) = (self.sel_i, self.sel_j)
-            print("i=%d j=%d" % (i, j))
+            #print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
             self.clip = self.queueObj.getslice(i, j+1)
@@ -345,7 +345,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             return
 
         (i, j) = (self.sel_i, self.sel_j)
-        print("i=%d j=%d" % (i, j))
+        #print("i=%d j=%d" % (i, j))
         self.clear_selection()
 
         deleted = self.queueObj.delete(i, j+1)
@@ -444,7 +444,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         if keyname in ('Left', 'Right'):
             # ignore these
             return True
-        print("key pressed --> %s" % keyname)
+        #print("key pressed --> %s" % keyname)
 
         if keyname == 'r':
             self._redraw()
@@ -506,17 +506,17 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         return True
 
     def grabdata(self, tw, context, selection, info, tstamp):
-        print("grabbing!")
+        #print("grabbing!")
         return True
 
     def rearrange(self, tw, context, x, y, tstamp):
-        print("rearrange!")
+        #print("rearrange!")
         buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                     x, y)
         txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
 
-        print("Drop!")
-        print('\n'.join([str(t) for t in context.targets]))
+        #print("Drop!")
+        #print('\n'.join([str(t) for t in context.targets]))
         context.finish(True, False, tstamp)
         return True
 

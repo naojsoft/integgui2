@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -67,14 +67,14 @@ class DirectoryPage(LogPage.NotePage):
                 #stat = os.stat(path)
                 pass
             self.append(filename + '\n', tags)
-        
+
     def listdir(self, dirpath, pattern):
         listing = glob.glob(os.path.join(dirpath, pattern))
         listing.append(os.path.join(dirpath, '..'))
         listing.sort()
         self.listing = listing
         self.process_listing(listing)
-        
+
     def load(self, dirpath, pattern):
         self.listdir(dirpath, pattern)
         self.dirpath = dirpath
@@ -101,11 +101,11 @@ class DirectoryPage(LogPage.NotePage):
 
     def redraw(self):
         common.gui_do(self._redraw)
-        
+
     def show_cursor(self, tbuf, titer, tmark):
         if self.moving_cursor:
             return False
-        
+
         insmark = tbuf.get_insert()
         if insmark != tmark:
             return False
@@ -133,20 +133,20 @@ class DirectoryPage(LogPage.NotePage):
         finally:
             self.moving_cursor = False
         return True
-    
+
     ## def jump_tag(self, w, evt):
-    ##     print str(evt)
+    ##     print(str(evt))
     ##     widget = self.tw
     ##     try:
     ##         tup = widget.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
     ##                                              evt.x, evt.y)
-    ##         #print tup
+    ##         #print(tup)
     ##         buf_x1, buf_y1 = tup
     ##     except Exception, e:
     ##         self.logger.error("Error converting coordinates to line: %s" % (
     ##             str(e)))
     ##         return False
-        
+
     ##     (startiter, coord) = widget.get_line_at_y(buf_y1)
     ##     lineno = startiter.get_line()
     ##     ## enditer = startiter.copy()
@@ -154,9 +154,9 @@ class DirectoryPage(LogPage.NotePage):
     ##     ## text = self.buf.get_text(startiter, enditer)
     ##     text = self.listing[lineno]
     ##     self.process_line(text)
-       
+
     ##     return True
-            
+
     def process_entry(self, text, keyname):
         """Subclass should override this to do something interesting when
         a folder link is clicked."""
@@ -166,31 +166,31 @@ class DirectoryPage(LogPage.NotePage):
         if keyname == 'e':
             common.view.gui_do(common.view.load_file, path)
             return True
-        
+
         if keyname == 'i':
             common.view.gui_do(common.view.load_inf, path)
             return True
-        
+
         if keyname == 'f':
             common.view.gui_do(common.view.load_ephem, path)
             return True
-        
+
         if keyname == 't':
             common.view.gui_do(common.view.load_tscTrack, path)
             return True
-        
+
         if keyname == 'Return':
             if os.path.isdir(path):
                 self.load(path, self.pattern)
             else:
                 common.view.gui_do(common.view.load_file, path)
-            
+
         ## if (keyname == 'Return') and (self.clickfn):
         ##     common.controller.ctl_do(self.clickfn, text)
 
         return False
-       
-        
+
+
     def keypress(self, w, event):
         keyname = Gdk.keyval_name(event.keyval)
         if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
@@ -200,17 +200,17 @@ class DirectoryPage(LogPage.NotePage):
         if keyname in ('Left', 'Right'):
             # ignore these
             return True
-        #print "key pressed --> %s" % keyname
+        #print("key pressed --> %s" % keyname)
 
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             if keyname == 'r':
                 self.reload()
                 return True
-            
+
             elif keyname == 'q':
                 common.view.raise_queue()
                 return True
-        
+
             elif keyname == 'h':
                 common.view.raise_handset()
                 return True
@@ -220,10 +220,10 @@ class DirectoryPage(LogPage.NotePage):
                 text = self.listing[self.cursor]
             except IndexError:
                 return False
-            
+
             return self.process_entry(text, keyname)
-            
+
         return False
-    
+
 
 #END

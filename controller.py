@@ -515,13 +515,13 @@ class IntegController(object):
             # Interpret task results:
             #   task_code == 0 --> OK   task_code != 0 --> ERROR
             if res == 0:
-##                 self.gui.gui_do(self.gui.feedback_ok,
-##                                 tmtrans.queueName, tmtrans, res)
+                ## self.gui.gui_do(self.gui.feedback_ok,
+                ##                 tmtrans.queueName, tmtrans, res)
                 pass
             else:
                 # If there was a problem, let the gui know about it
-##                 self.gui.gui_do(self.gui.feedback_error,
-##                                 tmtrans.queueName, tmtrans, str(res))
+                ## self.gui.gui_do(self.gui.feedback_error,
+                ##                 tmtrans.queueName, tmtrans, str(res))
                 if res == 3:
                     self.logger.info("Task cancelled (%s)" % bnch.path)
                     self.gui.cancel_dialog(bnch.path)

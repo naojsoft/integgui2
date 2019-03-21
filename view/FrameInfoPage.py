@@ -91,7 +91,7 @@ class FrameInfoPage(LogPage.NotePage):
                 self.logger.warn("Bad status in frameinfo: %s" % (str(e)))
                 tags = ['normal']
 
-            #print tags, frameinfo
+            #print(tags, frameinfo)
             if 'row' in frameinfo:
                 row = frameinfo.row
                 #common.update_line(self.buf, row, text)

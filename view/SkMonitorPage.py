@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 # Standard library imports
@@ -84,7 +84,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def toggle_var(self, widget, key):
-        if widget.get_active(): 
+        if widget.get_active():
             self.__dict__[key] = True
         else:
             self.__dict__[key] = False
@@ -115,7 +115,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             num = int(match.group(1))
             regex = r'^(.*)\<div\sclass=%d\>(.+)\</div\sclass=%d\>(.*)$' % (
                 num, num)
-            #print regex
+            #print(regex)
             match = re.match(regex, text, re.MULTILINE | re.DOTALL)
             if not match:
                 buf.insert_with_tags_by_name(loc, 'ERROR 2: %s' % text, *tags)
@@ -134,10 +134,10 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
         # Create tags that will be used
         buf.create_tag('code', foreground="black")
-        
+
         insert(text, ['code'])
         #tw.tag_raise('code')
-        #print "all tags=%s" % str(all_tags)
+        #print("all tags=%s" % str(all_tags))
 
     def delpage(self, name):
         with self.lock:
@@ -177,7 +177,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
             #self.select(name)
             return page
-        
+
     def change_text(self, page, tagname, key):
         tagname = str(tagname)
         tag = page.tagtbl.lookup(tagname)
@@ -188,7 +188,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
         for key, val in bnch.items():
             tag.set_property(key, val)
-            
+
         #page.tw.tag_raise(ast_num)
         # Scroll the view to this area
         start, end = common.get_region(page.buf, tagname)
@@ -197,16 +197,16 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
     def replace_text(self, page, tagname, textstr,
                      start_offset=0):
-        #print "replacing '%s' on %s" % (textstr, tagname)
+        #print("replacing '%s' on %s" % (textstr, tagname))
         tagname = str(tagname)
         txtbuf = page.buf
-        #print "getting region"
+        #print("getting region")
         start, end = common.get_region(txtbuf, tagname)
         start.forward_chars(start_offset)
         text = txtbuf.get_text(start, end, True)
-        #print "deleting %s" % (text)
+        #print("deleting %s" % (text))
         txtbuf.delete(start, end)
-        #print "inserting %s" % (textstr)
+        #print("inserting %s" % (textstr))
         txtbuf.insert_with_tags_by_name(start, textstr, tagname)
 
         # Scroll the view to this area
@@ -251,17 +251,17 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             end = start.copy()
             end.forward_chars(length)
             txtbuf.delete(start, end)
-            
+
         vals['time_added'] = len(time_s)
         txtbuf.insert_with_tags_by_name(start, time_s, tagname)
-        
+
 
     def update_page(self, bnch):
 
         info = bnch.info
         page = info.page
         vals = bnch.state
-        ## print "update_page: vals = %s" % str(vals)
+        #print("update_page: vals = %s" % str(vals))
         tagname = bnch.tag
 
         cmd_str = None
@@ -279,7 +279,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
         if 'task_error' in vals:
             self.append_error(page, tagname, '\n ==> ' + vals['task_error'])
-            
+
             # audible warnings
             if 'audible' not in vals:
                 vals['audible'] = True
@@ -299,12 +299,12 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 self.update_time(page, tagname, vals, '[TE %s]: ' % (
                         self.time2str(vals['task_end'])))
             self.change_text(page, tagname, 'task_end')
-                
+
         elif 'end_time' in vals:
             self.update_time(page, tagname, vals, '[EN %s]: ' % (
                     self.time2str(vals['end_time'])))
             self.change_text(page, tagname, 'end_time')
-                
+
         elif 'ack_time' in vals:
             self.update_time(page, tagname, vals, '[AB %s]: ' % (
                     self.time2str(vals['ack_time'])))
@@ -324,7 +324,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             #self.change_text(page, tagname, 'code')
             pass
 
-                
+
     def time2str(self, time_cmd):
         time_int = int(time_cmd)
         time_str = time.strftime("%H:%M:%S", time.localtime(float(time_int)))
@@ -332,11 +332,11 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         title = time_str + ',' + time_sfx
         return title
 
-            
+
     def process_ast(self, ast_id, vals):
-        #print ast_id, vals
+        #print(ast_id, vals)
         name = str(ast_id)
-        
+
         with self.lock:
             try:
                 info = self.db[name]
@@ -356,7 +356,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 # tags in common.get_region()
                 if not ast_str.endswith('\n'):
                     ast_str = ast_str + '\n'
-                #print "BUF!"; print ast_str
+                #print("BUF!"); print(ast_str)
 
                 # Get the time of the command to construct the tab title
                 title = self.time2str(vals['ast_time'])
@@ -371,21 +371,26 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
             elif 'ast_track' in vals:
                 path = vals['ast_track']
-                
+
                 # GLOBAL VAR READ
                 curvals = common.controller.getvals(path)
                 if isinstance(curvals, dict):
                     vals.update(curvals)
-               
+
                 # Make an entry for this ast node, if there isn't one already
                 tagname = '%d' % vals['ast_num']
                 # ?? necessary to have "nodes" table?
                 #state = info.nodes.setdefault(tagname, vals)
                 state = vals.copy()
 
-                bnch = Bunch.Bunch(info=info, state=state, tag=tagname,
-                                   level=0, count=0)
-                self.track.setdefault(path, bnch)
+                try:
+                    bnch = self.track[path]
+                    bnch.state.update(state)
+                except KeyError:
+                    bnch = Bunch.Bunch(state=state, info=info)
+                    self.track[path] = bnch
+
+                bnch.setvals(info=info, tag=tagname, level=0, count=0)
 
                 # It's possible in some cases that the ast_track could
                 # arrive before the page is added or set up
@@ -397,7 +402,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 #self.replace_text(page, tagname, vals['ast_str'])
 
                 self.update_page(bnch)
-                
+
 
     def process_subcommand(self, parent_path, subpath, vals):
 
@@ -405,7 +410,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             # Don't do anything if we are not tracking subcommands
             if not self.track_subcommands:
                 return
-            
+
             try:
                 # Get parent track record
                 p_bnch = self.track[parent_path]
@@ -416,7 +421,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             # Have we already set this up?
             if subpath in self.track:
                 return
-            
+
             page = p_bnch.info.page
             if not page:
                 return
@@ -426,7 +431,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             curvals = common.controller.getvals(subpath)
             if isinstance(curvals, dict):
                 state.update(curvals)
-            print("What we know is: %s" % str(state))
+            #print("What we know is: %s" % str(state))
 
             # Figure out the text tag of the last subcommand under this
             # command based on the count
@@ -441,9 +446,9 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             cmd_str = 'SUBCOMMAND'
 
             # Insert a new line for the subcommand
-            print("inserting new line: lasttag=%s" % (lasttag))
+            #print("inserting new line: lasttag=%s" % (lasttag))
             self.insert_line(page, lasttag, tagname, level, cmd_str)
-            
+
             bnch = Bunch.Bunch(info=p_bnch.info, state=state, tag=tagname,
                                level=level, count=count)
             self.track.setdefault(subpath, bnch)
@@ -452,21 +457,27 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def process_task(self, path, vals):
-        ## print "process_task: ", path, vals
+        #print("process_task: ", path, vals)
 
         with self.lock:
             try:
                 bnch = self.track[path]
+
             except KeyError:
+                state = Bunch.Bunch(vals)
+                info = Bunch.Bunch(page=None)
+                bnch = Bunch.Bunch(state=state, info=info)
+                self.track[path] = bnch
                 # this page is not received/set up yet
+                #print("Page for '%s' not set up yet!" % (path))
                 return
 
-            #print path, vals
+            #print(path, vals)
             bnch.state.update(vals)
 
             if bnch.info.page:
                 self.update_page(bnch)
-            
 
-           
+
+
 #END

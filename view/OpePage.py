@@ -7,10 +7,12 @@ import sys, traceback
 
 import os, re
 
+import gi
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
+gi.require_version('GtkSource', '3.0')
 from gi.repository import GtkSource
 
 from . import common
@@ -435,7 +437,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # apply desired tags to varrefs in main text buffer
             self.logger.debug("Coloring refs.")
             for bnch in res.reflist:
-                #print bnch
+                #print(bnch)
                 lineno = bnch.lineno - 1
 
                 start.set_line(lineno)
@@ -556,7 +558,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # parameters are text widget, x and y coords, boolean for keyboard
         # mode (?) and the tooltip widget.  Return True if a tooltip should
         # be displayed
-        #print "tooltip: args are %s" % (str(args))
+        #print("tooltip: args are %s" % (str(args)))
         buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
                                                     x, y)
         txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
@@ -573,7 +575,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Check if we are in the middle of a varref
         result = txtiter.has_tag(varref)
         if not result:
-            #print "tooltip: not in word!"
+            #print("tooltip: not in word!")
             return False
 
         # Get boundaries of the tag.
@@ -615,7 +617,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def keypress(self, w, event):
         keyname = Gdk.keyval_name(event.keyval)
-        #print "key pressed --> %s" % keyname
+        #print("key pressed --> %s" % keyname)
 
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             if keyname == 't':
@@ -740,7 +742,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # Hack to fix problem where selection covers the newline
             # but not the first character of the next line
             lrow -= 1
-        #print "selection: %d-%d" % (frow, lrow)
+        #print("selection: %d-%d" % (frow, lrow))
 
         # Clear the selection
         common.clear_selection(self.tw)
@@ -751,7 +753,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         for i in range(int(lrow)+1-frow):
 
             row = frow+i
-            #print "row: %d" % (row)
+            #print("row: %d" % (row))
 
             first.set_line(row)
             last.set_line(row)
@@ -933,7 +935,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         try:
             cmds = self._get_commands_from_selection(copytext=copytext)
-            #print len(cmds), "selected!"
+            #print(len(cmds), "selected!")
 
             queue = common.controller.queue[self.queueName]
             if loc == None:

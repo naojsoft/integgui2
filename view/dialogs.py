@@ -27,7 +27,7 @@ def register_dialog(tag, dialog):
         # dialog is not associated with a remote task
         return
     with dialog_table_lock:
-        print("Registering dialog %s" % tag)
+        #print("Registering dialog %s" % tag)
         dialog_table[tag] = dialog
 
 def unregister_dialog(tag):
@@ -35,7 +35,7 @@ def unregister_dialog(tag):
     if not tag:
         return
     with dialog_table_lock:
-        print("Unregistering dialog %s" % tag)
+        #print("Unregistering dialog %s" % tag)
         try:
             del dialog_table[tag]
         except KeyError:
@@ -52,7 +52,7 @@ def cancel_dialog(tag):
     for key, obj in items:
         if key.startswith(tag):
             # Found one--it must be associated with that command
-            print("Command cancelled--closing dialog %s" % key)
+            #print("Command cancelled--closing dialog %s" % key)
             unregister_dialog(key)
             if obj.w:
                 obj.close(obj.w)
@@ -70,7 +70,7 @@ class FileSelection(object):
     # Get the selected filename and print it to the console
     def file_ok_sel(self, w, rsp):
         filepath = w.get_filename()
-        #print "(dialog) File is %s" % filepath
+        #print("(dialog) File is %s" % filepath)
         self.close(w)
         if rsp == 0:
             return
@@ -263,7 +263,7 @@ class SearchReplace(object):
                 val = 'close'
             else:
                 val = button_list[rsp][0].lower()
-                #print "rsp=%d val=%s" % (rsp, val)
+                #print("rsp=%d val=%s" % (rsp, val))
 
             if val == 'close':
                 self.close(w)
