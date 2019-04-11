@@ -11,6 +11,7 @@ from . import dialogs
 
 from gi.repository import Gtk
 from gi.repository import GtkSource
+from gi.repository import Pango
 
 import six
 
@@ -73,6 +74,10 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         tw.set_wrap_mode(Gtk.WrapMode.NONE)
         tw.set_left_margin(4)
         tw.set_right_margin(4)
+
+        # Set font because we don't seem to be able to do it via CSS separately
+        # from generic GtkTextView's.
+        tw.modify_font(Pango.FontDescription('DejaVuSans 10'))
 
         self.tw = tw
         # hack to get auto-scrolling to work

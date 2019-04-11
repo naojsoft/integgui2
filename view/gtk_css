@@ -40,24 +40,35 @@ GtkTextView {
     color: black;
     font-family: Monospace;
     font-size: 10;
+    text-shadow: none;
 }
 
+GtkLabel {
+    text-shadow: none;
+}
 
 GtkButton, GtkComboBox {
     -GtkWidget-focus-line-width: 0;
-    background-image: none;
+    text-shadow: none;
+    margin: 2px;
+    padding: 2px;
+}
+
+GtkEntry {
+    margin: 2px;
+    padding: 2px;
 }
 
 GtkButton:hover, GtkComboBox:hover {
     background-color: forestgreen;
     color: yellow;
     background-image: none;
+    text-shadow: none;
 }
 
 button {
     -GtkWidget-focus-line-width: 0;
     background-color: gray80;
-    padding: 2;
     color: black;
     background-image: none;
 }

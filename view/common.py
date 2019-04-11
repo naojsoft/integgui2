@@ -317,8 +317,8 @@ def modify_bg(widget, color):
     # under hover status, because it seems to get reset if we just change
     # the .button type
     css_data = """
-button { background-image: none; background-color: %s; }
-button:hover { background-image: none; background-color: forestgreen; }
+GtkButton { background-image: none; background-color: %s; }
+GtkButton:hover { background-image: none; background-color: forestgreen; }
 """ % (color)
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(css_data.encode())
