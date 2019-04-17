@@ -313,7 +313,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         window = sourceview.get_toplevel()
         buffer = sourceview.get_buffer()
 
-        compositor = GtkSource.View.print_compositor_new_from_view(sourceview)
+        compositor = GtkSource.PrintCompositor.new_from_view(sourceview)
         compositor.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         compositor.set_highlight_syntax(True)
         #compositor.set_print_line_numbers(5)
