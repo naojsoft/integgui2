@@ -367,7 +367,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         reverse = dialog.is_reverse_search()
         if dialog.is_case_sensitive():
-            search_flags = GtkSource.View.SEARCH_CASE_INSENSITIVE
+            search_flags = Gtk.TextSearchFlags.CASE_INSENSITIVE
         else:
             search_flags = 0
 
