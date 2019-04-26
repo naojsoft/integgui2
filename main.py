@@ -21,7 +21,8 @@ ginga_toolkit.use('gtk3')
 from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
 from g2base import ssdlog
-import Gen2.soundsink as SoundSink
+
+import g2client.soundsink as SoundSink
 
 import cfg.g2soss as g2soss
 
