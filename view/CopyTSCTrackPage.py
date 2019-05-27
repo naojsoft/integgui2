@@ -317,15 +317,16 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
     def get_results(self):
         results = []
-        piter = self.treestore.get_iter_root()
-        while piter:
-            # The inner loop iterates through all the children of
-            # this parent
-            child = self.treestore.iter_children(piter)
-            while child:
-                results.append(self.treestore.get_value(child, 0))
-                child = self.treestore.iter_next(child)
-            piter = self.treestore.iter_next(piter)
+        piter = self.treestore.get_iter_first()
+        if piter:
+            while piter:
+                # The inner loop iterates through all the children of
+                # this parent
+                child = self.treestore.iter_children(piter)
+                while child:
+                    results.append(self.treestore.get_value(child, 0))
+                    child = self.treestore.iter_next(child)
+                piter = self.treestore.iter_next(piter)
         return results
 
     def copyfilestotsc(self):

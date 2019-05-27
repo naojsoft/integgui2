@@ -13,8 +13,8 @@ from . import CodePage
 from . import TSCTrackPage
 import cfg.g2soss as g2soss
 
-## import astro.jplHorizonsIF as jplHorizonsIF
-## import astro.TSCTrackFile as TSCTrackFile
+import astro.jplHorizonsIF as jplHorizonsIF
+import astro.TSCTrackFile as TSCTrackFile
 
 class EphemPage(CodePage.CodePage):
 
@@ -39,7 +39,7 @@ class EphemPage(CodePage.CodePage):
         # get text to process from the buffer, which should be
         # ephemeris data output from JPL Horizons
         start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end)
+        buf = self.buf.get_text(start, end, True)
 
         # Parse the input buffer to create the JPLHorizonsEphem
         # object.
