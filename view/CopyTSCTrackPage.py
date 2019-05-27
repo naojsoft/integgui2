@@ -217,9 +217,9 @@ class CopyTSCTrackPage(Page.ButtonPage):
         # Set the cancelFlag to False prior to starting the copy
         # operation
         self.cancelFlag = False
-        # Run the "copy to TSC" method in a separate thread so that we
-        # don't tie up the GUI thread during the copy.
-        common.controller.ctl_do(self.copyfilestotsc)
+        # Run the "copy to TSC" method using gui_do to keep GTK happy
+        # and not crashing.
+        common.view.gui_do(self.copyfilestotsc)
 
     def cancelCopy(self):
         # The callback for the "Cancel Copy" button
