@@ -1,4 +1,4 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
 from __future__ import absolute_import
@@ -20,12 +20,12 @@ class InfPage(CodePage.CodePage):
 
         # add some bottom buttons
         self.btn_makeope = Gtk.Button("Make OPE")
-        self.btn_makeope.connect("clicked", lambda w: self.makeope('app2ope.pl -'))
+        self.btn_makeope.connect("clicked", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/app2ope.pl -'))
         self.btn_makeope.show()
         self.leftbtns.pack_end(self.btn_makeope, False, False, 0)
 
         self.btn_makedarks = Gtk.Button("Make Darks")
-        self.btn_makedarks.connect("clicked", lambda w: self.makeope('mkDARKope.pl -'))
+        self.btn_makedarks.connect("clicked", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/mkDARKope.pl -'))
         self.btn_makedarks.show()
         self.leftbtns.pack_end(self.btn_makedarks, False, False, 0)
 
@@ -37,13 +37,13 @@ class InfPage(CodePage.CodePage):
         try:
             proc = myproc.myproc(cmdstr)
             # write input to stdin
-            proc.stdin.write(buf)
+            proc.stdin.write(buf.encode())
             proc.stdin.close()
 
             # This will force a reap
             proc.status()
             output = proc.output()
-            #print output
+            #print(output)
 
             # make ope file path
             infdir, inffile = os.path.split(self.filepath)
