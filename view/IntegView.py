@@ -1367,7 +1367,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         else:
             button = (Gtk.STOCK_OPEN, 1)
         dialog = dialogs.MultFileSelection(buttons=(button, (Gtk.STOCK_CANCEL, 0)))
-        self.gui_do(dialog.popup, title, callfn, initialdir, initialfile, multiple)
+        dialog.popup(title, callfn, initialdir, initialfile, multiple)
 
     def add_tscTrackPage(self, title, callfn, fileSelectionPath, checkFormat):
         # See if we already have a page with the specified title. If
@@ -1390,8 +1390,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             if callfn:
                 callfn(copyTSCTrackPage.status, copyTSCTrackPage.statusMsg, [])
         if copyMode.lower() == 'auto':
-            #copyTSCTrackPage.startCopy()
-            self.gui_do(copyTSCTrackPage.startCopy)
+            copyTSCTrackPage.startCopy()
 
     def cancel_dialog(self, tag):
         self.gui_do(dialogs.cancel_dialog, tag)

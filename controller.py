@@ -999,9 +999,8 @@ class IntegController(object):
                                      complete=time.time())
 
         try:
-            self.gui.obs_fileselection(tag, title, callback, initialdir,
-                                       initialfile, multiple, button)
-
+            self.gui.gui_do(self.gui.obs_fileselection, tag, title, callback,
+                            initialdir, initialfile, multiple, button)
             return ro.OK
 
         except Exception as e:
@@ -1022,7 +1021,7 @@ class IntegController(object):
                                  complete=time.time())
 
         try:
-            self.gui.obs_copyfilestotsc(tag, 'CopyTSCTrackFile', callback, fileSelectionPath, checkFormat, copyMode)
+            self.gui.gui_do(self.gui.obs_copyfilestotsc, tag, 'CopyTSCTrackFile', callback, fileSelectionPath, checkFormat, copyMode)
             return ro.OK
         except Exception as e:
             raise Exception("Exception in obs_copyfiletotsc: %s" % (str(e)))
