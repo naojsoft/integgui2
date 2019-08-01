@@ -8,72 +8,74 @@
  when they are checked or not.
  */
  
-GtkToggleButton {
-    border: 1px solid shade (@theme_bg_color, 0.9) ;
-    padding: 4px;
+* {
+    -GtkWidget-text-handle-width: 15;
+    -GtkWidget-text-handle-height: 15;
+
+    -GtkPaned-handle-size: 5px;
+    -GtkPaned-resize: true;
+    -GtkPaned-shrink: true;
+
 }
 
-/*
-GtkToolbar GtkToggleButton:checked {
-    background-color: shade (@theme_bg_color, 0.9);
-}
-
-GtkMenuBar {
-    shadow_type: none;
-}
-
-GtkStatusbar {
-    shadow_type: none;
-}
-
-GtkPaned {
-    handle_size: 5;
-    resize: true;
-    shrink: true;
-}
-*/
-
-GtkWindow, GtkDialog, GtkFileSelection {
-}
-
-GtkTextView {
+textview {
     color: black;
     font-family: Monospace;
-    font-size: 10;
+    font-size: 10pt;
     text-shadow: none;
 }
 
-GtkLabel {
+label {
     text-shadow: none;
+    border-radius: 1px;
 }
 
-GtkButton, GtkComboBox {
-    -GtkWidget-focus-line-width: 0;
+button, combobox {
     text-shadow: none;
-    padding: 2px;
-    margin: 0px 4px 0px 4px;
+    margin: 0px;
+    border-radius: 0px;
+    padding-top: 0px; padding-bottom: 0px; 
+    padding-left: 1px; padding-right: 1px; 
 }
 
-GtkEntry {
-    padding: 2px;
-    margin: 0px 4px 0px 4px;
+/* cannot seem to reduce the extra space in an entry */
+entry {
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+    border-width: 1px;
+    border-radius: 0px;
+    padding-top: 0px; padding-bottom: 0px; 
+    outline-width: 0px;
+    outline-radius: 0px;
 }
 
-GtkButton:hover, GtkComboBox:hover {
+notebook, notebook:focus, notebook:backdrop {
+    background-color: @theme_bg_color;
+}
+
+notebook tab {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-image: none;
+    border-radius: 8px 8px 0px 0px;
+    border-style: solid;
+    border-bottom: none;
+    border-width: 1px;
+}
+
+notebook tab button {
+    margin: 0px;
+    padding: 2px 0px 0px 2px;
+}
+
+button:hover, combobox:hover {
     background-color: forestgreen;
     color: yellow;
     background-image: none;
     text-shadow: none;
 }
 
-GtkPaned, GtkBox, GtkFrame {
-    border-style: solid;
-    border-width: 0px;
-    outline-style: none;
-}
-
 button {
-    -GtkWidget-focus-line-width: 0;
     background-color: gray80;
     color: black;
     background-image: none;
@@ -91,4 +93,10 @@ button:active {
     background-image: none;
 }
 
+scrollbar {
+    min-width: 20px;
+    min-height: 20px;
+    -GtkScrollbar-has-backward-stepper: true;
+    -GtkScrollbar-has-forward-stepper: true;
+}
 

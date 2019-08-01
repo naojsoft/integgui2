@@ -113,13 +113,12 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             css_data = css_f.read()
 
         style_provider = Gtk.CssProvider()
-        style_provider.load_from_data(css_data.encode('latin1'))
+        style_provider.load_from_data(css_data.encode())
 
         Gtk.StyleContext.add_provider_for_screen(
             #Gdk.Screen.get_default(), style_provider,
             screen, style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-            )
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         # Add menubar and menus
         #self.add_menus()
