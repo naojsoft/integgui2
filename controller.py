@@ -1008,16 +1008,21 @@ class IntegController(object):
 
     def obs_copyfilestotsc(self, tag, fileSelectionPath, checkFormat=True, copyMode='manual'):
         def callback(status, statusMsg, results):
-            self.logger.info('controller obs_copyfiletotsc callback called with status %s' % status)
-            self.logger.info('controller obs_copyfiletotsc callback called with statusMsg %s' % statusMsg)
-            self.logger.info('controller obs_copyfiletotsc callback called with results %s' % results)
+            self.logger.info('controller obs_copyfiletotsc callback called with status %s/%s' % (status, type(status)))
+            self.logger.info('controller obs_copyfiletotsc callback called with statusMsg %s/%s' % (statusMsg, type(statusMsg)))
+            self.logger.info('controller obs_copyfiletotsc callback called with results %s/%s' % (results, type(results)))
             if status == 0:
                 msg = 'OK'
             else:
                 msg = 'Error'
+
+            # TODO: some issue sending list wrapped dict through monitor
+            # so, we changed to a list of lists
+            results2 = [[r['filename'], r['status']] for r in results]
+
             self.monitor.setvals(['g2task'], tag, status=status,
                                  msg=msg, statusMsg=statusMsg,
-                                 results=results,
+                                 results=results2,
                                  complete=time.time())
 
         try:
