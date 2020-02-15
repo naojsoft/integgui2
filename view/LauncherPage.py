@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import threading
 import yaml
 import functools
+import decimal
 
 from gi.repository import Gtk
 
@@ -88,7 +89,164 @@ class Launcher(object):
                                         get_fn=self.get_entry)
         self.addParam(name)
 
+    def add_checkbox(self, name, checkbox_label, checkbox_dict,   width, height, label):
 
+        lbl = Gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+        checkbox = Gtk.CheckButton(checkbox_label)
+        checkbox.set_size_request(width, height)
+        checkbox.show()
+
+        self.table.attach(checkbox, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=checkbox, 
+                                        get_fn=self.get_checkbox,
+                                        dict=checkbox_dict)
+        self.addParam(name)
+        
+    def add_toggle(self, name, toggle_label, toggle_dict, width, height, label):
+
+        lbl = Gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+        toggle = Gtk.ToggleButton(toggle_label)
+        toggle.set_size_request(width, height)
+        toggle.show()
+
+        self.table.attach(toggle, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=toggle, 
+                                        get_fn=self.get_toggle,
+                                        dict=toggle_dict)
+        self.addParam(name)
+        
+    def add_switch(self, name, switch_dict, width, height, label):
+
+        lbl = Gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+        switch = Gtk.Switch()
+        switch.set_active(False)
+        switch.set_size_request(width, height)
+        switch.show()
+
+        self.table.attach(switch, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=switch, 
+                                        get_fn=self.get_switch,
+                                        dict=switch_dict)
+        self.addParam(name)
+
+        
+    def add_scale(self, name, value, lower, upper, step, width, height, label):
+
+        lbl = Gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+
+        adjustment = Gtk.Adjustment(value, lower, upper, step, 0, 0)
+        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment)
+        #scale.set_hexpand(True)
+        scale.set_size_request(width, height)
+        scale.show()
+
+        #self.table.set_homogeneous(True)
+        self.table.attach(scale, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=scale, 
+                                        get_fn=self.get_scale)
+        self.addParam(name)
+        
+    def add_spin(self, name, value, lower, upper, step, width, height, label):
+
+        lbl = Gtk.Label(label)
+        lbl.show()
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+
+        d = decimal.Decimal(str(step))
+        d = d.as_tuple().exponent * -1
+
+        adjustment = Gtk.Adjustment(value, lower, upper, step, 0, 0)
+        spinbutton = Gtk.SpinButton()
+        spinbutton.set_digits(d)
+        spinbutton.set_size_request(width, height)
+        spinbutton.set_adjustment(adjustment)
+        
+        spinbutton.show()
+
+        self.table.attach(spinbutton, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=spinbutton, 
+                                        get_fn=self.get_spin)
+        self.addParam(name)
+
+    def add_combobox(self, name, combobox_list,  width, height, label):
+
+        lbl = Gtk.Label(label)
+        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        lbl.show()
+        
+        store = Gtk.ListStore(str)
+        for cl in combobox_list:
+            print('combo list={}'.format(cl))
+            
+            store.append([str(cl)])
+
+        combobox = Gtk.ComboBox.new_with_model_and_entry(store)
+        combobox.set_entry_text_column(0)
+        #combobox.set_wrap_width(1)
+        combobox.set_size_request( width, height)
+        combobox.show()
+        
+        self.table.attach(combobox, self.col, self.col+1, self.row, self.row+1,
+                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
+                          xpadding=1, ypadding=1)
+        self.bump_col()
+
+        name = name.lower()
+        self.params[name] = Bunch.Bunch(widget=combobox,
+                                        get_fn=self.get_combobox)
+        self.addParam(name)
+        
     def add_list(self, name, optionList, label):
 
         lbl = Gtk.Label(label)
@@ -116,7 +274,6 @@ class Launcher(object):
                                         options=options)
         self.addParam(name)
 
-
     def add_radio(self, name, optionList, label):
 
         lbl = Gtk.Label(label)
@@ -141,6 +298,39 @@ class Launcher(object):
                                         options=options)
         self.addParam(name)
 
+    def get_combobox(self, bnch):
+
+        tree_iter = bnch.widget.get_active_iter()
+
+        if tree_iter is not None:
+            model = bnch.widget.get_model()
+            entry = model[tree_iter][0]
+        else:
+            entry = bnch.widget.get_child()
+            entry = entry.get_text()  
+        return entry    
+
+    def get_checkbox(self, bnch):
+        active =  bnch.widget.get_active()
+        checkbox = bnch.dict.get(active)
+        return checkbox
+
+    def get_toggle(self, bnch):
+        active =  bnch.widget.get_active()
+        toggle = bnch.dict.get(active)
+        return toggle
+    
+    def get_switch(self, bnch):
+        active =  bnch.widget.get_active()
+        switch = bnch.dict.get(active)
+        return switch
+        
+    def get_spin(self, bnch):
+        return bnch.widget.get_value()
+
+    def get_scale(self, bnch):
+        return bnch.widget.get_value()
+    
     def get_entry(self, bnch):
         return bnch.widget.get_text()
 
@@ -299,6 +489,11 @@ class LauncherList(object):
             else:
                 self.addLauncherFromDef(ast)
 
+    def _validate_spin_val(self, val):
+        if not isinstance(val, (int, float)):
+            val = 0
+        return val    
+                
     def _validate_elt(self, elt):
         if isinstance(elt, list) and len(elt) == 2:
             return elt
@@ -391,6 +586,82 @@ class LauncherList(object):
 
                         launcher.add_list(var, vallst, lbl)
 
+                    elif p_type == 'spinbox':
+                        value, lower, upper, step = [self._validate_spin_val(val) for val in param[2]]
+                        width, height = (10, -1)
+                        if len(param[3]) == 1:
+                            width = param[3][0]    
+                        elif len(param[3]) == 2:
+                            width, height = param[3]
+                        lbl = ''
+                        if len(param) > 4:
+                            lbl = param[4]
+
+                        launcher.add_spin(var, value, lower, upper, step, width, height, lbl)
+
+                    elif p_type == 'slider':
+                        value, lower, upper, step = [self._validate_spin_val(val) for val in param[2]]
+                        width, height = (100, -1)
+                        if len(param[3]) == 1:
+                            width = param[3][0]    
+                        elif len(param[3]) == 2:
+                            width, height = param[3]
+                        lbl = ''
+                        if len(param) > 4:
+                            lbl = param[4]
+
+                        launcher.add_scale(var, value, lower, upper, step, width, height, lbl)
+
+                    elif p_type == 'switch':
+                        swich_dict = param[2]
+                        width, height = (10, -1)
+                        if len(param[3]) == 1:
+                            width = param[3][0]    
+                        elif len(param[3]) == 2:
+                            width, height = param[3]
+                        lbl = ''
+                        if len(param) > 4:
+                            lbl = param[4]
+                        launcher.add_switch(var, swich_dict, width, height, lbl)
+
+                    elif p_type == 'toggle':
+                        tg_lbl = param[2]
+                        tg_dict = param[3]
+                        width, height = (10, -1)
+                        if len(param[4]) == 1:
+                            width = param[4][0]    
+                        elif len(param[4]) == 2:
+                            width, height = param[4]
+                        lbl = ''
+                        if len(param) > 5:
+                            lbl = param[5]
+                        launcher.add_toggle(var, tg_lbl, tg_dict, width, height, lbl)                        
+                    elif p_type == 'combobox':
+                        combobox_list = param[2]
+                        width, height = (10, -1)
+                        if len(param[3]) == 1:
+                            width = param[3][0]
+                        elif len(param[3]) == 2:
+                            width, height = param[3]
+                        lbl = ''
+                        if len(param) > 4:
+                            lbl = param[4]
+
+                        launcher.add_combobox(var, combobox_list, width, height,  lbl)
+
+                    elif p_type == 'checkbox':
+                        check_lbl = param[2]
+                        check_dict = param[3]
+                        width, height = (10, -1)
+                        if len(param[4]) == 1:
+                            width = param[4][0]
+                        elif len(param[4]) == 2:
+                            width, height = param[4]
+                        lbl = ''
+                        if len(param) > 5:
+                            lbl = param[5]
+                        launcher.add_checkbox(var, check_lbl, check_dict, width, height, lbl)                        
+                       
                 else:
                     # don't know what we are looking at
                     continue
