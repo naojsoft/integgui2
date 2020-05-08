@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import sys, traceback
 
 import os, re
@@ -15,12 +13,11 @@ from gi.repository import GdkPixbuf
 gi.require_version('GtkSource', '3.0')
 from gi.repository import GtkSource
 
+import oscript.parse.ope as ope
+
 from . import common
 from . import Page, CodePage
 from . import CommandObject
-
-import SOSS.parse.ope as ope
-from six.moves import range
 
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))

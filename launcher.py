@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import re
 from ply import lex
 from ply import yacc
@@ -12,7 +10,7 @@ import pprint
 from ginga.misc import Bunch
 
 from g2base import ssdlog
-from SOSS.parse.sk_common import ASTNode
+from oscript.parse.sk_common import ASTNode
 
 lex_tab_module  = 'lex_tab_launcher'
 yacc_tab_module  = 'yacc_tab_launcher'
