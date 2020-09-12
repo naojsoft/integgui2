@@ -748,15 +748,16 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         initialdir = self.procdir
         self.tsc_filepath = None
         def callback(rsp, filepath):
-            if rsp == 1: # OK button
+            if rsp == 1: # COPY button (not currently in use)
                 copyTSCTrackPage = self.add_tscTrackPage('CopyTSCTrackFile', None, filepath, True)
                 common.controller.ctl_do(copyTSCTrackPage.startCopy)
             elif rsp == 2:
-                for filepath1 in filepath: # OPEN button (not currently in use)
+                for filepath1 in filepath: # OPEN button
                     self.load_generic(workspace, filepath1, TSCTrackPage)
 
-        dialog = dialogs.MultFileSelection(buttons=((Gtk.STOCK_COPY, 1), (Gtk.STOCK_CANCEL, 0)))
+        dialog = dialogs.MultFileSelection(buttons=((Gtk.STOCK_OPEN, 2), (Gtk.STOCK_CANCEL, 0)))
         dialog.popup('Select File(s):', callback, initialdir)
+
 
     def gui_load_launcher_source(self, workspace):
         initialdir = os.environ['OBSHOME']

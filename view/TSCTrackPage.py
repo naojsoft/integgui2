@@ -31,12 +31,15 @@ class TSCTrackPage(CodePage.CodePage):
     def copyTSCcb(self):
         # Copy the TSC-format file to the TSC computer.
 
-        # Check the format of the file and popup a warning box if a
+        # Check the format of the file and popup an error box if a
         # problem is detected.
         try:
             TSCTrackFile.checkTSCFileFormat(self.filepath, self.logger)
         except TSCTrackFile.TSCFileFormatError as e:
-            common.view.popup_error("Warning: File %s has incorrect format for TSC: %s" % (self.filepath, str(e)))
+            # Pop up an error message and return - i.e., don't copy a
+            # file with a format problem.
+            common.view.popup_error("Error: File %s has incorrect format for TSC: %s. File not copied to TSC." % (self.filepath, str(e)))
+            return
 
         # Get the filename part of tscFilePath and then copy the file
         # to the TSC computer.
