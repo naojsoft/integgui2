@@ -28,10 +28,11 @@ class EphemPage(CodePage.CodePage):
         self.btn_convertToTSC.show()
         self.leftbtns.pack_end(self.btn_convertToTSC, False, False, 0)
 
-        self.btn_copyTSC = Gtk.Button("Convert and Copy to TSC")
-        self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
-        self.btn_copyTSC.show()
-        self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
+        ## Don't create or show the "Convert and Copy to TSC" button.
+        ## self.btn_copyTSC = Gtk.Button("Convert and Copy to TSC")
+        ## self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
+        ## self.btn_copyTSC.show()
+        ## self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
 
         self.tscFilePath = None
 
