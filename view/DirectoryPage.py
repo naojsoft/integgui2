@@ -1,7 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 import sys
 import glob
 import os, re
@@ -151,7 +150,7 @@ class DirectoryPage(LogPage.NotePage):
     ##     lineno = startiter.get_line()
     ##     ## enditer = startiter.copy()
     ##     ## enditer.forward_to_line_end()
-    ##     ## text = self.buf.get_text(startiter, enditer)
+    ##     ## text = self.buf.get_text(startiter, enditer, True)
     ##     text = self.listing[lineno]
     ##     self.process_line(text)
 

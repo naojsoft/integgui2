@@ -1,7 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 import os.path
 import string
 
@@ -12,8 +11,6 @@ from . import dialogs
 from gi.repository import Gtk
 from gi.repository import GtkSource
 from gi.repository import Pango
-
-import six
 
 warning_close = """
 WARNING: Buffer is modified
@@ -36,18 +33,11 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.filepath = ''
 
         # Used to strip out bogus characters from buffers
-        if six.PY2:
-            acceptchars = set(string.printable)
-            self.deletechars = ''.join(set(string.maketrans('', '')) -
-                                       acceptchars)
-            #self.transtbl = string.maketrans('\r', '\n')
-            self.transtbl = string.maketrans('\r', ' ')
-        else:
-            acceptchars = set(string.printable.encode('iso-8859-1'))
-            self.deletechars = (''.join([chr(c)
-                                         for c in set(bytes.maketrans(b'', b'')) -
-                                             acceptchars])).encode('iso-8859-1')
-            self.transtbl = bytes.maketrans(b'\r', b' ')
+        acceptchars = set(string.printable.encode('iso-8859-1'))
+        self.deletechars = (''.join([chr(c)
+                                     for c in set(bytes.maketrans(b'', b'')) -
+                                     acceptchars])).encode('iso-8859-1')
+        self.transtbl = bytes.maketrans(b'\r', b' ')
 
         self.border = Gtk.Frame()
         self.border.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
@@ -145,15 +135,28 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def loadbuf(self, buftxt):
 
-        # "cleanse" text--change CR to NL, delete unprintable chars
-        # TODO: what about unicode?
-        buftxt = buftxt.encode('iso-8859-1')
+        # "cleanse" text--delete invisible chars that are sometimes
+        # mistakenly inserted by users
+        res = []
+        lines = buftxt.split('\n')
+        for line in lines:
+            # Lines beginning with a comment character (#) are left as is
+            if line.strip().startswith('#'):
+                res.append(line)
+                continue
 
-        buftxt = buftxt.translate(self.transtbl, self.deletechars)
-        # translate tabs to 8 spaces
-        buftxt = buftxt.replace(b'\t', b'        ')
+            # Other lines are considered "code": we remove all characters
+            # except ASCII printable ones
+            btxt = line.encode('utf-8')
+            btxt = btxt.translate(self.transtbl, self.deletechars)
+            # translate tabs to 8 spaces
+            btxt = btxt.replace(b'\t', b' ' * 8)
+            line = btxt.decode()
 
-        buftxt = buftxt.decode()
+            res.append(line)
+
+        buftxt = '\n'.join(res)
+        res = []
 
         self.buf.begin_not_undoable_action()
 
@@ -204,7 +207,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def reload(self):
         try:
-            with open(self.filepath, 'r') as in_f:
+            with open(self.filepath, 'r', newline=None) as in_f:
                 buf = in_f.read()
         except IOError as e:
             # ? raise exception instead ?

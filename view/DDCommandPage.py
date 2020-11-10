@@ -1,7 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 
 from gi.repository import Gtk
 
@@ -158,7 +157,7 @@ class DDCommandPage(Page.CommandPage):
 
         # Get the entire buffer from the page's text widget
         start, end = self.buf.get_bounds()
-        txtbuf = self.buf.get_text(start, end).strip()
+        txtbuf = self.buf.get_text(start, end, True).strip()
 
         # remove trailing semicolon, if present
         cmdstr = txtbuf

@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import threading
 
@@ -201,7 +199,7 @@ class TextPage(Page):
     def save(self, dirpath=None, filename=None):
         # If we have a filepath associated with this buffer, try to
         # use it, otherwise revert to a save_as()
-        if hasattr(self, 'filepath') and self.filepath:
+        if hasattr(self, 'filepath') and self.filepath is not None:
             return self._savefile(self.filepath)
 
         return self.save_as(self, dirpath=dirpath,
@@ -220,10 +218,11 @@ class TextPage(Page):
 
     def save_as(self, dirpath=None, filename=None):
         def _save(filepath):
-            self.filepath = filepath
+            if hasattr(self, 'filepath') and self.filepath is None:
+                self.filepath = filepath
             return self._savefile(filepath)
 
-        if not dirpath:
+        if dirpath is None:
             dirpath = self._get_save_directory()
 
         common.view.popup_save("Save buffer as", _save,
@@ -238,7 +237,7 @@ class TextPage(Page):
         def _save(filepath):
             return self._savefile(filepath, (first, last))
 
-        if not dirpath:
+        if dirpath is None:
             dirpath = self._get_save_directory()
 
         common.view.popup_save("Save selection as", _save,
@@ -253,19 +252,19 @@ class TextPage(Page):
                 return
 
             # get text to save
-            if iterbounds:
+            if iterbounds is not None:
                 start, end = iterbounds
             else:
                 start, end = self.buf.get_bounds()
 
-            buf = self.buf.get_text(start, end)
+            buf = self.buf.get_text(start, end, True)
 
             try:
-                out_f = open(filepath, 'w')
-                out_f.write(buf)
-                out_f.close()
-                #self.statusMsg("%s saved." % self.filepath)
-            except IOError as e:
+                with open(filepath, 'w') as out_f:
+                    out_f.write(buf)
+                #self.statusMsg("{} saved.".format(filepath))
+
+            except Exception as e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
                         filepath, str(e)))
 

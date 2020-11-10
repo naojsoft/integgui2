@@ -265,7 +265,7 @@ def remove_all_marks(buffer):
 def get_tv(widget):
     txtbuf = widget.get_buffer()
     startiter, enditer = txtbuf.get_bounds()
-    text = txtbuf.get_text(startiter, enditer)
+    text = txtbuf.get_text(startiter, enditer, True)
     return text
 
 def append_tv(widget, text):

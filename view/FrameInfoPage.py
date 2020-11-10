@@ -2,8 +2,6 @@
 # Eric Jeschke (eric@naoj.org) --
 #
 
-from __future__ import absolute_import
-from __future__ import print_function
 import os, time
 
 from gi.repository import Gtk
@@ -12,7 +10,6 @@ from . import LogPage
 from . import common
 
 from g2base import Bunch
-from six.moves import range
 
 
 header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
@@ -131,7 +128,7 @@ class FrameInfoPage(LogPage.NotePage):
             (startiter, coord) = widget.get_line_at_y(buf_y1)
             (enditer, coord) = widget.get_line_at_y(buf_y1)
             enditer.forward_to_line_end()
-            text = self.buf.get_text(startiter, enditer).strip()
+            text = self.buf.get_text(startiter, enditer, True).strip()
             frameno = text.split()[0]
             line = startiter.get_line()
             print("%d: %s" % (line, frameno))
@@ -158,7 +155,7 @@ class FrameInfoPage(LogPage.NotePage):
         # Break selection into individual lines
         frames = []
 
-        for i in range(int(lrow)+1-frow):
+        for i in range(int(lrow) + 1 - frow):
 
             row = frow+i
 
@@ -167,7 +164,7 @@ class FrameInfoPage(LogPage.NotePage):
             last.forward_to_line_end()
 
             # skip comments and blank lines
-            line = self.buf.get_text(first, last).strip()
+            line = self.buf.get_text(first, last, True).strip()
             if len(line) == 0:
                 continue
 
