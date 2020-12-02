@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import threading
 
 class TimeoutError(Exception):
@@ -27,7 +25,7 @@ class Datasrc(object):
             else:
                 return self.datums[key]
 
-        
+
     def __setitem__(self, key, value):
         with self.cond:
             if key in self.history:
@@ -43,10 +41,10 @@ class Datasrc(object):
 
             self.sortedkeys = list(self.datums.keys())
             self.sortedkeys.sort()
-            
+
             self.newdata.set()
             self.cond.notify()
-        
+
 
     def __len__(self):
         with self.cond:
@@ -77,16 +75,16 @@ class Datasrc(object):
     def get_bufsize(self):
         with self.cond:
             return self.length
-       
-        
+
+
     def set_bufsize(self, length):
         with self.cond:
             if length < self.length:
                 raise IndexError("Currently don't support downsizing!")
-            
+
             self.length = length
 
-        
+
     def put(self, obj):
         with self.cond:
             # Make room, if necessary for next item
@@ -104,7 +102,7 @@ class Datasrc(object):
             self.cond.notify()
             return obj
 
-        
+
     def next(self, block=True, timeout=None):
         with self.cond:
             if self.cursor >= (len(self.queue) - 1):
@@ -120,7 +118,7 @@ class Datasrc(object):
             print("cursor: %d" % self.cursor)
             return self.queue[self.cursor]
 
-            
+
     def current(self):
         with self.cond:
             return self.queue[self.cursor]
@@ -134,4 +132,3 @@ class Datasrc(object):
             self.cursor -= 1
             print("cursor: %d" % self.cursor)
             return self.queue[self.cursor]
-

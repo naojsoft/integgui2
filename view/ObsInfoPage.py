@@ -2,7 +2,6 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from __future__ import absolute_import
 import time
 
 from gi.repository import Gtk
@@ -60,8 +59,6 @@ class ObsInfoPage(Page.ButtonPage):
         self.green = (0.0, 0.5, 0.0)
         self.white = (1.0, 1.0, 1.0)
         self.orange = (0.824, 0.412, 0.1176)
-
-        self.timertask = None
 
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(2)
@@ -152,40 +149,28 @@ class ObsInfoPage(Page.ButtonPage):
         self.redraw()
 
     def cancel_timer(self):
-        if self.timertask:
-            try:
-                GObject.source_remove(self.timertask)
-            except:
-                pass
-        self.timertask = None
         self.obsdict['TIMER'] = ''
         self.redraw()
-        # TODO: play sound?
 
     def set_timer(self, val):
         self.logger.debug("val = %s" % str(val))
-        self.cancel_timer()
-        val = float(val)
-        if val <= 0:
+        with common.view.lock:
+            timer = common.view._obs_timer
+        if timer is None:
+            self.cancel_timer()
             return
-        self.timer_val = time.time() + val
-        self.logger.debug("timer_val = %d" % self.timer_val)
-        self.timer_interval()
+        timer.data.obsinfo = self
+        self.update_timer(float(val))
 
-
-    def timer_interval(self):
-        diff = self.timer_val - time.time()
-        diff = max(0, int(diff))
+    def update_timer(self, secs):
+        diff = max(0, int(round(secs)))
         self.logger.debug("timer: %d sec" % diff)
-        self.obsdict['TIMER'] = str(diff).rjust(5)
-        self.redraw()
-        if diff > 0:
-            self.timertask = GObject.timeout_add(1000, self.timer_interval)
-        else:
-            # TODO: play sound?
-            self.timertask = None
+        if diff == 0:
             self.obsdict['TIMER'] = ''
-            self.redraw()
+        else:
+            self.obsdict['TIMER'] = str(diff).rjust(5)
+
+        self.redraw()
 
 
 #END

@@ -1,7 +1,6 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 
 from gi.repository import Gtk
 
@@ -25,7 +24,7 @@ class TagPage(LogPage.NotePage):
 
         self.tagidx = {}
         self.opepage = opepage
-        
+
     def add_mapping(self, lineno, line, tags):
         # Add this line and a tag to the tags buffer
         tend = self.buf.get_end_iter()
@@ -58,7 +57,7 @@ class TagPage(LogPage.NotePage):
             self.logger.error("Error converting coordinates to line: %s" % (
                 str(e)))
             return False
-        
+
         (startiter, coord) = widget.get_line_at_y(buf_y1)
         taglineno = startiter.get_line()
         try:
@@ -68,7 +67,7 @@ class TagPage(LogPage.NotePage):
 
         if not self.opepage:
             return True
-        
+
         # TODO: raise self.opepage
 
         self.opepage.scroll_to_lineno(lineno)

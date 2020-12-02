@@ -1,7 +1,6 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 import time
 import threading
 
@@ -62,13 +61,13 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         item.connect_object ("activate", lambda w: self.save_log_as(),
                              "menu.Save_as")
         item.show()
-        
+
         item = Gtk.MenuItem(label="Save selection as ...")
         menu.append(item)
         item.connect_object ("activate", lambda w: self.save_log_selection_as(),
                              "menu.Save_selection_as")
         item.show()
-        
+
         #self.add_close()
         item = Gtk.MenuItem(label="Close")
         menu.append(item)
@@ -80,7 +79,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
     def set_editable(self, value):
         self.tw.set_editable(value)
-        
+
     def set_logsize(self, size):
         """(size) should be an integer value indicating number of
         lines.  Setting to 0 will disable any culling of old lines.
@@ -100,7 +99,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
     def clear(self):
         start, end = self.buf.get_bounds()
         self.buf.delete(start, end)
-        
+
     def _cull(self):
         if self.logsize:
             end = self.buf.get_end_iter()
@@ -115,7 +114,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         end = self.buf.get_end_iter()
         if not tags:
             tags = ['normal']
-            
+
         try:
             self.buf.insert_with_tags_by_name(end, data, *tags)
 
@@ -169,14 +168,14 @@ class LogPage(NotePage):
 
     def clear_regexes(self):
         self.regexes = []
-        
+
     def add_regex(self, regex, tags):
         self.regexes.append((regex, tags))
-        
+
     def add_regexes(self, tuples):
         for tup in tuples:
             self.add_regex(*tup)
-        
+
     def load(self, filepath):
         self.filepath = filepath
         self.file = open(self.filepath, 'r')
@@ -201,7 +200,7 @@ class LogPage(NotePage):
 
     def push(self, msgstr):
         line = msgstr + '\n'
-        
+
         # set tags according to content of message
         for (regex, tags) in self.regexes:
             if regex.match(msgstr):
@@ -226,10 +225,10 @@ class LogPage(NotePage):
                 with self.lock:
                     for line in data.split('\n'):
                         self.push(line)
-                    
+
         except IOError as e:
             pass
-            
+
         GObject.timeout_add(self.poll_interval, self.poll)
 
 
@@ -250,7 +249,7 @@ class LogPage(NotePage):
 ##         except Exception, e:
 ##             self.logger.error("Couldn't open tail process: %s" % str(e))
 ##             return
-        
+
 ##         self.file = self.proc.stdout
 ##         self.size = 0
 ##         self.poll()

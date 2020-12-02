@@ -1,7 +1,6 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 
 from gi.repository import Gtk
 
@@ -62,7 +61,7 @@ class StatMonPage(Page.ButtonPage):
 
         self._mark_cursor()
         scrolled_window.show_all()
-        
+
 
     def addParam(self, name):
         self.paramList.append(name)
@@ -81,7 +80,7 @@ class StatMonPage(Page.ButtonPage):
         self.table.resize(self.row+1, self.max_col+1)
 
     def add_status(self, name, width, alias, label):
-        
+
         lbl = Gtk.Label(label)
         lbl.show()
         self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
@@ -121,16 +120,16 @@ class StatMonPage(Page.ButtonPage):
         self._mark_cursor()
 
         return True
-        
+
     def update(self, statusDict):
         for bnch in self.params.values():
             bnch.widget.set_text(str(statusDict[bnch.alias]))
-        
+
     def update_controller(self):
         fetchDict = {}
         for bnch in self.params.values():
             fetchDict[bnch.alias] = None
 
         common.controller.add_statusdict(fetchDict, self.update)
-    
+
 #END

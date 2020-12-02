@@ -2,7 +2,6 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from __future__ import absolute_import
 import threading
 
 from ginga.misc import Bunch

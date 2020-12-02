@@ -3,7 +3,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 import threading
 
 class CommandObject(object):
@@ -33,7 +32,7 @@ class CommandObject(object):
         self.guitag = CommandObject.get_tag(format)
         self.queueName = queueName
         self.logger = logger
-        
+
 
     def get_preview(self):
         """This is called to get a preview of the command string that
@@ -49,7 +48,7 @@ class CommandObject(object):
 
     def __str__(self):
         return self.guitag
-        
+
 
 class SimpleCommandObject(CommandObject):
 
@@ -57,10 +56,10 @@ class SimpleCommandObject(CommandObject):
         self.cmdstr = cmdstr
 
         super(SimpleCommandObject, self).__init__(format, queueName, logger)
-        
+
     def get_preview(self):
         return self.get_cmdstr()
-    
+
     def get_cmdstr(self):
         return self.cmdstr
 
@@ -71,12 +70,12 @@ class BreakCommandObject(CommandObject):
 
     def __init__(self, format, queueName, logger, page):
         self.page = page
-        
+
         super(BreakCommandObject, self).__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()
-    
+
     def get_cmdstr(self):
         return '== BREAK =='
 
@@ -87,15 +86,14 @@ class CommentCommandObject(CommandObject):
 
     def __init__(self, format, queueName, logger, text):
         self.text = text
-        
+
         super(CommentCommandObject, self).__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.text
-    
+
     def get_cmdstr(self):
         return '== NOP =='
 
     def mark_status(self, txttag):
         pass
-

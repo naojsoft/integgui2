@@ -3,7 +3,6 @@
 #
 # meta import for all GUI object classes
 
-from __future__ import absolute_import
 from .Desktop import *
 from .Workspace import *
 

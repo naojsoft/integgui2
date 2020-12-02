@@ -1,7 +1,6 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 
 #from gi.repository import Gtk
 
@@ -16,7 +15,7 @@ class WorkspacePage(Workspace.Workspace, Page.Page):
         Workspace.Workspace.__init__(self, frame, name, title)
 
         #self.nb.set_tab_pos(Gtk.PositionType.LEFT)
-        
+
 class ButtonWorkspacePage(Workspace.Workspace, Page.ButtonPage):
 
     def __init__(self, frame, name, title):

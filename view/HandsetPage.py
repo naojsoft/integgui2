@@ -3,8 +3,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-
 from gi.repository import Gtk
 from gi.repository import GdkPixbuf
 from gi.repository import Pango
@@ -16,7 +14,6 @@ from . import Page
 from . import CommandObject
 
 from ginga.misc import Bunch
-from six.moves import range
 
 compass_template = """
   %(n)s
@@ -338,7 +335,7 @@ class HandsetPage(Page.CommandPage):
             raise e
 
     def load(self, buf):
-        d = yaml.load(buf)
+        d = yaml.safe_load(buf)
 
         assert isinstance(d, dict) and 'modes' in d, \
                HandsetError("Malformed handset def: expected key 'modes': %s" % (

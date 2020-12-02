@@ -3,7 +3,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 
 from gi.repository import Gtk
 
@@ -11,7 +10,7 @@ from . import common
 from . import Page
 
 from ginga.misc import Bunch
-        
+
 class DialogError(Exception):
     pass
 
@@ -37,7 +36,7 @@ class DialogPage(Page.Page):
         self.cvbox = Gtk.VBox()
         vbox.pack_start(self.cvbox, False, True, 0)
         self.cvbox.show()
-        
+
         separator = Gtk.HSeparator()
         separator.show()
         vbox.pack_start(separator, False, True, 0)
@@ -65,12 +64,12 @@ class DialogPage(Page.Page):
     def add_buttons(self, buttonlist, callback):
         for name, rsp in buttonlist:
             self.add_button(name, rsp, callback)
-            
+
     def destroy(self):
         # this method is here to make it similar to a widget based class
         return self.close()
 
     def show(self):
         pass
-        
+
 #END

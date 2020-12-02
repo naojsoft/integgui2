@@ -4,7 +4,6 @@
 # Displays names and status of tracking coordinate files copied to TSC
 # computer
 
-from __future__ import absolute_import
 import os, glob
 
 from gi.repository import Gtk

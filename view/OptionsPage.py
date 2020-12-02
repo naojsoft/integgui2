@@ -1,8 +1,6 @@
-# 
+#
 # Eric Jeschke (eric@naoj.org)
 #
-
-from __future__ import absolute_import
 
 from gi.repository import Gtk
 
@@ -25,7 +23,7 @@ class OptionsPage(Page.ButtonPage):
 
         vbox = Gtk.VBox(spacing=2)
         self.w = Bunch.Bunch()
-        
+
         settings = common.view.get_settings()
 
         lbl = Gtk.Label('Settings:')
@@ -50,10 +48,10 @@ class OptionsPage(Page.ButtonPage):
         # spacer
         lbl = Gtk.Label('')
         vbox.pack_start(lbl, False, False, 0)
-        
+
         def _mk_fn(key):
             return lambda w: self.toggle_setting(w, key)
-        
+
         for title, key in (("Audible Errors", 'audible_errors'),
                            ("Suppress 'Confirm Execute' popups",
                             'suppress_confirm_exec'),
@@ -95,7 +93,7 @@ class OptionsPage(Page.ButtonPage):
         # load any saved settings
         common.view.settings = settings
         settings.load(onError='warn')
-        
+
         # update GUI
         d = settings.getDict()
         for key, value in d.items():
@@ -109,5 +107,5 @@ class OptionsPage(Page.ButtonPage):
     def save_settings(self):
         common.view.settings.save()
 
-        
+
 #END

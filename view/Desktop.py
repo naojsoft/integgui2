@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import time
 import threading
 

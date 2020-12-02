@@ -3,9 +3,7 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
 import threading
-from six.moves import filter, map
 
 class QueueEmpty(Exception):
     pass
@@ -73,7 +71,7 @@ class CommandQueue(object):
         """Returns a list of all tag ids for the command objects in the
         queue."""
         with self.lock:
-            return list(map(str, self.queue))
+            return [str(i) for i in self.queue]
 
     def get_by_tags(self, tags):
         """Returns a list of all elements of the queue who have
@@ -171,7 +169,7 @@ class CommandQueue(object):
     def mapFilter(self, func):
         with self.lock:
             oldqueue = self.queue
-            self.queue = list(map(func, self.queue))
+            self.queue = [func(i) for i in self.queue]
             deleted = set(oldqueue).difference(self.queue)
             self.update_status(deleted)
             self.redraw()

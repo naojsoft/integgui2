@@ -3,11 +3,10 @@
 #
 
 # Standard library imports
-from __future__ import absolute_import
-from __future__ import print_function
 import sys, os, glob
 import re
-import six.moves._thread, threading, six.moves.queue
+import threading
+import queue as Queue
 import traceback
 
 from gi.repository import Gtk
@@ -53,9 +52,13 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # ugh--ugly race condition hack
         common.set_view(self)
 
-        self.gui_queue = six.moves.queue.Queue()
+        self.gui_queue = Queue.Queue()
         self.placeholder = '--notdone--'
         self.gui_thread_id = None
+
+        # for managing timers
+        self.obs_timers = []
+        self._obs_timer = None
 
         self.w = Bunch.Bunch()
 
@@ -1333,6 +1336,12 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         except Exception as e:
             self.logger.error("Error resetting pages: %s" % str(e))
 
+    def _rm_timer(self, timer):
+        with self.lock:
+            self.obs_timers.remove(timer)
+            if self._obs_timer is timer:
+                self._obs_timer = None
+
     ############################################################
     # Interface from controller into the view
     #
@@ -1341,8 +1350,20 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     ############################################################
 
     def obs_timer(self, tag, title, iconfile, soundfn, time_sec, callfn):
+        timer = self.make_timer()
+        timer.duration = time_sec
+        timer.add_callback('expired', self._rm_timer)
+        with self.lock:
+            self.obs_timers.append(timer)
+            if self._obs_timer is not None:
+                # new timer was
+                self._obs_timer.data.obsinfo = None
+            self._obs_timer = timer
+
+        self.gui_do(timer.start)
+
         dialog = dialogs.Timer()
-        self.gui_do(dialog.popup, title, iconfile, soundfn, time_sec, callfn,
+        self.gui_do(dialog.popup, title, iconfile, soundfn, timer, callfn,
                     tag=tag)
 
     def obs_confirmation(self, tag, title, iconfile, soundfn, btnlist, callfn):
@@ -1473,13 +1494,13 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         return self.gui_do(method, *args, **kwdargs)
 
     def assert_gui_thread(self):
-        my_id = six.moves._thread.get_ident()
+        my_id = threading.get_ident()
         assert my_id == self.gui_thread_id, \
                Exception("Non-GUI thread (%d) is executing GUI code!" % (
             my_id))
 
     def assert_nongui_thread(self):
-        my_id = six.moves._thread.get_ident()
+        my_id = threading.get_ident()
         assert my_id != self.gui_thread_id, \
                Exception("GUI thread (%d) is executing non-GUI code!" % (
             my_id))
@@ -1528,7 +1549,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                     pass
 
 
-            except six.moves.queue.Empty:
+            except Queue.Empty:
                 done = True
 
             except Exception as e:
@@ -1548,7 +1569,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def mainloop(self, timeout=0.001):
         # Mark our thread id
-        self.gui_thread_id = six.moves._thread.get_ident()
+        self.gui_thread_id = threading.get_ident()
 
         while not self.ev_quit.isSet():
             self.update_pending(timeout=timeout)

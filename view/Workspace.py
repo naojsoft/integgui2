@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import threading
 import traceback
@@ -11,7 +9,6 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 
 from . import common
-from six.moves import range
 
 # module-level var used for drag-and-drop of pages
 drag_src = None

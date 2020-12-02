@@ -1,7 +1,6 @@
-# 
+#
 # Russell Kackley (rkackley@naoj.org)
 #
-from __future__ import absolute_import
 import os, glob
 
 from gi.repository import Gtk

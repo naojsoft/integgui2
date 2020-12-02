@@ -2,7 +2,6 @@
 # Eric Jeschke (eric@naoj.org)
 #
 
-from __future__ import absolute_import
 import re
 import os, time
 import threading
@@ -22,12 +21,7 @@ from g2base.astro.frame import Frame as AstroFrame
 from cfg.INS import INSdata
 import cfg.g2soss as g2soss
 
-from six.moves import map
-import six
-if six.PY2:
-    maketrans = string.maketrans
-else:
-    maketrans = bytes.maketrans
+maketrans = bytes.maketrans
 
 # For getting instrument info
 inscfg = INSdata()
@@ -358,7 +352,8 @@ class IntegController(object):
                 allocs_lst.append(name)
 
         # List of inst codes we should pay attention to
-        self.inscodes = list(map(self.insconfig.getCodeByName, allocs_lst))
+        self.inscodes = [self.insconfig.getCodeByName(name)
+                         for name in allocs_lst]
         propid = info.get('propid', 'xxxxx')
         self.propid = propid
 

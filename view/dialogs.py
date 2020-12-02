@@ -1,8 +1,6 @@
 #
 # Eric Jeschke (eric@naoj.org)
 #
-from __future__ import absolute_import
-from __future__ import print_function
 import time
 import threading
 
@@ -485,6 +483,9 @@ class Timer(Confirmation):
                                     soundfn=soundfn)
         # override time interval to 1 sec
         self.interval = 1000
+        self.soundfn = soundfn
+        self.timer = None
+        self.timertask = None
 
         self.fmtstr = '<span foreground="#008800" background="#F7F7F7" font="Sans Bold 120">%s</span>'
 
@@ -496,7 +497,9 @@ class Timer(Confirmation):
         s = self.timestr.rjust(5)
         self.area.set_markup(self.fmtstr % (s))
 
-    def popup(self, title, iconfile, soundfn, time_sec, callfn, tag=None):
+    def popup(self, title, iconfile, soundfn, timer, callfn, tag=None):
+        time_sec = timer.duration
+        self.soundfn = soundfn
         button_vals = [0]
         # NOTE: numbers here are INDEXES into self.button_vals, not values!
         button_list = [['Close', 0]]
@@ -517,7 +520,7 @@ class Timer(Confirmation):
         val = float(time_sec)
         self.duration = val
         self.timestr = str(int(val)).rjust(5)
-        self.timer_val = time.time() + val
+        timer.data.dialog = self
 
         self.area = Gtk.Label()
         #self.area.modify_bg(Gtk.StateType.NORMAL, self.white)
@@ -535,14 +538,13 @@ class Timer(Confirmation):
         register_dialog(tag, self)
 
         self.w.show()
+        # start a second-by-second timer to update the GUIs with the
+        # associated timer's value
+        self._timer_tick(timer)
         self.redraw()
 
-        self.timertask = GObject.timeout_add(1000, self.timeraction,
-                                             soundfn)
-
-    def timeraction(self, soundfn):
-        diff = self.timer_val - time.time()
-        diff = max(0, int(round(diff)))
+    def update_timer(self, secs):
+        diff = max(0, int(round(secs)))
         #self.logger.debug("timer: %d sec" % diff)
         self.timestr = str(diff).rjust(5)
         if self.w:
@@ -551,8 +553,6 @@ class Timer(Confirmation):
             frac = 1.0 - diff/self.duration
             self.pbar.set_fraction(frac)
             self.pbar.set_text("%d%%" % int(frac*100))
-            self.timertask = GObject.timeout_add(1000, self.timeraction,
-                                                 soundfn)
         else:
             self.timertask = None
             self.pbar.set_fraction(1.0)
@@ -561,9 +561,24 @@ class Timer(Confirmation):
             self.redraw()
 
             # Play sound
-            soundfn()
+            self.soundfn()
 
             self.close(self.w)
+
+    def _timer_tick(self, timer):
+        secs = timer.time_left()
+        try:
+            timer.data.obsinfo.update_timer(secs)
+        except Exception as e:
+            pass
+        try:
+            timer.data.dialog.update_timer(secs)
+        except Exception:
+            pass
+
+        if secs > 0:
+            GObject.timeout_add(1000, self._timer_tick, timer)
+
 
 class ComboBox(Confirmation):
 

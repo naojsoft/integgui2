@@ -2,7 +2,6 @@
 # Eric Jeschke (eric@naoj.org)
 #
 # stdlib imports
-from __future__ import absolute_import
 import os.path
 import time
 import numpy
