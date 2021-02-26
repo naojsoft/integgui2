@@ -23,42 +23,38 @@ class Desktop(object):
         self.detached = []
         self.w = Bunch.Bunch()
 
-        ## self.w.ulh = Gtk.HPaned()
-        ## self.w.llh = Gtk.HPaned()
-        ## self.w.umh = Gtk.HPaned()
-        ## self.w.lmh = Gtk.HPaned()
-        self.w.ulh = w_dict['ulh'].get_widget()
-        self.w.llh = w_dict['llh'].get_widget()
-        self.w.umh = self.w.ulh.get_child2()
-        self.w.lmh = self.w.llh.get_child2()
+        self.w.ulh = w_dict['ulh']
+        self.w.llh = w_dict['llh']
 
-        ## ul = Gtk.VBox()
-        ## ll = Gtk.VBox()
-        ## um = Gtk.VBox()
-        ## lm = Gtk.VBox()
-        ## ur = Gtk.VBox()
-        ## lr = Gtk.VBox()
-        ul = w_dict['ul'].get_widget()
-        ll = w_dict['ll'].get_widget()
-        um = w_dict['um'].get_widget()
-        lm = w_dict['lm'].get_widget()
-        ur = w_dict['ur'].get_widget()
-        lr = w_dict['lr'].get_widget()
+        ul = w_dict['ul']
+        ll = w_dict['ll']
+        #um = w_dict['um']
+        lm = w_dict['lm']
+        ur = w_dict['ur']
+        lr = w_dict['lr']
 
         self.pane = Bunch.Bunch()
         for name in self.w.keys():
-            bnch = Bunch.Bunch(name=name, pos=None, time=None,
+            #print('pane name is', name)
+            sizes = list(self.w[name].get_sizes())
+            bnch = Bunch.Bunch(name=name, sizes=sizes, time=None,
                                widget=self.w[name])
             self.pane[name] = bnch
-            self.w[name].connect('notify', self._get_resize_fn(bnch))
+            #self.w[name].connect('notify', self._get_resize_fn(bnch))
 
         self.ws_fr = {
-            'll': Bunch.Bunch(frame=ll, pane=self.pane.llh),
-            'ul': Bunch.Bunch(frame=ul, pane=self.pane.ulh),
-            'lm': Bunch.Bunch(frame=lm, pane=self.pane.lmh),
-            'um': Bunch.Bunch(frame=um, pane=self.pane.umh),
-            'lr': Bunch.Bunch(frame=lr, pane=self.pane.lmh),
-            'ur': Bunch.Bunch(frame=ur, pane=self.pane.umh),
+            'll': Bunch.Bunch(frame=ll.get_widget(),
+                              pane=self.pane.llh, idx=0),
+            'ul': Bunch.Bunch(frame=ul.get_widget(),
+                              pane=self.pane.ulh, idx=0),
+            'lm': Bunch.Bunch(frame=lm.get_widget(),
+                              pane=self.pane.llh, idx=1),
+            #'um': Bunch.Bunch(frame=um.get_widget(),
+            #                  pane=self.pane.ulh, idx=1),
+            'lr': Bunch.Bunch(frame=lr.get_widget(),
+                              pane=self.pane.llh, idx=2),
+            'ur': Bunch.Bunch(frame=ur.get_widget(),
+                              pane=self.pane.ulh, idx=1),
             }
 
         self.ws = {}
@@ -68,37 +64,41 @@ class Desktop(object):
         with self.lock:
             return self.ws_fr[loc].frame
 
-    def _show_pane(self, loc, pos):
+    def _show_pane(self, loc, size):
         with self.lock:
             pinfo = self.ws_fr[loc].pane
+            idx = self.ws_fr[loc].idx
             pane_w = pinfo.widget
-            cur_pos = pane_w.get_position()
-            print("Setting position for pane %s to %d" % (pinfo.name, cur_pos))
-            pinfo.pos = cur_pos
+            cur_size = pane_w.get_sizes()[idx]
+            #print("Setting size for pane %s to %d" % (pinfo.name, size))
             pinfo.time = time.time()
-            if cur_pos < pos:
-                pane_w.set_position(pos)
+            if cur_size < size:
+                sizes = list(pinfo.sizes)
+                sizes[idx] = size
+                pane_w.set_sizes(sizes)
 
-            return pos - cur_pos
+            return size - cur_size
 
     def _restore_pane(self, loc):
         with self.lock:
             pinfo = self.ws_fr[loc].pane
+            idx = self.ws_fr[loc].idx
             pane_w = pinfo.widget
-            cur_pos = pane_w.get_position()
-            print("Maybe restore position for pane %s" % (pinfo.name))
+            old_size = pinfo.sizes[idx]
+            #print("Maybe restore position for pane %s" % (pinfo.name))
             try:
-                pos = pinfo.pos
-                self.logger.debug("Restoring pane to pos %d" % (pos))
-                pane_w.set_position(pos)
-                return pos - cur_pos
+                sizes = list(pinfo.sizes)
+                sizes[idx] = old_size
+                self.logger.debug("Restoring pane to size %d" % (old_size))
+                pane_w.set_sizes(sizes)
+                return size - old_size
             except:
                 return 0
 
-    def show_ws(self, name, pos=450):
+    def show_ws(self, name, size=450):
         with self.lock:
             bnch = self.ws[name]
-            self._show_pane(bnch.loc, pos)
+            self._show_pane(bnch.loc, size)
 
     def restore_ws(self, name):
         with self.lock:
@@ -226,20 +226,22 @@ class Desktop(object):
     def move_page(self, src_ws, page, dst_ws):
         src_ws.move_page(page, dst_ws)
 
-    def _get_resize_fn(self, bnch):
-        def _pane_resized(pane_w, info):
-            # Callback function when pane is resized
-            pos = pane_w.get_position()
-            # Try to determine (via very ugly code) whether resize was
-            # a result of programmatic or manual resize by a human
-            if bnch.time and (time.time() - bnch.time < 0.5):
-                pass
-            else:
-                # If manually resized, record the new size so we don't
-                # undo a resize that was intentional
-                self.logger.debug("Pane manually resized to %d" % (pos))
-                bnch.pos = pos
+    ## def _get_resize_fn(self, bnch):
+    ##     #def _pane_resized(pane_w, event):
+    ##     def _pane_resized(*args):
+    ##         print('resize', *args)
+    ##         # Callback function when pane is resized
+    ##         pos = pane_w.get_position()
+    ##         # Try to determine (via very ugly code) whether resize was
+    ##         # a result of programmatic or manual resize by a human
+    ##         if bnch.time and (time.time() - bnch.time < 0.5):
+    ##             pass
+    ##         else:
+    ##             # If manually resized, record the new size so we don't
+    ##             # undo a resize that was intentional
+    ##             self.logger.debug("Pane manually resized to %d" % (pos))
+    ##             bnch.pos = pos
 
-        return _pane_resized
+    ##     return _pane_resized
 
 #END

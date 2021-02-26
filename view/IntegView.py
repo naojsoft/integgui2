@@ -138,7 +138,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # Add workspaces
         self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
         self.oiws = self.ds.addws('ur', 'obsinfo', "Upper Right Workspace")
-        self.umws = self.ds.addws('um', 'umws', "Upper Middle Workspace")
+        #self.umws = self.ds.addws('um', 'umws', "Upper Middle Workspace")
         self.lmws  = self.ds.addws('lm', 'lmws', "Lower Middle Workspace")
         self.lws  = self.ds.addws('ll', 'launchers', "Lower Left Workspace")
         self.exws = self.ds.addws('lr', 'executor', "Lower Right Workspace")

@@ -12,7 +12,6 @@
     -GtkWidget-text-handle-width: 15;
     -GtkWidget-text-handle-height: 15;
 
-    -GtkPaned-handle-size: 5px;
     -GtkPaned-resize: true;
     -GtkPaned-shrink: true;
 
@@ -46,7 +45,7 @@ entry {
     border-radius: 0px;
     padding-top: 0px; padding-bottom: 0px; 
     outline-width: 0px;
-    outline-radius: 0px;
+    -gtk-outline-radius: 0px;
 }
 
 notebook, notebook:focus, notebook:backdrop {
