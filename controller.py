@@ -18,7 +18,7 @@ from g2base.remoteObjects import Monitor
 from g2base import Task
 from g2base.astro.frame import Frame as AstroFrame
 
-from cfg.INS import INSdata
+from g2cam.INS import INSdata
 import cfg.g2soss as g2soss
 
 maketrans = bytes.maketrans
