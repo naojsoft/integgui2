@@ -327,10 +327,7 @@ class IntegController(object):
         inst = info.get('mainInst', 'N/A')
         inst = inst.upper()
         self.gui.update_obsinfo({'PROP-ID':
-                                                      ('%s - %s - %s' % (propid,
-                                                                         inst,
-                                                                         observers))
-                                 })
+                                 f"{propid} - {inst} - {observers}"})
 
     def _session_config(self, info):
         self.logger.debug("info=%s" % str(info))
@@ -350,10 +347,12 @@ class IntegController(object):
         for name in self.insconfig.getNames(active=True):
             if name in allocs:
                 allocs_lst.append(name)
+        self.logger.info("allocated instruments: {}".format(str(allocs_lst)))
 
         # List of inst codes we should pay attention to
         self.inscodes = [self.insconfig.getCodeByName(name)
                          for name in allocs_lst]
+        self.logger.info("allocated inscodes: {}".format(str(self.inscodes)))
         propid = info.get('propid', 'xxxxx')
         self.propid = propid
 
@@ -587,6 +586,11 @@ class IntegController(object):
         if match:
             (frameid, subsys) = match.groups()
 
+            # check if this is a frame from an instrument that is
+            # allocated
+            if not self.is_frame_from_our_session(frameid):
+                return
+
             try:
                 # See if there is method to handle this information
                 # in the 'fits' object
@@ -594,19 +598,6 @@ class IntegController(object):
 
             except AttributeError:
                 self.logger.debug("No handler for '%s' subsystem" % subsys)
-                return
-
-            # check if this is a frame from an instrument that is
-            # allocated
-            fr = AstroFrame()
-            try:
-                fr.from_frameid(frameid)
-
-                if not (fr.inscode in self.inscodes):
-                    # not allocated, so ignore it
-                    return
-
-            except ValueError as e:
                 return
 
             try:
@@ -626,6 +617,7 @@ class IntegController(object):
         if match:
             # frameSvc only
             try:
+                self.logger.info("calling fits.frameSvc_hdlr with {}".format(bnch.value))
                 self.fits.frameSvc_hdlr(bnch.value)
                 return
 
@@ -1072,4 +1064,21 @@ class IntegController(object):
         t = Task.FuncTask2(do_sound_check)
         t.init_and_start(self)
         return 0
+
+    def is_frame_from_our_session(self, frameid):
+        # check if this is a frame from an instrument that is
+        # allocated in our session
+        fr = AstroFrame()
+        try:
+            fr.from_frameid(frameid)
+
+            if fr.inscode not in self.inscodes:
+                # not from an allocated instrument
+                return False
+
+        except ValueError as e:
+            return False
+
+        return True
+
 #END

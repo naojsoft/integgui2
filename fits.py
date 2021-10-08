@@ -10,6 +10,9 @@ from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
 from g2base.astro.frame import Frame
 
+# Local integgui2 imports
+from .view import common
+
 # Headers we show
 headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
             'OBJECT', 'FILTERS', 'MEMO' ]
@@ -166,6 +169,11 @@ class IntegGUINotify(object):
         frame_ids = list(vals.keys())
         frame_ids.sort()
         for frameid in frame_ids:
+            # check if this is a frame from an instrument that is
+            # allocated to our session
+            if not common.controller.is_frame_from_our_session(frameid):
+                continue
+
             info = vals[frameid]['frameSvc']
             if 'time_alloc' in info:
                 self.frame_allocated(frameid, info['time_alloc'])

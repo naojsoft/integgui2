@@ -246,6 +246,6 @@ def main(options, args):
             mymon.stop_server(wait=True)
         mymon.stop(wait=True)
 
-    logger.info("Exiting Gen2/SCM IntegGUI II...")
+    logger.info("exiting Gen2 integgui2...")
     #gui.quit()
     sys.exit(0)
