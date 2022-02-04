@@ -508,6 +508,13 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         else:
             msgstr = format % args
 
+        # sanity check on message string
+        maxlen = 140
+        if len(msgstr) > maxlen:
+            # trim excess characters that can cause the label to become
+            # too large
+            msgstr = msgstr[:maxlen]
+
         self.w.status.set_text(msgstr)
 
     def setPos(self, geom):
