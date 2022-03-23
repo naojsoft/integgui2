@@ -1172,7 +1172,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         try:
             common.controller.ctl_do(common.controller.config_from_session,
-                                     'main')
+                                     common.controller.options.session)
         except Exception as e:
             self.gui.popup_error("Failed to initialize from session: %s" % (
                 str(e)))
