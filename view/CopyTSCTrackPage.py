@@ -16,7 +16,7 @@ from . import Page
 from g2base.remoteObjects import remoteObjects as ro
 from ginga.misc import Bunch
 
-import astro.TSCTrackFile as TSCTrackFile
+import Gen2.astro.TSCTrackFile as TSCTrackFile
 
 class CopyTSCTrackPage(Page.ButtonPage):
 

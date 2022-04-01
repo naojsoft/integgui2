@@ -12,8 +12,8 @@ from . import CodePage
 from . import TSCTrackPage
 import cfg.g2soss as g2soss
 
-import astro.jplHorizonsIF as jplHorizonsIF
-import astro.TSCTrackFile as TSCTrackFile
+import Gen2.astro.jplHorizonsIF as jplHorizonsIF
+import Gen2.astro.TSCTrackFile as TSCTrackFile
 
 class EphemPage(CodePage.CodePage):
 
