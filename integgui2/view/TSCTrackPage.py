@@ -9,7 +9,6 @@ from g2base import myproc
 
 from . import common
 from . import CodePage
-import cfg.g2soss as g2soss
 
 import Gen2.astro.TSCTrackFile as TSCTrackFile
 
