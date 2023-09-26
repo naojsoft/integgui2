@@ -19,7 +19,6 @@ from g2base import Task
 from g2base.astro.frame import Frame as AstroFrame
 
 from g2cam.INS import INSdata
-import cfg.g2soss as g2soss
 
 maketrans = bytes.maketrans
 
@@ -397,7 +396,7 @@ class IntegController(object):
                 self.gui.gui_do(self.gui.load_monlog, self.gui.logpage,
                                 name)
             else:
-                logpath = os.path.join(g2soss.loghome, name + '.log')
+                logpath = os.path.join(os.environ['LOGHOME'], name + '.log')
                 self.gui.gui_do(self.gui.load_log, self.gui.logpage,
                                 logpath)
 
@@ -674,7 +673,7 @@ class IntegController(object):
 
 
     def playSound(self, soundfile, priority=20):
-        soundpath = os.path.join(g2soss.confhome,
+        soundpath = os.path.join(os.environ['CONFHOME'],
                                  'Sounds', soundfile)
         if os.path.exists(soundpath):
             self.soundsink.playFile(soundpath, priority=priority)

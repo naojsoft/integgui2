@@ -21,8 +21,6 @@ from g2base import ssdlog
 
 import g2client.soundsink as SoundSink
 
-import cfg.g2soss as g2soss
-
 # Local integgui2 imports
 import integgui2
 from integgui2 import fits
@@ -96,7 +94,7 @@ def main(options, args):
 
     mm = ModuleManager.ModuleManager(logger)
 
-    basedir = os.path.join(g2soss.confhome, 'integgui2')
+    basedir = os.path.join(os.environ['CONFHOME'], 'integgui2')
     prefs = Settings.Preferences(basefolder=basedir,
                                  logger=logger)
     # command queues
