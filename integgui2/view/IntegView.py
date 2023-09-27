@@ -90,7 +90,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # Dynamically create the desktop layout
         self.desk = GwDesktop.Desktop(self)
         self.desk.make_desktop(layout, widget_dict=self.w)
-        self.desk.add_callback('all-closed', self.quit)
+        #self.desk.add_callback('all-closed', self.quit)
 
         # this is the old integgui2 desktop, grafted on to the
         # ginga desktop
@@ -100,11 +100,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         root = self.desk.toplevels[0]
         root_w = root.get_widget()
         self.w.root = root_w
-        # TEMP: temporarily needed until "all-closed" callback from Desktop is working
-        root.add_callback('close', self.quit)
+        root.add_callback('close', self.confirm_close_cb)
 
         root.set_title('Gen2 Integrated GUI II')
-        #root.connect("delete_event", self.delete_event)
         root.set_border_width(2)
 
         # These are sometimes needed
@@ -263,7 +261,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         sep.show()
         quit_item = Gtk.MenuItem(label="Exit")
         filemenu.append(quit_item)
-        quit_item.connect("activate", self.quit)
+        quit_item.connect("activate", lambda w: self.confirm_close_cb(self))
         quit_item.show()
 
         # create a Queue pulldown menu, and add it to the menu bar
@@ -384,13 +382,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         item.connect_object ("activate", lambda w: self.gui_load_folder(ws.executers, '*'),
                              "file.Load dir")
         item.show()
-
-        # _get_ws(ws, 'fits', where)
-        # item = Gtk.MenuItem(label="fits")
-        # loadmenu.append(item)
-        # item.connect_object ("activate", lambda w: self.gui_load_fits(ws.fits),
-        #                      "file.Load fits")
-        # item.show()
 
         _get_ws(ws, 'launchers', where)
 
@@ -1206,30 +1197,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         filepath = os.path.join(os.environ['LOGHOME'], filename)
         return filepath
 
-    # def gui_load_fits(self, workspace):
-    #     initialdir = os.environ['DATAHOME']
-
-    #     self.filesel.popup("Load FITS file",
-    #                        lambda filepath: self.load_fits(workspace, filepath),
-    #                        initialdir=initialdir)
-
-    # def load_fits(self, workspace, filepath):
-
-    #     (filedir, filename) = os.path.split(filepath)
-    #     (filepfx, fileext) = os.path.splitext(filename)
-    #     try:
-    #         page = workspace.addpage(filepath, filepfx, FitsViewerPage)
-    #         page.load(filepath)
-
-    #         # Bring FITS tab to front
-    #         workspace.select(page.name)
-    #         return page
-
-    #     except Exception, e:
-    #         self.popup_error("Cannot load '%s': %s" % (
-    #                 filepath, str(e)))
-    #         return None
-
     def gui_create_queue(self, workspace):
 
         def create_queue_res(w, rsp, went):
@@ -1327,10 +1294,27 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         #Gtk.main_quit()
         return False
 
-    # callback to quit the program
-    def quit(self, widget):
+    def confirm_close_cb(self, app):
+        # confirm close with a dialog here
+        q_quit = Widgets.Dialog(title="Confirm Quit", modal=False,
+                                buttons=[("Cancel", False), ("Confirm", True)])
+        # necessary so it doesn't get garbage collected right away
+        self.w.quit_dialog = q_quit
+        vbox = q_quit.get_content_area()
+        vbox.set_margins(4, 4, 4, 4)
+        vbox.add_widget(Widgets.Label("Do you really want to quit?"))
+        q_quit.add_callback('activated', self._confirm_quit_cb)
+        q_quit.add_callback('close', lambda w: self._confirm_quit_cb(w, False))
+        q_quit.show()
+
+    def _confirm_quit_cb(self, w, tf):
+        self.w.quit_dialog.delete()
+        self.w.quit_dialog = None
+        if not isinstance(tf, int) or tf <= 0:
+            return
+
         self.ev_quit.set()
-        #Gtk.main_quit()
+        self.quit()
         return False
 
     def reset_pause(self):
