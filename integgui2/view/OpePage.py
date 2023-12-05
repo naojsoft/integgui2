@@ -13,6 +13,8 @@ from gi.repository import GdkPixbuf
 gi.require_version('GtkSource', '3.0')
 from gi.repository import GtkSource
 
+from ginga.gw import Widgets
+
 import oscript.parse.ope as ope
 
 from . import common
@@ -112,109 +114,74 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.connect("key-press-event", self.keypress)
 
         # add some bottom buttons
-        self.btn_exec = Gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: self.execute())
+        self.btn_exec = Widgets.Button("Exec")
+        self.btn_exec.add_callback("activated", lambda w: self.execute())
         common.modify_bg(self.btn_exec, common.launcher_colors['execbtn'])
-        self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
+        self.leftbtns.add_widget(self.btn_exec)
 
-        self.btn_append = Gtk.Button("Append")
-        self.btn_append.connect("clicked", lambda w: self.insert())
-        self.btn_append.show()
-        self.leftbtns.pack_end(self.btn_append, False, False, 0)
+        self.btn_append = Widgets.Button("Append")
+        self.btn_append.add_callback("activated", lambda w: self.insert())
+        self.leftbtns.add_widget(self.btn_append)
 
-        self.btn_prepend = Gtk.Button("Prepend")
-        self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
-        self.btn_prepend.show()
-        self.leftbtns.pack_end(self.btn_prepend, False, False, 0)
+        self.btn_prepend = Widgets.Button("Prepend")
+        self.btn_prepend.add_callback("activated", lambda w: self.insert(loc=0))
+        self.leftbtns.add_widget(self.btn_prepend)
 
-        self.btn_cancel = Gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel = Widgets.Button("Cancel")
+        self.btn_cancel.add_callback("activated", lambda w: self.cancel())
         common.modify_bg(self.btn_cancel, common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
+        self.leftbtns.add_widget(self.btn_cancel)
 
-        self.btn_pause = Gtk.Button("Pause")
-        self.btn_pause.connect("clicked", self.toggle_pause)
-        self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause, False, False, 0)
+        self.btn_pause = Widgets.Button("Pause")
+        self.btn_pause.add_callback("activated", self.toggle_pause)
+        self.leftbtns.add_widget(self.btn_pause)
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Buffer")
 
-        item = Gtk.MenuItem(label="Recolor")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.color(),
-                             "menu.Recolor")
-        item.show()
+        item = menu.add_name("Recolor")
+        item.add_callback("activated", lambda w: self.color())
 
-        item = Gtk.MenuItem(label="Uncolor")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.color(eraseall=True),
-                             "menu.Uncolor")
-        item.show()
+        item = menu.add_name("Uncolor")
+        item.add_callback("activated", lambda w: self.color(eraseall=True))
 
-        item = Gtk.MenuItem(label="Current")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.current(),
-                             "menu.Current")
-        item.show()
+        item = menu.add_name("Current")
+        item.add_callback("activated", lambda w: self.current())
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = Gtk.MenuItem(label="Clear all")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_all")
-        item.show()
+        item = menu.add_name("Clear all")
+        item.add_callback("activated", lambda w: common.controller.clearQueue(self.queueName))
 
-        item = Gtk.MenuItem(label="Clear my")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.unqueue_my_commands(),
-                             "menu.Clear_my")
-        item.show()
+        item = menu.add_name("Clear my")
+        item.add_callback("activated", lambda w: self.unqueue_my_commands())
 
-        item = Gtk.MenuItem(label="Unlink my")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.unlink_my_commands(),
-                             "menu.Unlink_my")
-        item.show()
+        item = menu.add_name("Unlink my")
+        item.add_callback("activated", lambda w: self.unlink_my_commands())
 
-        item = Gtk.MenuItem(label="Attach to ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.attach_queue(),
-                             "menu.Attach_to")
-        item.show()
+        item = menu.add_name("Attach to ...")
+        item.add_callback("activated", lambda w: self.attach_queue())
 
         menu = self.add_pulldownmenu("Options")
 
-        item = Gtk.CheckMenuItem("Wrap lines")
-        item.set_active(wrap_lines)
-        menu.append(item)
-        item.connect("activate", self.toggle_line_wrapping)
-        item.show()
+        item = menu.add_name("Wrap lines", checkable=True)
+        item.set_state(wrap_lines)
+        item.add_callback("activated", self.toggle_line_wrapping)
 
-        item = Gtk.CheckMenuItem("Show line numbers")
-        item.set_active(number_lines)
-        menu.append(item)
-        item.connect("activate", self.toggle_line_numbering)
-        item.show()
+        item = menu.add_name("Show line numbers", checkable=True)
+        item.set_state(number_lines)
+        item.add_callback("activated", self.toggle_line_numbering)
 
-        item = Gtk.CheckMenuItem("Don't link commands to page")
-        item.set_active(False)
-        menu.append(item)
-        item.connect("activate", lambda w: self.toggle_var(w, 'add_frozen'))
-        item.show()
+        item = menu.add_name("Don't link commands to page", checkable=True)
+        item.set_state(False)
+        item.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'add_frozen'))
 
         # option variables
         self.add_frozen = False
 
 
-    def toggle_var(self, widget, key):
-        if widget.get_active():
-            self.__dict__[key] = True
-        else:
-            self.__dict__[key] = False
+    def toggle_var(self, tf, key):
+        self.__dict__[key] = tf
 
     def build_dialog(self, title, text, func):
         dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -509,10 +476,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 else:
                     common.view.statusMsg(errmsg)
 
-                tagpage.tablbl.set_markup('<span background="orange">Tags</span>')
+                # TODO: turn tab background to orange on Tags page
+                #tagpage.tablbl.set_markup('<span background="orange">Tags</span>')
 
             else:
-                tagpage.tablbl.set_markup('<span>Tags</span>')
+                # TODO: turn tab background to clear on Tags page
+                #tagpage.tablbl.set_markup('<span>Tags</span>')
+                pass
 
 
         except Exception as e:
@@ -1131,6 +1101,3 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
 
     def mark_status(self, txttag):
         pass
-
-
-#END

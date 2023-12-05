@@ -24,6 +24,7 @@ from .pages import *
 from . import Page as PG
 from . import Workspace as WS
 from . import dialogs
+from . import Widgets as IGWidgets
 
 # Parse our gtk resource file
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
@@ -42,8 +43,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         Widgets.Application.__init__(self, logger=logger)
         GwMain.GwMain.__init__(self, logger=logger, ev_quit=ev_quit, app=self)
 
-        ## self.logger = logger
-        ## self.ev_quit = ev_quit
         self.queue = queues
         self.logtype = logtype
         self.lock = threading.RLock()
@@ -82,10 +81,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
         self.set_procdir(procdir, 'SUKA')
 
-        # hack required to use threads with GTK
-        #GObject.threads_init()
-        #Gdk.threads_init()
-
     def build_toplevel(self, layout):
         # Dynamically create the desktop layout
         self.desk = GwDesktop.Desktop(self)
@@ -98,15 +93,14 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.ds.logger = self.logger
 
         root = self.desk.toplevels[0]
-        root_w = root.get_widget()
-        self.w.root = root_w
+        self.w.root = root
         root.add_callback('close', self.confirm_close_cb)
 
         root.set_title('Gen2 Integrated GUI II')
         root.set_border_width(2)
 
         # These are sometimes needed
-        screen = root_w.get_screen()
+        screen = root.get_widget().get_screen()
         self.display = screen.get_display()
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
@@ -127,9 +121,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # Add popup dialogs
         #self.add_dialogs()
 
-        self.w.menubar = Gtk.MenuBar()
-        hbox = self.w['menu'].get_widget()
-        hbox.pack_start(self.w.menubar, True, True, 0)
+        self.w.menubar = Widgets.Menubar()
+        hbox = self.w['menu']
+        hbox.add_widget(self.w.menubar, stretch=1)
 
         self.add_statusbar()
 
@@ -149,7 +143,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         # Populate "Lower Middle" ws
         self.handsets = self.lmws.addpage('handset', "Handset",
-                                         WorkspacePage.WorkspacePage)
+                                          WorkspacePage.WorkspacePage)
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
         self.add_queue(self.queuepage, 'default', create=False)
@@ -163,10 +157,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.add_monitor(self.oiws)
         self.logpage = self.oiws.addpage('loginfo', "Logs",
                                          WorkspacePage.WorkspacePage)
-        # self.fitspage = self.oiws.addpage('fitsview', "Fits",
-        #                                   WorkspacePage.WorkspacePage)
-        # self.fitspage.addpage('viewer', 'Fits Viewer',
-        #                       FitsViewerPage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
@@ -177,7 +167,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.add_dialogs()
         self.add_menus(self.w.menubar)
 
-        self.w.root.show_all()
+        self.w.root.show()
 
     # Define some functions that depend on the workspace
     def raise_page(self, name):
@@ -233,11 +223,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def add_menus(self, menubar):
 
         # create a File pulldown menu, and add it to the menu bar
-        filemenu = Gtk.Menu()
-        file_item = Gtk.MenuItem(label="File")
-        menubar.append(file_item)
-        file_item.show()
-        file_item.set_submenu(filemenu)
+        filemenu = menubar.add_name("File")
 
         # Add all the different kind of loaders to load up into these
         # default workspaces
@@ -251,53 +237,31 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             }
         self.add_load_menus(filemenu, d)
 
-        item = Gtk.MenuItem(label="Config from session")
-        filemenu.append(item)
-        item.connect("activate", lambda w: self.reconfig())
-        item.show()
+        item = filemenu.add_name("Config from session")
+        item.add_callback('activated', lambda w: self.reconfig())
 
-        sep = Gtk.SeparatorMenuItem()
-        filemenu.append(sep)
-        sep.show()
-        quit_item = Gtk.MenuItem(label="Exit")
-        filemenu.append(quit_item)
-        quit_item.connect("activate", lambda w: self.confirm_close_cb(self))
-        quit_item.show()
+        filemenu.add_separator()
+
+        quit_item = filemenu.add_name("Exit")
+        quit_item.add_callback('activated', lambda w: self.confirm_close_cb(self))
 
         # create a Queue pulldown menu, and add it to the menu bar
-        queuemenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Queue")
-        menubar.append(item)
-        item.show()
-        item.set_submenu(queuemenu)
+        queuemenu = menubar.add_name("Queue")
 
-        item = Gtk.MenuItem(label="New queue ...")
-        queuemenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_queue(self.queuepage),
-                             "queue.Create queue")
-        item.show()
+        item = queuemenu.add_name("New queue ...")
+        item.add_callback('activated', lambda w: self.gui_create_queue(self.queuepage))
 
         # create a Misc pulldown menu, and add it to the menu bar
-        miscmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Misc")
-        menubar.append(item)
-        item.show()
-        item.set_submenu(miscmenu)
+        miscmenu = menubar.add_name("Misc")
 
-        item = Gtk.MenuItem(label="Sound check")
-        miscmenu.append(item)
-        item.connect("activate", lambda w: common.controller.sound_check())
-        item.show()
+        item = miscmenu.add_name("Sound check")
+        item.add_callback('activated', lambda w: common.controller.sound_check())
 
-        sep = Gtk.SeparatorMenuItem()
-        miscmenu.append(sep)
-        sep.show()
+        miscmenu.add_separator()
 
-        item = Gtk.MenuItem(label="Reset Executer")
-        miscmenu.append(item)
-        item.connect("activate",
+        item = miscmenu.add_name("Reset Executer")
+        item.add_callback('activated',
                      lambda w: common.controller.reset_executer())
-        item.show()
 
 
     def add_load_menus(self, filemenu, where):
@@ -315,183 +279,107 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         ws = Bunch.Bunch()
 
-        loadmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Load source")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(loadmenu)
+        loadmenu = filemenu.add_menu("Load source")
 
         _get_ws(ws, 'executers', where)
 
-        item = Gtk.MenuItem(label="ope")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_ope(ws.executers),
-                             "file.Load ope")
-        item.show()
+        item = loadmenu.add_name("ope")
+        item.add_callback('activated', lambda w: self.gui_load_ope(ws.executers))
 
-        item = Gtk.MenuItem(label="sk")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_sk(ws.executers),
-                             "file.Load sk")
-        item.show()
+        item = loadmenu.add_name("sk")
+        item.add_callback('activated', lambda w: self.gui_load_sk(ws.executers))
 
-        item = Gtk.MenuItem(label="task")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_task(ws.executers),
-                             "file.Load task")
-        item.show()
+        item = loadmenu.add_name("task")
+        item.add_callback('activated', lambda w: self.gui_load_task(ws.executers))
 
-        item = Gtk.MenuItem(label="launcher")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher_source(ws.executers),
-                             "file.Load launcher")
-        item.show()
+        item = loadmenu.add_name("launcher")
+        item.add_callback('activated', lambda w: self.gui_load_launcher_source(ws.executers))
 
-        item = Gtk.MenuItem(label="handset")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset_source(ws.executers),
-                             "file.Load handset")
-        item.show()
+        item = loadmenu.add_name("handset")
+        item.add_callback('activated', lambda w: self.gui_load_handset_source(ws.executers))
 
-        item = Gtk.MenuItem(label="inf")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_inf(ws.executers),
-                             "file.Load inf")
-        item.show()
+        item = loadmenu.add_name("inf")
+        item.add_callback('activated', lambda w: self.gui_load_inf(ws.executers))
 
-        item = Gtk.MenuItem(label="eph")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_ephem(ws.executers),
-                             "file.Load eph")
-        item.show()
+        item = loadmenu.add_name("eph")
+        item.add_callback('activated', lambda w: self.gui_load_ephem(ws.executers))
 
-        item = Gtk.MenuItem(label="tsc track")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_tscTrack(ws.executers),
-                             "file.Load tsc")
-        item.show()
+        item = loadmenu.add_name("tsc track")
+        item.add_callback('activated', lambda w: self.gui_load_tscTrack(ws.executers))
 
-        loadmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Load")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(loadmenu)
+        loadmenu = filemenu.add_menu("Load")
 
-        item = Gtk.MenuItem(label="directory")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_folder(ws.executers, '*'),
-                             "file.Load dir")
-        item.show()
+        item = loadmenu.add_name("directory")
+        item.add_callback('activated', lambda w: self.gui_load_folder(ws.executers, '*'))
 
         _get_ws(ws, 'launchers', where)
 
-        item = Gtk.MenuItem(label="launcher")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_launcher(ws.launchers),
-                             "file.Load launcher")
-        item.show()
+        item = loadmenu.add_name("launcher")
+        item.add_callback('activated', lambda w: self.gui_load_launcher(ws.launchers))
 
         _get_ws(ws, 'handsets', where)
 
-        item = Gtk.MenuItem(label="handset")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_handset(ws.handsets),
-                             "file.Load handset")
-        item.show()
+        item = loadmenu.add_name("handset")
+        item.add_callback('activated', lambda w: self.gui_load_handset(ws.handsets))
 
         _get_ws(ws, 'logs', where)
 
-        item = Gtk.MenuItem(label="log")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_log(ws.logs),
-                             "file.Load log")
-        item.show()
+        item = loadmenu.add_name("log")
+        item.add_callback('activated', lambda w: self.gui_load_log(ws.logs))
 
-        item = Gtk.MenuItem(label="monlog")
-        loadmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_load_monlog(ws.logs),
-                             "file.Load mon log")
-        item.show()
+        item = loadmenu.add_name("monlog")
+        item.add_callback('activated', lambda w: self.gui_load_monlog(ws.logs))
 
         # "New" submenu
-        newmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="New")
-        filemenu.append(item)
-        item.show()
-        item.set_submenu(newmenu)
+        newmenu = filemenu.add_menu("New")
 
         # New->Source sub-sub-menu
-        newsrcmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Source")
-        newmenu.append(item)
-        item.show()
-        item.set_submenu(newsrcmenu)
+        newsrcmenu = newmenu.add_menu("Source")
 
-        item = Gtk.MenuItem(label="Command page")
-        newsrcmenu.append(item)
-        item.connect_object ("activate", lambda w: self.new_source('command',
-                                                                   ws.executers),
-                             "file.New command page")
-        item.show()
+        item = newsrcmenu.add_name("Command page")
+        item.add_callback('activated', lambda w: self.new_source('command',
+                                                                   ws.executers))
 
-        item = Gtk.MenuItem(label="OPE file")
-        newsrcmenu.append(item)
-        item.connect_object ("activate", lambda w: self.new_source('ope',
-                                                                   ws.executers),
-                             "file.New ope page")
-        item.show()
+        item = newsrcmenu.add_name("OPE file")
+        item.add_callback('activated', lambda w: self.new_source('ope',
+                                                                   ws.executers))
 
         # end of New->Source
 
-        item = Gtk.MenuItem(label="Terminal page")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.add_terminal(ws.executers),
-                             "file.New terminal")
-        item.show()
+        item = newmenu.add_name("Terminal page")
+        item.add_callback('activated', lambda w: self.add_terminal(ws.executers))
 
         _get_ws(ws, 'queues', where)
 
-        item = Gtk.MenuItem(label="Queue ...")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_queue(ws.queues),
-                             "file.New queue")
-        item.show()
+        item = newmenu.add_name("Queue ...")
+        item.add_callback('activated', lambda w: self.gui_create_queue(ws.queues))
 
         _get_ws(ws, 'journals', where)
 
-        item = Gtk.MenuItem(label="Workspace ...")
-        newmenu.append(item)
-        item.connect_object ("activate", lambda w: self.gui_create_workspace(ws.journals),
-                             "file.New Workspace")
-        item.show()
+        item = newmenu.add_name("Workspace ...")
+        item.add_callback('activated', lambda w: self.gui_create_workspace(ws.journals))
 
     def add_dialogs(self):
         self.filesel = dialogs.FileSelection(action=Gtk.FileChooserAction.OPEN)
         self.filesave = dialogs.FileSelection(action=Gtk.FileChooserAction.SAVE)
 
     def add_statusbar(self):
-        hbox = self.w['status'].get_widget()
-        btns = Gtk.HButtonBox()
-
-        btns.set_layout(Gtk.ButtonBoxStyle.START)
-        btns.set_spacing(5)
-
-        self.btn_kill = Gtk.Button("Kill")
-        self.btn_kill.connect("clicked", lambda w: self.kill())
-        common.modify_bg(self.btn_kill,
-                         common.launcher_colors['killbtn'])
-
-        btns.pack_end(self.btn_kill, False, False, 4)
-
-        hbox.pack_end(btns, False, False, 4)
+        hbox = self.w['status']
 
         # TODO: should we use a TextWidget so we can use tags?
-        self.w.status = Gtk.Label("")
+        self.w.status = Widgets.Label("")
+        hbox.add_widget(self.w.status, stretch=1)
 
-        hbox.pack_start(self.w.status, True, True, 4)
+        btns = IGWidgets.ButtonBox()
+        btns.set_spacing(5)
 
-        hbox.show_all()
+        self.btn_kill = Widgets.Label("Kill", style='clickable')
+        self.btn_kill.add_callback('activated', lambda w: self.kill())
+        self.btn_kill.set_color(bg=common.launcher_colors['killbtn'])
 
+        btns.add_widget(self.btn_kill)
+
+        hbox.add_widget(btns, stretch=0)
 
     def statusMsg(self, format, *args):
         if not format:
@@ -522,7 +410,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             match = re.match(r'^(\d+)x(\d+)$', size)
             if match:
                 width, height = [int(x) for x in match.groups()]
-                self.w.root.set_default_size(width, height)
+                self.w.root.resize(width, height)
 
         # TODO: placement
         if pos:
@@ -1470,19 +1358,19 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_statusMsg(self, format, *args):
         self.gui_do(self.statusMsg, format, *args)
 
-    def gui_do(self, method, *args, **kwdargs):
-        """General method for calling into the GUI.
-        """
-        #gobject.idle_add(method, *args, **kwdargs)
-        future = Future.Future()
-        future.freeze(method, *args, **kwdargs)
-        self.gui_queue.put(future)
-        return future
+    # def gui_do(self, method, *args, **kwdargs):
+    #     """General method for calling into the GUI.
+    #     """
+    #     #gobject.idle_add(method, *args, **kwdargs)
+    #     future = Future.Future()
+    #     future.freeze(method, *args, **kwdargs)
+    #     self.gui_queue.put(future)
+    #     return future
 
-    def gui_do_future(self, future):
-        """General method for calling into the GUI.
-        """
-        self.gui_queue.put(future)
+    # def gui_do_future(self, future):
+    #     """General method for calling into the GUI.
+    #     """
+    #     self.gui_queue.put(future)
 
     def gui_do_res(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
@@ -1493,88 +1381,88 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         return self.gui_do(method, *args, **kwdargs)
 
-    def assert_gui_thread(self):
-        my_id = threading.get_ident()
-        assert my_id == self.gui_thread_id, \
-               Exception("Non-GUI thread (%d) is executing GUI code!" % (
-            my_id))
+    # def assert_gui_thread(self):
+    #     my_id = threading.get_ident()
+    #     assert my_id == self.gui_thread_id, \
+    #            Exception("Non-GUI thread (%d) is executing GUI code!" % (
+    #         my_id))
 
-    def assert_nongui_thread(self):
-        my_id = threading.get_ident()
-        assert my_id != self.gui_thread_id, \
-               Exception("GUI thread (%d) is executing non-GUI code!" % (
-            my_id))
-
-
-    def update_pending(self, timeout=0.0):
-
-        # Process "out-of-band" GTK events
-        #print("PROCESSING OUT-BAND")
-        #Gdk.threads_enter()
-        try:
-            while Gtk.events_pending():
-                Gtk.main_iteration()
-        finally:
-            #Gdk.threads_leave()
-            pass
-
-        done = False
-        while not done:
-            #print("PROCESSING IN-BAND")
-            # Process "in-band" GTK events
-            try:
-                future = self.gui_queue.get(block=True,
-                                            timeout=timeout)
-
-                # Execute the GUI method
-                #Gdk.threads_enter()
-                try:
-                    try:
-                        res = future.thaw(suppress_exception=False)
-
-                    except Exception as e:
-                        future.resolve(e)
-
-                        self.logger.error("gui error: %s" % str(e))
-                        try:
-                            (type, value, tb) = sys.exc_info()
-                            tb_str = "".join(traceback.format_tb(tb))
-                            self.logger.error("Traceback:\n%s" % (tb_str))
-
-                        except Exception as e:
-                            self.logger.error("Traceback information unavailable.")
-
-                finally:
-                    #Gdk.threads_leave()
-                    pass
+    # def assert_nongui_thread(self):
+    #     my_id = threading.get_ident()
+    #     assert my_id != self.gui_thread_id, \
+    #            Exception("GUI thread (%d) is executing non-GUI code!" % (
+    #         my_id))
 
 
-            except Queue.Empty:
-                done = True
+    # def update_pending(self, timeout=0.0):
 
-            except Exception as e:
-                self.logger.error("Main GUI loop error: %s" % str(e))
-                #pass
+    #     # Process "out-of-band" GTK events
+    #     #print("PROCESSING OUT-BAND")
+    #     #Gdk.threads_enter()
+    #     try:
+    #         while Gtk.events_pending():
+    #             Gtk.main_iteration()
+    #     finally:
+    #         #Gdk.threads_leave()
+    #         pass
 
-            # Process "out-of-band" GTK events
-            #print("PROCESSING OUT-BAND")
-            #Gdk.threads_enter()
-            try:
-                while Gtk.events_pending():
-                    Gtk.main_iteration()
-            finally:
-                #Gdk.threads_leave()
-                pass
+    #     done = False
+    #     while not done:
+    #         #print("PROCESSING IN-BAND")
+    #         # Process "in-band" GTK events
+    #         try:
+    #             future = self.gui_queue.get(block=True,
+    #                                         timeout=timeout)
+
+    #             # Execute the GUI method
+    #             #Gdk.threads_enter()
+    #             try:
+    #                 try:
+    #                     res = future.thaw(suppress_exception=False)
+
+    #                 except Exception as e:
+    #                     future.resolve(e)
+
+    #                     self.logger.error("gui error: %s" % str(e))
+    #                     try:
+    #                         (type, value, tb) = sys.exc_info()
+    #                         tb_str = "".join(traceback.format_tb(tb))
+    #                         self.logger.error("Traceback:\n%s" % (tb_str))
+
+    #                     except Exception as e:
+    #                         self.logger.error("Traceback information unavailable.")
+
+    #             finally:
+    #                 #Gdk.threads_leave()
+    #                 pass
 
 
-    def mainloop(self, timeout=0.001):
-        # Mark our thread id
-        self.gui_thread_id = threading.get_ident()
+    #         except Queue.Empty:
+    #             done = True
 
-        while not self.ev_quit.isSet():
-            self.update_pending(timeout=timeout)
+    #         except Exception as e:
+    #             self.logger.error("Main GUI loop error: %s" % str(e))
+    #             #pass
 
-        #Gtk.main_quit()
+    #         # Process "out-of-band" GTK events
+    #         #print("PROCESSING OUT-BAND")
+    #         #Gdk.threads_enter()
+    #         try:
+    #             while Gtk.events_pending():
+    #                 Gtk.main_iteration()
+    #         finally:
+    #             #Gdk.threads_leave()
+    #             pass
+
+
+    # def mainloop(self, timeout=0.001):
+    #     # Mark our thread id
+    #     self.gui_thread_id = threading.get_ident()
+
+    #     while not self.ev_quit.isSet():
+    #         self.update_pending(timeout=timeout)
+
+    #     #Gtk.main_quit()
 
 
 #END

@@ -7,6 +7,8 @@ import threading
 from gi.repository import Gtk
 from gi.repository import GObject
 
+from ginga.gw import Widgets
+
 import os.path
 ## import subprocess
 
@@ -29,26 +31,17 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
         self.lock = threading.RLock()
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        tw = Widgets.TextArea()
+        self.tw = tw
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
-
-        tw = Gtk.TextView()
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
-
-        frame.pack_start(scrolled_window, True, True, 0)
+        self.content.add_widget(tw, stretch=1)
 
         tw.set_editable(False)
-        tw.set_wrap_mode(Gtk.WrapMode.NONE)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
+        tw.set_wrap(False)
+        # TODO: set margins
+        #tw.set_border_width(4)
 
-        self.tw = tw
-        self.buf = tw.get_buffer()
+        self.buf = tw.tw.get_buffer()
         # hack to get auto-scrolling to work
         self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
                                          False)
@@ -56,25 +49,16 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         #self.add_close()
         menu = self.add_pulldownmenu("Page")
 
-        item = Gtk.MenuItem(label="Save as ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_log_as(),
-                             "menu.Save_as")
-        item.show()
+        item = menu.add_name("Save as ...")
+        item.add_callback("activated", lambda w: self.save_log_as())
 
-        item = Gtk.MenuItem(label="Save selection as ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_log_selection_as(),
-                             "menu.Save_selection_as")
-        item.show()
+        item = menu.add_name("Save selection as ...")
+        item.add_callback("activated", lambda w: self.save_log_selection_as())
 
         #self.add_close()
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
         self.menu_close = item
-        item.show()
 
 
     def set_editable(self, value):
@@ -232,39 +216,6 @@ class LogPage(NotePage):
         GObject.timeout_add(self.poll_interval, self.poll)
 
 
-## class TailPage(LogPage):
-
-##     def __init__(self, frame, name, title):
-##         super(TailPage, self).__init__(frame, name, title)
-
-##         # interval between checking for log file updates (ms)
-##         self.poll_interval = 500
-##         self.proc = None
-
-##     def load(self, svcname):
-##         self.filepath = 'g2log(%s)' % svcname
-##         try:
-##             self.proc = subprocess.Popen(['g2log.py', svcname],
-##                                          buzsize=1, stdout=subprocess.PIPE)
-##         except Exception, e:
-##             self.logger.error("Couldn't open tail process: %s" % str(e))
-##             return
-
-##         self.file = self.proc.stdout
-##         self.size = 0
-##         self.poll()
-
-
-##     def close(self):
-##         if self.proc:
-##             try:
-##                 self.proc.kill()
-##             except:
-##                 pass
-
-##         super(TailPage, self).close()
-
-
 class MonLogPage(LogPage):
 
     def add2log(self, logdict):
@@ -277,5 +228,3 @@ class MonLogPage(LogPage):
                 for line in data.split('\n'):
                     if len(line) > 0:
                         self.push(line)
-
-#END

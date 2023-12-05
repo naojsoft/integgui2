@@ -6,6 +6,7 @@ import os, re
 from gi.repository import Gtk
 from gi.repository import Gdk
 
+from ginga.gw import Widgets
 from ginga.misc import Bunch
 
 from . import common
@@ -25,24 +26,15 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.tm_queueName = 'executer'
 
         # Create the widgets for the text
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        tw = Widgets.TextArea(editable=False, wrap=False)
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
-
-        tw = Gtk.TextView()
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
-
-        tw.set_editable(False)
-        tw.set_wrap_mode(Gtk.WrapMode.NONE)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
+        #tw.set_wrap_mode(Gtk.WrapMode.NONE)
+        # TODO
+        #tw.set_left_margin(4)
+        #tw.set_right_margin(4)
 
         self.tw = tw
-        self.buf = tw.get_buffer()
+        self.buf = tw.tw.get_buffer()
 
         # Stores saved selection
         self.sel_i = None
@@ -54,9 +46,9 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.moving_cursor = False
 
         # keyboard shortcuts
-        self.tw.connect("key-press-event", self.keypress)
+        self.tw.tw.connect("key-press-event", self.keypress)
         # Can't seem to get focus follows mouse effect
-        #self.tw.connect("enter-notify-event", self.focus_in)
+        #self.tw.tw.connect("enter-notify-event", self.focus_in)
         self.buf.connect("mark-set", self.show_cursor)
 
         tagtbl = self.buf.get_tag_table()
@@ -81,7 +73,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         #self.buf.create_tag('selected', background="pink1")
         #self.buf.create_tag('cursor', background="skyblue1")
 
-        frame.pack_start(scrolled_window, True, True, 0)
+        self.content.add_widget(self.tw, stretch=1)
 
         ## self.add_menu()
         ## self.add_close()
@@ -94,53 +86,40 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         #self.tw.connect("drag-drop", self.rearrange)
 
         # add some bottom buttons
-        self.btn_exec = Gtk.Button("Resume")
-        self.btn_exec.connect("clicked", lambda w: self.resume())
+        self.btn_exec = Widgets.Button("Resume")
+        self.btn_exec.add_callback("activated", lambda w: self.resume())
         common.modify_bg(self.btn_exec,
                          common.launcher_colors['execbtn'])
-        self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
+        self.leftbtns.add_widget(self.btn_exec)
 
-        self.btn_step = Gtk.Button("Step")
-        self.btn_step.connect("clicked", lambda w: self.step())
+        self.btn_step = Widgets.Button("Step")
+        self.btn_step.add_callback("activated", lambda w: self.step())
         common.modify_bg(self.btn_step,
-                                common.launcher_colors['execbtn'])
-        self.btn_step.show()
-        self.leftbtns.pack_end(self.btn_step, False, False, 0)
+                         common.launcher_colors['execbtn'])
+        self.leftbtns.add_widget(self.btn_step)
 
-        self.btn_break = Gtk.Button("Break")
-        self.btn_break.connect("clicked", lambda w: self.insbreak(line=0))
-        self.btn_break.show()
-        self.leftbtns.pack_end(self.btn_break, False, False, 0)
+        self.btn_break = Widgets.Button("Break")
+        self.btn_break.add_callback("activated", lambda w: self.insbreak(line=0))
+        self.leftbtns.add_widget(self.btn_break)
 
-        self.btn_refresh = Gtk.Button("Refresh")
-        self.btn_refresh.connect("clicked", lambda w: self.redraw())
-        self.btn_refresh.show()
-        self.leftbtns.pack_end(self.btn_refresh, False, False, 0)
+        self.btn_refresh = Widgets.Button("Refresh")
+        self.btn_refresh.add_callback("activated", lambda w: self.redraw())
+        self.leftbtns.add_widget(self.btn_refresh)
 
         menu = self.add_pulldownmenu("Page")
 
-        item = Gtk.MenuItem(label="Close")
+        item = menu.add_name("Close")
         # currently disabled
-        item.set_sensitive(False)
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        item.set_enabled(False)
+        item.add_callback("activated", lambda w: self.close())
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = Gtk.MenuItem(label="Clear All")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_All")
-        item.show()
+        item = menu.add_name("Clear All")
+        item.add_callback("activated", lambda w: common.controller.clearQueue(self.queueName))
 
-        item = Gtk.MenuItem(label="Pop and edit command")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.editCommand(),
-                             "menu.Edit_command")
-        item.show()
+        item = menu.add_name("Pop and edit command")
+        item.add_callback("activated", lambda w: self.editCommand())
 
 
     def set_queue(self, queueName, queueObj):
@@ -173,7 +152,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         with self.lock:
             #self.moving_cursor = True
-            common.clear_tv(self.tw)
+            common.clear_tv(self.tw.tw)
 
             numlines = 0
             for cmdObj in self.queueObj.peekAll():
@@ -517,6 +496,3 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         #print('\n'.join([str(t) for t in context.targets]))
         context.finish(True, False, tstamp)
         return True
-
-
-#END

@@ -5,6 +5,8 @@ import os, glob
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from g2base import myproc
 
 from . import common
@@ -21,16 +23,14 @@ class EphemPage(CodePage.CodePage):
         super(EphemPage, self).__init__(frame, name, title)
 
         # add some bottom buttons
-        self.btn_convertToTSC = Gtk.Button("Convert to TSC format")
-        self.btn_convertToTSC.connect("clicked", lambda w: self.convertToTSCcb())
-        self.btn_convertToTSC.show()
-        self.leftbtns.pack_end(self.btn_convertToTSC, False, False, 0)
+        self.btn_convertToTSC = Widgets.Button("Convert to TSC format")
+        self.btn_convertToTSC.add_callback("activated", lambda w: self.convertToTSCcb())
+        self.leftbtns.add_widget(self.btn_convertToTSC)
 
         ## Don't create or show the "Convert and Copy to TSC" button.
-        ## self.btn_copyTSC = Gtk.Button("Convert and Copy to TSC")
-        ## self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
-        ## self.btn_copyTSC.show()
-        ## self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
+        ## self.btn_copyTSC = Widgets.Button("Convert and Copy to TSC")
+        ## self.btn_copyTSC.add_calback("activated", lambda w: self.copyTSCcb())
+        ## self.leftbtns.add_widget(self.btn_copyTSC)
 
         self.tscFilePath = None
 
@@ -95,4 +95,3 @@ class EphemPage(CodePage.CodePage):
         except Exception as e:
             return common.view.popup_error("Cannot copy file to TSC: %s" % (
                 str(e)))
-#END

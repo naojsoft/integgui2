@@ -10,6 +10,8 @@ from gi.repository import GLib
 gi.require_version('Vte', '2.91')
 from gi.repository import Vte
 
+from ginga.gw import Widgets
+
 from . import common
 from . import Page
 
@@ -37,18 +39,11 @@ class TerminalPage(Page.ButtonPage):
         self.tw = tw
 
         tw.show()
-        frame.pack_start(tw, True, True, 0)
+        self.content.add_widget(Widgets.wrap(tw), stretch=1)
 
         #self.add_close()
         # Add items to the menu
         menu = self.add_pulldownmenu("Page")
 
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
-
-
-
-#END
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())

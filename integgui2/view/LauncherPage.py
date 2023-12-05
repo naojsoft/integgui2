@@ -8,6 +8,8 @@ import decimal
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from ginga.misc import Bunch
 from ginga.gtk3w import GtkHelp
 
@@ -23,30 +25,17 @@ class LauncherError(Exception):
 
 class Launcher(object):
 
-    def __init__(self, frame, name, title, execfn):
-        self.frame = frame
+    def __init__(self, llist, name, title, execfn):
+        self.llist = llist
         self.params = Bunch.Bunch()
         self.paramList = []
-        self.row = 1
-        self.col = 1
-        self.max_col = self.col
-        self.btn_width = 20
         self.execfn = execfn
 
-        self.table = Gtk.Table(rows=2, columns=2)
-        self.table.set_name('launcher')
-        self.table.show()
+        self.btn_exec = Widgets.Button(title)
+        self.btn_exec.get_widget().set_size_request(default_width, -1)
+        self.btn_exec.add_callback("activated", lambda w: self.execute())
 
-        self.btn_exec = Gtk.Button(title)
-        self.btn_exec.set_size_request(default_width, -1)
-        self.btn_exec.connect("clicked", lambda w: self.execute())
-        self.btn_exec.show()
-
-        self.table.attach(self.btn_exec, 0, 1, 1, 2,
-                          xoptions=Gtk.AttachOptions.FILL, yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-
-        frame.pack_start(self.table, False, True, 0)
+        self.llist.table.add_widget(self.btn_exec, self.llist.row, 0)
 
 
     def addParam(self, name):
@@ -59,31 +48,23 @@ class Launcher(object):
         self.cmdstr = cmdstr
 
     def add_break(self):
-        self.row += 2
-        self.col = 1
-        self.table.resize(self.row+1, self.max_col+1)
+        self.llist.row += 2
+        self.llist.col = 1
+        self.llist.table.resize_grid(self.llist.row+1, self.llist.max_col+1)
 
     def bump_col(self):
-        self.col += 1
-        self.max_col = max(self.col, self.max_col)
-        self.table.resize(self.row+1, self.max_col+1)
+        self.llist.col += 1
+        self.llist.max_col = max(self.llist.col, self.llist.max_col)
+        self.llist.table.resize_grid(self.llist.row+1, self.llist.max_col+1)
 
     def add_input(self, name, width, defVal, label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        field = Gtk.Entry()
-        field.set_width_chars(width)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        field = Widgets.TextEntry()
+        field.set_length(width)
         field.set_text(str(defVal))
-        field.show()
-        self.table.attach(field, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(field, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -94,21 +75,13 @@ class Launcher(object):
     def add_checkbox(self, name, checkbox_label, checkbox_dict, width, height,
                      label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        checkbox = Gtk.CheckButton(checkbox_label)
-        checkbox.set_size_request(width, height)
-        checkbox.show()
+        checkbox = Widgets.CheckBox(checkbox_label)
+        checkbox.resize(width, height)
 
-        self.table.attach(checkbox, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(checkbox, self.llist.row, self.llist.col)
 
         self.bump_col()
 
@@ -120,21 +93,13 @@ class Launcher(object):
 
     def add_toggle(self, name, toggle_label, toggle_dict, width, height, label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        toggle = Gtk.ToggleButton(toggle_label)
-        toggle.set_size_request(width, height)
-        toggle.show()
+        toggle = Widgets.ToggleButton(toggle_label)
+        toggle.resize(width, height)
 
-        self.table.attach(toggle, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(toggle, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -145,22 +110,15 @@ class Launcher(object):
 
     def add_switch(self, name, switch_dict, width, height, label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        switch = Gtk.Switch()
-        switch.set_active(False)
-        switch.set_size_request(width, height)
-        switch.show()
+        #switch = Gtk.Switch()
+        switch = Widgets.ToggleButton("[---]")
+        switch.set_state(False)
+        switch.resize(width, height)
 
-        self.table.attach(switch, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(switch, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -172,26 +130,15 @@ class Launcher(object):
 
     def add_scale(self, name, value, lower, upper, step, width, height, label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
+        scale = Widgets.Slider(orientation='horizontal', dtype=type(value))
+        scale.set_limits(lower, upper, incr_value=step)
+        scale.set_value(value)
+        scale.resize(width, height)
 
-        adjustment = Gtk.Adjustment(value, lower, upper, step, 0, 0)
-        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL,
-                          adjustment=adjustment)
-        #scale.set_hexpand(True)
-        scale.set_size_request(width, height)
-        scale.show()
-
-        #self.table.set_homogeneous(True)
-        self.table.attach(scale, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(scale, self.llist.row, self.llist.col)
 
         self.bump_col()
 
@@ -202,28 +149,19 @@ class Launcher(object):
 
     def add_spin(self, name, value, lower, upper, step, width, height, label):
 
-        lbl = Gtk.Label(label)
-        lbl.show()
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
         d = decimal.Decimal(str(step))
         d = d.as_tuple().exponent * -1
 
-        adjustment = Gtk.Adjustment(value, lower, upper, step, 0, 0)
-        spinbutton = Gtk.SpinButton()
-        spinbutton.set_digits(d)
-        spinbutton.set_size_request(width, height)
-        spinbutton.set_adjustment(adjustment)
+        spinbutton = Widgets.SpinBox(dtype=type(value))
+        spinbutton.set_limits(lower, upper, incr_value=step)
+        spinbutton.set_value(value)
+        spinbutton.set_decimals(d)
+        spinbutton.resize(width, height)
 
-        spinbutton.show()
-
-        self.table.attach(spinbutton, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(spinbutton, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -233,27 +171,15 @@ class Launcher(object):
 
     def add_combobox(self, name, combobox_list,  width, height, label):
 
-        lbl = Gtk.Label(label)
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        lbl.show()
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        store = Gtk.ListStore(str)
+        combobox = Widgets.ComboBox(editable=True)
         for cl in combobox_list:
-            store.append([str(cl)])
+            combobox.append_text(str(cl))
+        combobox.resize(width, height)
 
-        combobox = Gtk.ComboBox.new_with_model_and_entry(store)
-        combobox.set_entry_text_column(0)
-        #combobox.set_wrap_width(1)
-        combobox.set_size_request( width, height)
-        combobox.show()
-
-        self.table.attach(combobox, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        self.llist.table.add_widget(combobox, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -263,25 +189,16 @@ class Launcher(object):
 
     def add_list(self, name, optionList, label):
 
-        lbl = Gtk.Label(label)
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        lbl.show()
-        combobox = Gtk.ComboBoxText()
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+
+        combobox = Widgets.ComboBox()
         options = []
-        index = 0
         for opt, val in optionList:
             options.append(val)
-            combobox.insert_text(index, opt)
-            index += 1
-        combobox.set_active(0)
-        combobox.show()
-        self.table.attach(combobox, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+            combobox.append_text(opt)
+        combobox.set_index(0)
+        self.llist.table.add_widget(combobox, self.llist.row, self.llist.col)
         self.bump_col()
 
         name = name.lower()
@@ -292,24 +209,18 @@ class Launcher(object):
 
     def add_radio(self, name, optionList, label):
 
-        lbl = Gtk.Label(label)
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        lbl.show()
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        btn = None
+        group = None
         options = []
         for opt, val in optionList:
-            btn = Gtk.RadioButton(group=btn, label=opt)
-            self.table.attach(btn, self.col, self.col+1, self.row, self.row+1,
-                              xoptions=Gtk.AttachOptions.FILL,
-                              yoptions=Gtk.AttachOptions.FILL,
-                              xpadding=1, ypadding=1)
+            btn = Widgets.RadioButton(opt, group=group)
+            if group is None:
+                group = btn
+            self.llist.table.add_widget(btn, self.llist.row, self.llist.col)
             options.append((btn, val))
             self.bump_col()
-            btn.show()
 
         name = name.lower()
         self.params[name] = Bunch.Bunch(get_fn=self.get_radio,
@@ -318,19 +229,12 @@ class Launcher(object):
 
     def add_dial_select(self, name, optionList, width, height, label):
 
-        lbl = Gtk.Label(label)
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        lbl.show()
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        dial = GtkHelp.IndexDial()
-        dial.set_size_request(width, height)
-        self.table.attach(dial, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        dial = Widgets.Dial()
+        dial.resize(width, height)
+        self.llist.table.add_widget(dial, self.llist.row, self.llist.col)
         self.bump_col()
         dial.show()
 
@@ -354,23 +258,15 @@ class Launcher(object):
     def add_dial_value(self, name, value, lower, upper, step, width, height,
                        label):
 
-        lbl = Gtk.Label(label)
-        self.table.attach(lbl, self.col, self.col+1, self.row-1, self.row,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
-        lbl.show()
+        lbl = Widgets.Label(label)
+        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
 
-        dial = GtkHelp.ValueDial()
-        dial.set_size_request(width, height)
-        self.table.attach(dial, self.col, self.col+1, self.row, self.row+1,
-                          xoptions=Gtk.AttachOptions.FILL,
-                          yoptions=Gtk.AttachOptions.FILL,
-                          xpadding=1, ypadding=1)
+        dial = Widgets.Dial(dtype=type(value))
+        dial.resize(width, height)
+        self.llist.table.add_widget(dial, self.llist.row, self.llist.col)
         self.bump_col()
-        dial.set_limits(lower, upper, step)
+        dial.set_limits(lower, upper, incr_valuestep)
         dial.set_value(value)
-        dial.show()
 
         name = name.lower()
         self.params[name] = Bunch.Bunch(widget=dial, get_fn=self.get_dial)
@@ -378,28 +274,21 @@ class Launcher(object):
 
     def get_combobox(self, bnch):
 
-        tree_iter = bnch.widget.get_active_iter()
-
-        if tree_iter is not None:
-            model = bnch.widget.get_model()
-            entry = model[tree_iter][0]
-        else:
-            entry = bnch.widget.get_child()
-            entry = entry.get_text()
-        return entry
+        value = bnch.widget.get_text()
+        return value
 
     def get_checkbox(self, bnch):
-        active =  bnch.widget.get_active()
+        active =  bnch.widget.get_state()
         checkbox = bnch.dict.get(active)
         return checkbox
 
     def get_toggle(self, bnch):
-        active =  bnch.widget.get_active()
+        active =  bnch.widget.get_state()
         toggle = bnch.dict.get(active)
         return toggle
 
     def get_switch(self, bnch):
-        active =  bnch.widget.get_active()
+        active =  bnch.widget.get_state()
         switch = bnch.dict.get(active)
         return switch
 
@@ -413,7 +302,7 @@ class Launcher(object):
         return bnch.widget.get_text()
 
     def get_list(self, bnch):
-        index = bnch.widget.get_active()
+        index = bnch.widget.get_index()
         try:
             return bnch.options[index]
         except IndexError:
@@ -421,7 +310,7 @@ class Launcher(object):
 
     def get_radio(self, bnch):
         for widget, val in bnch.options:
-            if widget.get_active():
+            if widget.get_state():
                 return val
         return None
 
@@ -464,22 +353,32 @@ class LauncherList(object):
         self.count = 0
         self.frame = frame
         self.execfn = execfn
-        self.vbox = Gtk.VBox(spacing=2)
-        frame.pack_start(self.vbox, True, True, 0)
+
+        self.row = 1
+        self.col = 1
+        self.max_col = self.col
+        self.btn_width = 20
+
+        self.table = Widgets.GridBox(rows=2, columns=2)
+        self.table.set_column_spacing(2)
+        self.table.set_row_spacing(2)
+        #self.table.set_name('launcher')
+
+        frame.add_widget(self.table, stretch=0)
 
     def addSeparator(self):
-        separator = Gtk.HSeparator()
-        separator.show()
-        self.vbox.pack_start(separator, False, True, 0)
+        #separator = Gtk.HSeparator()
+        separator = Widgets.Label("--------------------")
+        self.table.add_widget(separator, self.row-1, 0)
+        self.row += 1
+        self.col = 1
+        self.table.resize_grid(self.row+1, self.max_col+1)
         self.count += 1
 
     def addLauncher(self, name, title):
-        frame = Gtk.VBox()
-        frame.show()
-        self.vbox.pack_start(frame, False, True, 0)
         self.count += 1
 
-        launcher = Launcher(frame, name, title, self.execfn)
+        launcher = Launcher(self, name, title, self.execfn)
 
         self.llist.append(launcher)
         self.ldict[name.lower()] = launcher
@@ -559,6 +458,8 @@ class LauncherList(object):
 
             else:
                 pass
+
+        launcher.add_break()
 
     def addFromDefs(self, ast):
         assert ast.tag == 'launchers'
@@ -749,6 +650,7 @@ class LauncherList(object):
                     # don't know what we are looking at
                     continue
 
+        launcher.add_break()
 
     def loadLauncher(self, d):
         for d in d['launchers']:
@@ -768,51 +670,35 @@ class LauncherPage(Page.CommandPage):
         self.queueName = 'launcher'
         self.tm_queueName = 'launcher'
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        scrolled_window = Widgets.ScrollArea()
+        self.content.add_widget(scrolled_window, stretch=1)
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
-        frame.pack_start(scrolled_window, True, True, 0)
-
-        scrolled_window.show()
-
-        self.fw = Gtk.VBox()
-        scrolled_window.add_with_viewport(self.fw)
+        self.fw = Widgets.VBox()
+        scrolled_window.set_widget(self.fw)
 
         self.llist = LauncherList(self.fw, name, title,
                                   self.execute)
 
-        self.btn_cancel = Gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel = Widgets.Button("Cancel")
+        self.btn_cancel.add_callback("activated", lambda w: self.cancel())
         common.modify_bg(self.btn_cancel,
                          common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_start(self.btn_cancel, False, False, 4)
+        self.leftbtns.add_widget(self.btn_cancel)
 
-        self.btn_pause = Gtk.Button("Pause")
-        self.btn_pause.connect("clicked", self.toggle_pause)
-        self.btn_pause.show()
-        self.leftbtns.pack_start(self.btn_pause, False, False, 0)
+        self.btn_pause = Widgets.Button("Pause")
+        self.btn_pause.add_callback("activated", self.toggle_pause)
+        self.leftbtns.add_widget(self.btn_pause)
 
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = Gtk.MenuItem(label="Reset")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.reset(),
-                             "menu.Reset")
-        item.show()
+        item = menu.add_name("Reset")
+        item.add_callback("activated", lambda w: self.reset())
 
         #self.add_close(side=Page.LEFT)
         #self.add_close()
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
-
-        scrolled_window.show_all()
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
 
 
     def load(self, buf):
@@ -866,6 +752,3 @@ class LauncherCommandObject(CommandObject.CommandObject):
 
     def get_cmdstr(self):
         return self.cmdstr
-
-
-#END

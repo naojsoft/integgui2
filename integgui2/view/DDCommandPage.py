@@ -4,6 +4,8 @@
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from . import common
 from . import Page
 from . import CommandObject
@@ -17,94 +19,64 @@ class DDCommandPage(Page.CommandPage):
         self.queueName = 'default'
         self.tm_queueName = 'executer'
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        tw = Widgets.TextArea(editable=True, wrap=True)
+        # TODO
+        #tw.set_left_margin(4)
+        #tw.set_right_margin(4)
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
-
-        tw = Gtk.TextView()
-        tw.set_editable(True)
-        tw.set_wrap_mode(Gtk.WrapMode.WORD)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
-
-        frame.pack_start(scrolled_window, True, True, 0)
+        self.content.add_widget(tw, stretch=1)
 
         self.tw = tw
-        self.buf = tw.get_buffer()
+        self.buf = tw.tw.get_buffer()
 
         ## self.add_menu()
         ## self.add_close()
 
-        self.btn_exec = Gtk.Button("Exec")
-        self.btn_exec.connect("clicked", lambda w: self.execute())
+        self.btn_exec = Widgets.Button("Exec")
+        self.btn_exec.add_callback("activated", lambda w: self.execute())
         common.modify_bg(self.btn_exec,
                          common.launcher_colors['execbtn'])
-        self.btn_exec.show()
-        self.leftbtns.pack_end(self.btn_exec, False, False, 0)
+        self.leftbtns.add_widget(self.btn_exec)
 
-        self.btn_append = Gtk.Button("Append")
-        self.btn_append.connect("clicked", lambda w: self.insert())
-        self.btn_append.show()
-        self.leftbtns.pack_end(self.btn_append, False, False, 0)
+        self.btn_append = Widgets.Button("Append")
+        self.btn_append.add_callback("activated", lambda w: self.insert())
+        self.leftbtns.add_widget(self.btn_append)
 
-        self.btn_prepend = Gtk.Button("Prepend")
-        self.btn_prepend.connect("clicked", lambda w: self.insert(loc=0))
-        self.btn_prepend.show()
-        self.leftbtns.pack_end(self.btn_prepend, False, False, 0)
+        self.btn_prepend = Widgets.Button("Prepend")
+        self.btn_prepend.add_callback("clicked", lambda w: self.insert(loc=0))
+        self.leftbtns.add_widget(self.btn_prepend)
 
-        self.btn_cancel = Gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel = Widgets.Button("Cancel")
+        self.btn_cancel.add_callback("clicked", lambda w: self.cancel())
         common.modify_bg(self.btn_cancel,
-                                common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
+                         common.launcher_colors['cancelbtn'])
+        self.leftbtns.add_widget(self.btn_cancel)
 
-        self.btn_pause = Gtk.Button("Pause")
-        self.btn_pause.connect("clicked", self.toggle_pause)
-        self.btn_pause.show()
-        self.leftbtns.pack_end(self.btn_pause, False, False, 0)
+        self.btn_pause = Widgets.Button("Pause")
+        self.btn_pause.add_callback("clicked", self.toggle_pause)
+        self.leftbtns.add_widget(self.btn_pause)
 
         # Add items to the menu
         menu = self.add_pulldownmenu("Page")
 
-        item = Gtk.MenuItem(label="Clear text")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.clear_text(),
-                             "menu.Clear")
-        item.show()
+        item = menu.add_name("Clear text")
+        item.add_callback("activated", lambda w: self.clear_text())
 
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
 
         menu = self.add_pulldownmenu("Command")
 
-        item = Gtk.MenuItem(label="Exec as launcher")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.execute_as_launcher(),
-                             "menu.Execute_as_launcher")
-        item.show()
+        item = menu.add_name("Exec as launcher")
+        item.add_callback("activated", lambda w: self.execute_as_launcher())
 
         menu = self.add_pulldownmenu("Queue")
 
-        item = Gtk.MenuItem(label="Clear All")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: common.controller.clearQueue(self.queueName),
-                             "menu.Clear_All")
-        item.show()
+        item = menu.add_name("Clear All")
+        item.add_callback("activated", lambda w: common.controller.clearQueue(self.queueName))
 
-        item = Gtk.MenuItem(label="Attach to ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.attach_queue(),
-                             "menu.Attach_to")
-        item.show()
+        item = menu.add_name("Attach to ...")
+        item.add_callback("activated", lambda w: self.attach_queue())
 
     def clear_text(self):
         start, end = self.buf.get_bounds()
@@ -231,5 +203,3 @@ class DDCommandObject(CommandObject.CommandObject):
 
     def mark_status(self, txttag):
         pass
-
-#END

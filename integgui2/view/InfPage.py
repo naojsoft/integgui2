@@ -5,6 +5,8 @@ import os
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from g2base import myproc
 
 from . import common
@@ -18,15 +20,13 @@ class InfPage(CodePage.CodePage):
         super(InfPage, self).__init__(frame, name, title)
 
         # add some bottom buttons
-        self.btn_makeope = Gtk.Button("Make OPE")
-        self.btn_makeope.connect("clicked", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/app2ope.pl -'))
-        self.btn_makeope.show()
-        self.leftbtns.pack_end(self.btn_makeope, False, False, 0)
+        self.btn_makeope = Widgets.Button("Make OPE")
+        self.btn_makeope.add_callback("activated", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/app2ope.pl -'))
+        self.leftbtns.add_widget(self.btn_makeope)
 
-        self.btn_makedarks = Gtk.Button("Make Darks")
-        self.btn_makedarks.connect("clicked", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/mkDARKope.pl -'))
-        self.btn_makedarks.show()
-        self.leftbtns.pack_end(self.btn_makedarks, False, False, 0)
+        self.btn_makedarks = Widgets.Button("Make Darks")
+        self.btn_makedarks.connect("activated", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/mkDARKope.pl -'))
+        self.leftbtns.add_widget(self.btn_makedarks)
 
     def makeope(self, cmdstr):
         # get text to process
@@ -56,6 +56,3 @@ class InfPage(CodePage.CodePage):
         except Exception as e:
             return common.view.popup_error("Cannot generate ope file: %s" % (
                     str(e)))
-
-
-#END

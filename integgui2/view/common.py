@@ -320,8 +320,6 @@ button:hover { background-image: none; background-color: forestgreen; }
 """ % (color)
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(css_data.encode())
-    widget.get_style_context().add_provider(css_provider,
-                                            Gtk.STYLE_PROVIDER_PRIORITY_USER)
-
-
-#END
+    w = widget.get_widget()
+    w.get_style_context().add_provider(css_provider,
+                                       Gtk.STYLE_PROVIDER_PRIORITY_USER)

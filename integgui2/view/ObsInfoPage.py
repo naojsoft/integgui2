@@ -9,6 +9,8 @@ from gi.repository import Gdk
 from gi.repository import GObject
 import cairo
 
+from ginga.gw import Widgets
+
 from . import common
 from . import Page
 
@@ -60,39 +62,28 @@ class ObsInfoPage(Page.ButtonPage):
         self.white = (1.0, 1.0, 1.0)
         self.orange = (0.824, 0.412, 0.1176)
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        scrolled_window = Widgets.ScrollArea()
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
         # create cairo drawing area
         self.area = CairoDrawable(self.draw)
         self.maxwd = 1200
         self.maxht = 1000
 
-        scrolled_window.add_with_viewport(self.area)
-        scrolled_window.show()
-        self.area.show()
+        scrolled_window.set_widget(Widgets.wrap(self.area))
 
-        frame.pack_start(scrolled_window, True, True, 0)
+        self.content.add_widget(scrolled_window, stretch=1)
 
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = Gtk.MenuItem(label="Cancel Timer")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.cancel_timer(),
-                             "menu.Cancel_Timer")
-        item.show()
+        item = menu.add_name("Cancel Timer")
+        item.add_callback("activated", lambda w: self.cancel_timer())
 
         #self.add_close()
-        item = Gtk.MenuItem(label="Close")
+        item = menu.add_name("Close")
         # currently disabled
-        item.set_sensitive(False)
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        item.set_enabled(False)
+        item.add_callback("activated", lambda w: self.close())
 
     def _draw_blank(self, cr, width, height):
         # Fill the background with white
@@ -171,6 +162,3 @@ class ObsInfoPage(Page.ButtonPage):
             self.obsdict['TIMER'] = str(diff).rjust(5)
 
         self.redraw()
-
-
-#END

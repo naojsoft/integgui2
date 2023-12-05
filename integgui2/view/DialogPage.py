@@ -8,7 +8,9 @@ from gi.repository import Gtk
 
 from . import common
 from . import Page
+from . import Widgets as IGWidgets
 
+from ginga.gw import Widgets
 from ginga.misc import Bunch
 
 class DialogError(Exception):
@@ -20,35 +22,26 @@ class DialogPage(Page.Page):
 
         super(DialogPage, self).__init__(frame, name, title)
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
+        scrolled_window = Widgets.ScrollArea()
 
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
+        vbox = Widgets.VBox()
+        scrolled_window.set_widget(vbox)
 
-        vbox = Gtk.VBox()
-        scrolled_window.add(vbox)
-        vbox.show()
-        scrolled_window.show()
+        frame.add_widget(scrolled_window, stretch=1)
 
-        frame.pack_start(scrolled_window, True, True, 0)
+        # for the content
+        self.cvbox = Widgets.VBox()
+        vbox.add_widget(self.cvbox, stretch=1)
 
-        self.cvbox = Gtk.VBox()
-        vbox.pack_start(self.cvbox, False, True, 0)
-        self.cvbox.show()
-
-        separator = Gtk.HSeparator()
-        separator.show()
-        vbox.pack_start(separator, False, True, 0)
+        #separator = Gtk.HSeparator()
+        #vbox.pack_start(separator, False, True, 0)
 
         # bottom buttons
-        btns = Gtk.HButtonBox()
-        btns.set_layout(Gtk.ButtonBoxStyle.START)
+        btns = IGWidgets.ButtonBox()
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        vbox.pack_start(self.leftbtns, False, True, 4)
-        btns.show()
+        vbox.add_callback(self.leftbtns, stretch=0)
 
     def get_content_area(self):
         return self.cvbox
@@ -56,10 +49,9 @@ class DialogPage(Page.Page):
     def add_button(self, name, rsp, callback):
         def _callback(w):
             return callback(self, rsp)
-        btn = Gtk.Button(name)
-        btn.connect("clicked", _callback)
-        btn.show()
-        self.leftbtns.pack_start(btn, False, False, 0)
+        btn = Widgets.Button(name)
+        btn.add_callback("activated", _callback)
+        self.leftbtns.add_widget(btn)
 
     def add_buttons(self, buttonlist, callback):
         for name, rsp in buttonlist:
@@ -71,5 +63,3 @@ class DialogPage(Page.Page):
 
     def show(self):
         pass
-
-#END

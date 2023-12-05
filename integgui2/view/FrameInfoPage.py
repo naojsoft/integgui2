@@ -6,8 +6,11 @@ import os, time
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from . import LogPage
 from . import common
+from . import Widgets as IGWidgets
 
 from g2base import Bunch
 
@@ -38,28 +41,19 @@ class FrameInfoPage(LogPage.NotePage):
         self.format_str = format_str
 
         # bottom buttons
-        btns = Gtk.HButtonBox()
-        btns.set_layout(Gtk.ButtonBoxStyle.START)
-        btns.set_spacing(5)
-        self.btns = btns
+        btns = self._get_side('right')
 
-#         self.btn_load = Gtk.Button("Load")
-#         self.btn_load.connect("clicked", lambda w: self.load_frames())
-#         self.btn_load.show()
-#         btns.pack_end(self.btn_load, False, False, 4)
-
-        frame.pack_end(btns, False, False, 2)
+#         self.btn_load = Widgets.Button("Load")
+#         self.btn_load.add_callback("activated", lambda w: self.load_frames())
+#         btns.add_widget(self.btn_load)
 
 #        menu = self.add_menu()
 #        self.add_close()
 
         menu = self.add_pulldownmenu("Page")
 
-        # item = Gtk.MenuItem(label="Print")
-        # menu.append(item)
-        # item.connect_object ("activate", lambda w: self.print_journal(),
-        #                      "menu.Print")
-        # item.show()
+        # item = menu.add_name("Print")
+        # item.add_callback("activated", lambda w: self.print_journal())
 
         # For line coloring
         self.colortbl = {}
@@ -122,7 +116,7 @@ class FrameInfoPage(LogPage.NotePage):
 
     def select_frame(self, w, evt):
         with self.lock:
-            widget = self.tw
+            widget = self.tw.tw
             win = Gtk.TextWindowType.TEXT
             buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
             (startiter, coord) = widget.get_line_at_y(buf_y1)
@@ -188,5 +182,3 @@ class FrameInfoPage(LogPage.NotePage):
 
     def print_journal(self):
         pass
-
-#END

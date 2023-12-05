@@ -36,8 +36,8 @@ class DirectoryPage(LogPage.NotePage):
             self.addtag(tag, **properties)
 
         # keyboard shortcuts
-        self.tw.connect("key-press-event", self.keypress)
-        self.tw.connect("enter-notify-event", self.focus_in)
+        self.tw.tw.connect("key-press-event", self.keypress)
+        self.tw.tw.connect("enter-notify-event", self.focus_in)
 
         # add some bottom buttons
         ## self.btn_exec = Gtk.Button("Exec")

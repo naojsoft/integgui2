@@ -16,12 +16,6 @@ if __name__ == '__main__':
 
     argprs = ArgumentParser(description="The integrated GUI observation controller")
 
-    argprs.add_argument("--debug", dest="debug", default=False,
-                        action="store_true",
-                        help="Enter the pdb debugger on main()")
-##     argprs.add_argument("-c", "--channels", dest="channels", default='g2task',
-##                       metavar="LIST",
-##                       help="Subscribe to the comma-separated LIST of channels")
     argprs.add_argument("--display", dest="display", metavar="HOST:N",
                         help="Use X display on HOST:N")
     argprs.add_argument("--fitsdir", dest="fitsdir",
@@ -30,6 +24,10 @@ if __name__ == '__main__':
     argprs.add_argument("-g", "--geometry", dest="geometry",
                         metavar="GEOM", default="1860x1100+57+0",
                         help="X geometry for initial size and placement")
+    argprs.add_argument("--gen2host", dest="gen2host",
+                        metavar="HOST",
+                        default=os.environ.get('GEN2HOST', "localhost"),
+                        help="Connect to Gen2 HOST")
     argprs.add_argument("-i", "--inst", dest="instrument",
                         help="Specify instrument(s) to use for integgui")
     argprs.add_argument("-m", "--monitor", dest="monitor", default='monitor',
@@ -47,9 +45,6 @@ if __name__ == '__main__':
                         help="Start NUM threads in thread pool", metavar="NUM")
     argprs.add_argument("--port", dest="port", type=int, default=12050,
                         help="Register using PORT", metavar="PORT")
-    argprs.add_argument("--profile", dest="profile", action="store_true",
-                        default=False,
-                        help="Run the profiler on main()")
     argprs.add_argument("--session", dest="session", metavar="NAME",
                         default='main',
                         help="Configure from session NAME")

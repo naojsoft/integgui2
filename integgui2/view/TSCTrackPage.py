@@ -5,6 +5,8 @@ import os, glob
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from g2base import myproc
 
 from . import common
@@ -19,10 +21,9 @@ class TSCTrackPage(CodePage.CodePage):
         super(TSCTrackPage, self).__init__(frame, name, title)
 
         # add a bottom button
-        self.btn_copyTSC = Gtk.Button("Copy to TSC")
-        self.btn_copyTSC.connect("clicked", lambda w: self.copyTSCcb())
-        self.btn_copyTSC.show()
-        self.leftbtns.pack_end(self.btn_copyTSC, False, False, 0)
+        self.btn_copyTSC = Widgets.Button("Copy to TSC")
+        self.btn_copyTSC.add_callback("activated", lambda w: self.copyTSCcb())
+        self.leftbtns.add_widget(self.btn_copyTSC)
 
         self.tscFilePath = None
 
@@ -49,4 +50,3 @@ class TSCTrackPage(CodePage.CodePage):
         except Exception as e:
             return common.view.popup_error("Cannot copy file to TSC: %s" % (
                 str(e)))
-#END

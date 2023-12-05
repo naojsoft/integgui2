@@ -7,6 +7,8 @@ from gi.repository import Gtk
 from gi.repository import GdkPixbuf
 from gi.repository import Pango
 
+from ginga.gw import Widgets
+
 import yaml
 
 from . import common
@@ -34,28 +36,21 @@ class HandsetPage(Page.CommandPage):
         self.tm_queueName = 'launcher'
         self.paused = False
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
-
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
+        scrolled_window = Widgets.ScrollArea()
 
         lw = Gtk.Layout()
         lw.set_size(420, 340)
-        scrolled_window.add(lw)
-        lw.show()
-        scrolled_window.show()
+        scrolled_window.set_widget(Widgets.wrap(lw))
 
-        frame.pack_start(scrolled_window, True, True, 0)
+        self.content.add_widget(scrolled_window, stretch=1)
 
         self.lw = lw
 
-        self.btn_cancel = Gtk.Button("Cancel")
-        self.btn_cancel.connect("clicked", lambda w: self.cancel())
+        self.btn_cancel = Widgets.Button("Cancel")
+        self.btn_cancel.add_callback("activated", lambda w: self.cancel())
         common.modify_bg(self.btn_cancel,
-                                common.launcher_colors['cancelbtn'])
-        self.btn_cancel.show()
-        self.leftbtns.pack_end(self.btn_cancel, False, False, 0)
+                         common.launcher_colors['cancelbtn'])
+        self.leftbtns.add_widget(self.btn_cancel)
 
         ## menu = self.add_menu()
         ## self.add_close()
@@ -63,19 +58,13 @@ class HandsetPage(Page.CommandPage):
         menu = self.add_pulldownmenu("Page")
 
         # Add items to the menu
-        item = Gtk.MenuItem(label="Reset")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.reset(),
-                             "menu.Reset")
-        item.show()
+        item = menu.add_name("Reset")
+        item.add_callback("activated", lambda w: self.reset())
 
         #self.add_close(side=Page.LEFT)
         #self.add_close()
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
 
         self.build_handset()
 
@@ -198,7 +187,7 @@ class HandsetPage(Page.CommandPage):
                      'right1', 'right2', 'right3', 'down1', 'down2',
                      'down3', 'move'):
             btn = self.widgets['buttons'][name]
-            common.modify_bg(btn,
+            common.modify_bg(Widgets.wrap(btn),
                              common.launcher_colors['normal'])
 
     def addModes(self, modes):
@@ -421,7 +410,7 @@ class HandsetCommandObject(CommandObject.CommandObject):
         if state == 'queued':
             state = 'normal'
 
-        common.modify_bg(self.widget,
+        common.modify_bg(Widgets.wrap(self.widget),
                          common.launcher_colors[state])
 
     def mark_status(self, txttag):

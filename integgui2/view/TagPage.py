@@ -4,6 +4,8 @@
 
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from . import common
 from . import LogPage
 
@@ -12,9 +14,9 @@ class TagPage(LogPage.NotePage):
     def __init__(self, frame, name, title):
         super(TagPage, self).__init__(frame, name, title)
 
-        self.tw.connect("button-press-event", self.jump_tag)
+        self.tw.tw.connect("button-press-event", self.jump_tag)
         # currently disable close button
-        self.menu_close.set_sensitive(False)
+        self.menu_close.set_enabled(False)
 
         self.tagidx = {}
         self.opepage = None
@@ -72,5 +74,3 @@ class TagPage(LogPage.NotePage):
 
         self.opepage.scroll_to_lineno(lineno)
         return True
-
-#END

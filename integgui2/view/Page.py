@@ -4,22 +4,22 @@
 import os
 import threading
 
-from gi.repository import Gtk
-from gi.repository import Gdk
+from ginga.misc import Bunch, Callback
+from ginga.gw import Widgets
 
-from ginga.misc import Bunch
 from . import common
+from . import Widgets as IGWidgets
 
 # constants
 LEFT  = 'left'
 RIGHT = 'right'
 
 
-class Page(object):
+class Page(Callback.Callbacks):
 
     def __init__(self, frame, name, title):
-
-        #super(Page, self).__init__()
+        Callback.Callbacks.__init__(self)
+        #super().__init__()
 
         self.frame = frame
         self.name = name
@@ -30,11 +30,10 @@ class Page(object):
         # every page has a lock
         self.lock = threading.RLock()
 
-        self.hooks = Bunch.Bunch(close=[])
+        self.enable_callback('close')
 
     def close(self):
-        for bnch in self.hooks.close:
-            bnch.cbfn(*bnch.args, **bnch.kwdargs)
+        self.make_callbacks('close')
 
         # parent attribute is assigned by parent
         self.parent.delpage(self.name)
@@ -45,15 +44,16 @@ class Page(object):
         # tablbl attribute is added by parent workspace
         # NOTE: this doesn't really change the name of the page, as known
         # by the parent, just the appearance of the tab
-        self.tablbl.set_label(name)
+        #self.widget.set_title(name)
+        pass
 
     def add_hook(self, name, cbfn, args=None, kwdargs=None):
+        # for backward compatibility with "hooks" system
         if args is None:
             args = []
         if kwdargs is None:
             kwdargs = {}
-        self.hooks[name].append(Bunch.Bunch(cbfn=cbfn, args=args,
-                                            kwdargs=kwdargs))
+        self.add_callback(name, cbfn, *args, **kwdargs)
 
 
 class ButtonPage(Page):
@@ -64,27 +64,31 @@ class ButtonPage(Page):
 
         self.add_menubar()
 
-        # bottom buttons
-        self.btnframe = Gtk.HBox()
+        # content area
+        self.content = Widgets.VBox()
+        self.content.set_border_width(0)
+        self.content.set_spacing(0)
+        frame.add_widget(self.content, stretch=1)
 
-        btns = Gtk.HButtonBox()
-        btns.set_layout(Gtk.ButtonBoxStyle.START)
+        # bottom buttons
+        self.btnframe = Widgets.HBox()
+
+        btns = IGWidgets.ButtonBox()
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        self.btnframe.pack_start(self.leftbtns, False, False, 4)
-        btns.show()
+        self.btnframe.add_widget(self.leftbtns, stretch=0)
 
-        btns = Gtk.HButtonBox()
-        btns.set_layout(Gtk.ButtonBoxStyle.START)
+        # stretcher
+        self.btnframe.add_widget(Widgets.Label(''), stretch=1)
+
+        btns = IGWidgets.ButtonBox()
         btns.set_spacing(5)
         self.rightbtns = btns
 
-        self.btnframe.pack_end(self.rightbtns, False, False, 4)
-        btns.show()
+        self.btnframe.add_widget(self.rightbtns, stretch=0)
 
-        frame.pack_end(self.btnframe, False, True, 2)
-        self.btnframe.show()
+        frame.add_widget(self.btnframe, stretch=0)
 
     def _get_side(self, side):
         if side == LEFT:
@@ -94,17 +98,15 @@ class ButtonPage(Page):
         return None
 
     def add_close(self, side=RIGHT):
-        self.btn_close = Gtk.Button("Close")
-        self.btn_close.connect("clicked", lambda w: self.close())
-        self.btn_close.show()
+        self.btn_close = Widgets.Button("Close")
+        self.btn_close.add_callback("activated", lambda w: self.close())
         w = self._get_side(side)
-        w.pack_end(self.btn_close, False, False, 4)
+        w.add_widget(self.btn_close, stretch=0)
 
     def add_menubar(self):
-        self.menubar = Gtk.MenuBar()
+        self.menubar = Widgets.Menubar()
         self._menus = {}
-        self.frame.pack_start(self.menubar, False, True, 0)
-        self.menubar.show()
+        self.frame.add_widget(self.menubar, stretch=0)
         return self.menubar
 
     def add_pulldownmenu(self, name):
@@ -117,28 +119,20 @@ class ButtonPage(Page):
         except KeyError:
             pass
         # No such menu, so go ahead and create it
-        menu = Gtk.Menu()
+        menu = self.menubar.add_name(name)
         self._menus[name] = menu
-        menu.show()
-        item = Gtk.MenuItem(label=name)
-        self.menubar.append(item)
-        item.show()
-        item.set_submenu(menu)
         return menu
 
     def add_menu(self, side=RIGHT):
-        self.btn_menu = Gtk.Button("Menu")
-        self.menu = Gtk.Menu()
-        self.btn_menu.connect_object("event", self.popup_menu, self.menu)
-        self.btn_menu.show()
+        self.btn_menu = Widgets.Button("Menu")
+        self.menu = Widgets.Menu()
+        self.btn_menu.add_callback("activated", self.popup_menu)
         w = self._get_side(side)
-        w.pack_end(self.btn_menu, False, False, 4)
+        w.add_widget(self.btn_menu, stretch=0)
 
-    def popup_menu(self, w, event):
-        if event.type == Gdk.EventType.BUTTON_PRESS:
-            self.menu.popup(None, None, None, event.button, event.time)
-            return True
-        return False
+    def popup_menu(self, w):
+        self.menu.popup(widget=self.btn_menu)
+        return True
 
 
 class CommandPage(ButtonPage):
@@ -159,7 +153,7 @@ class CommandPage(ButtonPage):
         self.reset_pause()
 
     def pause(self):
-        self.btn_pause.set_label("Resume")
+        self.btn_pause.set_text("Resume")
         self.paused = True
         #controller = self.parent.get_controller()
         controller = common.controller
@@ -182,7 +176,7 @@ class CommandPage(ButtonPage):
         return True
 
     def reset_pause(self):
-        self.btn_pause.set_label("Pause")
+        self.btn_pause.set_text("Pause")
         self.paused = False
 
     def reset(self):
@@ -280,7 +274,7 @@ class TextPage(Page):
         self.buf.select_range(start, end)
 
     def select_clear(self):
-        common.clear_selection(self.tw)
+        common.clear_selection(self.tw.tw)
 
     def get_end_lineno(self):
         loc = self.buf.get_end_iter()
@@ -290,10 +284,10 @@ class TextPage(Page):
         loc = self.buf.get_start_iter()
         loc.set_line(lineno)
         self.buf.move_mark(self.mark, loc)
-        #res = self.tw.scroll_to_iter(loc, 0.5, False, 0.0, 0.0)
-        res = self.tw.scroll_to_mark(self.mark, 0.2, True, 0.0, 0.0)
+        #res = self.tw.tw.scroll_to_iter(loc, 0.5, False, 0.0, 0.0)
+        res = self.tw.tw.scroll_to_mark(self.mark, 0.2, True, 0.0, 0.0)
         if not res:
-            res = self.tw.scroll_mark_onscreen(self.mark)
+            res = self.tw.tw.scroll_mark_onscreen(self.mark)
         #print("line->%d res=%s" % (lineno, res))
 
     def scroll_to_end(self):
@@ -302,7 +296,7 @@ class TextPage(Page):
 
     def focus_in(self, *args):
         #print(args)
-        self.tw.grab_focus()
+        self.tw.tw.grab_focus()
         return True
 
 #END

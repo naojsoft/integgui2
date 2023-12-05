@@ -7,6 +7,7 @@ import threading
 from gi.repository import Gtk
 
 from ginga.misc import Bunch
+from ginga.gw import Widgets
 
 from . import common
 from . import Workspace
@@ -43,17 +44,17 @@ class Desktop(object):
             #self.w[name].connect('notify', self._get_resize_fn(bnch))
 
         self.ws_fr = {
-            'll': Bunch.Bunch(frame=ll.get_widget(),
+            'll': Bunch.Bunch(frame=ll,
                               pane=self.pane.llh, idx=0),
-            'ul': Bunch.Bunch(frame=ul.get_widget(),
+            'ul': Bunch.Bunch(frame=ul,
                               pane=self.pane.ulh, idx=0),
-            'lm': Bunch.Bunch(frame=lm.get_widget(),
+            'lm': Bunch.Bunch(frame=lm,
                               pane=self.pane.llh, idx=1),
-            #'um': Bunch.Bunch(frame=um.get_widget(),
+            #'um': Bunch.Bunch(frame=um,
             #                  pane=self.pane.ulh, idx=1),
-            'lr': Bunch.Bunch(frame=lr.get_widget(),
+            'lr': Bunch.Bunch(frame=lr,
                               pane=self.pane.llh, idx=2),
-            'ur': Bunch.Bunch(frame=ur.get_widget(),
+            'ur': Bunch.Bunch(frame=ur,
                               pane=self.pane.ulh, idx=1),
             }
 
@@ -117,7 +118,7 @@ class Desktop(object):
             ws.logger = self.logger
             ws.parent = self
 
-            frame.show_all()
+            frame.show()
 
             self.count += 1
             self.ws[name] = Bunch.Bunch(ws=ws, frame=frame, loc=loc)
@@ -127,15 +128,15 @@ class Desktop(object):
         with self.lock:
             if name in self.ws:
                 raise Exception("A workspace with name '%s' already exists!" % name)
-            root = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+            root = Widgets.TopLevel()
             root.set_title(title)
             # TODO: this needs to be more sophisticated
-            root.connect("delete_event", lambda w, e: w.hide())
+            root.add_callback("close", lambda w: w.hide())
             root.set_border_width(2)
 
             # create main frame
-            frame = Gtk.VBox(spacing=2)
-            root.add(frame)
+            frame = Widgets.VBox(spacing=2)
+            root.set_widget(frame)
 
             ws = Workspace.Workspace(frame, name, title)
             # Some attributes we force on our children
@@ -143,7 +144,7 @@ class Desktop(object):
             ws.parent = self
 
             self.detached.append(root)
-            root.show_all()
+            root.show()
             if x:
                 root.move(x, y)
 

@@ -9,6 +9,8 @@ import threading
 # Special library imports
 from gi.repository import Gtk
 
+from ginga.gw import Widgets
+
 from g2base.remoteObjects import remoteObjects as ro
 from ginga.misc import Bunch
 
@@ -30,26 +32,19 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         self.track = {}
 
         # Don't allow DND to this workspace
-        self.nb.set_group_name('2')
-        self.nb.set_tab_pos(Gtk.PositionType.RIGHT)
+        self.nb.get_widget().set_group_name('2')
+        self.nb.set_tab_position('right')
 
         ## menu = self.add_pulldownmenu("Page")
 
-        ## item = Gtk.MenuItem(label="Close")
+        ## item = menu.add_name("Close")
         ## # currently disabled
-        ## item.set_sensitive(False)
-        ## menu.append(item)
-        ## item.connect_object ("activate", lambda w: self.close(),
-        ##                      "menu.Close")
-        ## item.show()
+        ## item.set_enabled(False)
+        ## item.add_callback("activated", lambda w: self.close())
 
         # Options menu
         ## menu = self.add_pulldownmenu("Option")
-        menu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Option")
-        self.wsmenu.append(item)
-        item.show()
-        item.set_submenu(menu)
+        menu = self.wsmenu.add_menu("Option")
 
         # Option variables
         self.save_decode_result = False
@@ -57,35 +52,24 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         self.track_elapsed = False
         self.track_subcommands = True
 
-        w = Gtk.CheckMenuItem("Track Subcommands")
-        w.set_active(self.track_subcommands)
-        menu.append(w)
-        w.show()
-        w.connect("activate", lambda w: self.toggle_var(w, 'track_subcommands'))
+        w = menu.add_name("Track Subcommands", checkable=True)
+        w.set_state(self.track_subcommands)
+        w.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'track_subcommands'))
 
-        w = Gtk.CheckMenuItem("Save Decode Result")
-        w.set_active(self.save_decode_result)
-        menu.append(w)
-        w.show()
-        w.connect("activate", lambda w: self.toggle_var(w, 'save_decode_result'))
-        w = Gtk.CheckMenuItem("Show Times")
-        w.set_active(self.show_times)
-        menu.append(w)
-        w.show()
-        w.connect("activate", lambda w: self.toggle_var(w, 'show_times'))
+        w = menu.add_name("Save Decode Result", checkable=True)
+        w.set_state(self.save_decode_result)
+        w.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'save_decode_result'))
+        w = menu.add_name("Show Times", checkable=True)
+        w.set_state(self.show_times)
+        w.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'show_times'))
 
-        w = Gtk.CheckMenuItem("Track Elapsed")
-        w.set_active(self.track_elapsed)
-        menu.append(w)
-        w.show()
-        w.connect("activate", lambda w: self.toggle_var(w, 'track_elapsed'))
+        w = menu.add_name("Track Elapsed", checkable=True)
+        w.set_state(self.track_elapsed)
+        w.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'track_elapsed'))
 
 
-    def toggle_var(self, widget, key):
-        if widget.get_active():
-            self.__dict__[key] = True
-        else:
-            self.__dict__[key] = False
+    def toggle_var(self, tf, key):
+        self.__dict__[key] = tf
 
 
     def insert_ast(self, tw, text):
@@ -167,8 +151,8 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
             self.pagelist.append(name)
 
-            self.nb.set_tab_reorderable(page.frame, False)
-            self.nb.set_tab_detachable(page.frame, False)
+            #self.nb.set_tab_reorderable(page.frame, False)
+            #self.nb.set_tab_detachable(page.frame, False)
 
             self.insert_ast(page.tw, text)
             page.tagtbl = page.buf.get_tag_table()
@@ -475,7 +459,3 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
             if bnch.info.page:
                 self.update_page(bnch)
-
-
-
-#END

@@ -12,6 +12,8 @@ from gi.repository import Gtk
 from gi.repository import GtkSource
 from gi.repository import Pango
 
+from ginga.gw import Widgets
+
 warning_close = """
 WARNING: Buffer is modified
 
@@ -39,16 +41,13 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                      acceptchars])).encode('iso-8859-1')
         self.transtbl = bytes.maketrans(b'\r', b' ')
 
-        self.border = Gtk.Frame()
-        self.border.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
-        self.border.set_label_align(0.1, 0.5)
+        self.border = Widgets.Frame(title='')
+        w = self.border.get_widget()
+        w.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
+        w.set_label_align(0.1, 0.5)
 
         # Create the widgets for the OPE file text
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_border_width(2)
-
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC,
-                                   Gtk.PolicyType.AUTOMATIC)
+        scrolled_window = Widgets.ScrollArea()
 
         # create buffer
         lm = GtkSource.LanguageManager()
@@ -56,9 +55,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.buf_lm = lm
 
         tw = GtkSource.View.new_with_buffer(self.buf)
-        scrolled_window.add(tw)
-        tw.show()
-        scrolled_window.show()
+        w = Widgets.wrap(tw)
+        scrolled_window.set_widget(w)
 
         tw.set_editable(True)
         tw.set_wrap_mode(Gtk.WrapMode.NONE)
@@ -80,57 +78,35 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.sr = dialogs.SearchReplace("Find and/or Replace")
         self.buf.connect('mark-set', self.place_cursor_cb)
 
-        self.border.add(scrolled_window)
-        self.border.show()
+        self.border.set_widget(scrolled_window)
 
-        frame.pack_start(self.border, True, True, 0)
+        self.content.add_widget(self.border, stretch=1)
 
         menu = self.add_pulldownmenu("Page")
 
-        item = Gtk.MenuItem(label="Reload")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.reload(),
-                             "menu.Reload")
-        item.show()
+        item = menu.add_name("Reload")
+        item.add_callback("activated", lambda w: self.reload())
 
-        item = Gtk.MenuItem(label="Save")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save(),
-                             "menu.Save")
-        item.show()
+        item = menu.add_name("Save")
+        item.add_callback("activated", lambda w: self.save())
 
-        item = Gtk.MenuItem(label="Save as ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_as(),
-                             "menu.Save_As")
-        item.show()
+        item = menu.add_name("Save as ...")
+        item.add_callback("activated", lambda w: self.save_as())
 
-        item = Gtk.MenuItem(label="Save selection as ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.save_selection_as(),
-                             "menu.Save_As")
-        item.show()
+        item = menu.add_name("Save selection as ...")
+        item.add_callback("activated", lambda w: self.save_selection_as())
 
         #self.add_close()
-        item = Gtk.MenuItem(label="Close")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.close(),
-                             "menu.Close")
-        item.show()
+        item = menu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
 
         menu = self.add_pulldownmenu("Buffer")
 
-        item = Gtk.MenuItem(label="Find/Replace ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.find(),
-                             "menu.Find")
-        item.show()
+        item = menu.add_name("Find/Replace ...")
+        item.add_callback("activated", lambda w: self.find())
 
-        item = Gtk.MenuItem(label="Print ...")
-        menu.append(item)
-        item.connect_object ("activate", lambda w: self.print_cb(),
-                             "menu.Print")
-        item.show()
+        item = menu.add_name("Print ...")
+        item.add_callback("activated", lambda w: self.print_cb())
 
 
     def loadbuf(self, buftxt):
@@ -188,9 +164,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
     def load(self, filepath, buf):
         self.loadbuf(buf)
         self.filepath = filepath
-        #lw = self.txt.component('label')
-        #lw.config(text=filepath)
-        self.border.set_label(filepath)
+        self.border.set_text(filepath)
 
         manager = self.buf_lm
         language = manager.guess_language(filepath)
@@ -282,8 +256,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
     def line_numbering(self, onoff):
         self.tw.set_show_line_numbers(onoff)
 
-    def toggle_line_numbering(self, widget):
-        self.line_numbering(widget.get_active())
+    def toggle_line_numbering(self, widget, tf):
+        self.line_numbering(tf)
         return True
 
     def line_wrapping(self, kind):
@@ -293,8 +267,8 @@ class CodePage(Page.ButtonPage, Page.TextPage):
               'full': Gtk.WrapMode.WORD_CHAR }
         self.tw.set_wrap_mode(d[kind])
 
-    def toggle_line_wrapping(self, widget):
-        if widget.get_active():
+    def toggle_line_wrapping(self, widget, tf):
+        if tf:
             self.line_wrapping('full')
         else:
             self.line_wrapping('none')
@@ -432,6 +406,3 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         if mark == buf.get_insert():
             self.buf.move_mark(self.searchmark, loc)
         return False
-
-
-#END

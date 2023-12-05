@@ -62,7 +62,7 @@ def main(options, args):
 
     # Initialize remote objects subsystem.
     try:
-        ro.init()
+        ro.init([options.gen2host])
 
     except ro.remoteObjectError as e:
         logger.error("Error initializing remote objects subsystem: %s" % \
@@ -116,7 +116,7 @@ def main(options, args):
         gui.add_plugin(spec)
 
     # start any plugins that have start=True
-    gui.update_pending()
+    #gui.update_pending()
 
     # Create network callable object for notifications
     notify_obj = fits.HSC_IntegGUINotify(gui, options.fitsdir)

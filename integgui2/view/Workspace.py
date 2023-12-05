@@ -8,6 +8,8 @@ import traceback
 from gi.repository import Gtk
 from gi.repository import Gdk
 
+from ginga.gw import Widgets
+
 from . import common
 
 # module-level var used for drag-and-drop of pages
@@ -33,28 +35,22 @@ class Workspace(object):
         # Mutex
         self.lock = threading.RLock()
 
-        nb = Gtk.Notebook()
-        nb.set_tab_pos(Gtk.PositionType.TOP)
-        nb.set_scrollable(True)
-        nb.set_show_tabs(True)
-        nb.set_show_border(True)
-        # Allows drag-and-drop between notebooks
-        nb.set_group_name('1')
-        nb.connect("page-added", self._page_added)
-        nb.connect("page-removed", self._page_removed)
-        nb.connect("switch-page", self._page_switched)
+        nb = Widgets.TabWidget(tabpos='top', reorderable=True,
+                               # Allows drag-and-drop between notebooks
+                               detachable=False, group=1)
+        nb.add_callback("page-move", self._page_added)
+        nb.add_callback("page-detach", self._page_removed)
+        nb.add_callback("page-switch", self._page_switched)
         # Allows dragging pages to create top-level detached workspaces
         #nb.connect("create-window", self._detach_page)
 
         # workspace context menu
         #nb.popup_enable()
         self.wsmenu = self.build_menu()
-        nb.connect("event", self.popup_menu, self.wsmenu)
-
-        nb.show()
+        #nb.connect("event", self.popup_menu, self.wsmenu)
 
         self.nb = nb
-        frame.pack_start(self.nb, True, True, 2)
+        frame.add_widget(self.nb, stretch=1)
 
 
     def popup_menu(self, w, event, menu):
@@ -65,61 +61,39 @@ class Workspace(object):
         return False
 
     def build_menu(self):
-        wsmenu = Gtk.Menu()
+        wsmenu = Widgets.Menu()
 
-        tpmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Tab position")
-        wsmenu.append(item)
-        item.show()
-        item.set_submenu(tpmenu)
+        tpmenu = wsmenu.add_menu("Tab position")
 
-        item = Gtk.MenuItem(label="Top")
-        tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.TOP),
-                            "pos.Top")
-        item.show()
+        item = tpmenu.add_name("Top")
+        item.add_callback("activated", lambda w: self.set_tab_pos('top'))
 
-        item = Gtk.MenuItem(label="Left")
-        tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.LEFT),
-                            "pos.Left")
-        item.show()
+        item = tpmenu.add_name("Left")
+        item.add_callback("activated", lambda w: self.set_tab_pos('left'))
 
-        item = Gtk.MenuItem(label="Bottom")
-        tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.BOTTOM),
-                            "pos.Bottom")
-        item.show()
+        item = tpmenu.add_name("Bottom")
+        item.add_callback("activated", lambda w: self.set_tab_pos('bottom'))
 
-        item = Gtk.MenuItem(label="Right")
-        tpmenu.append(item)
-        item.connect_object("activate", lambda w: self.set_tab_pos(Gtk.PositionType.RIGHT),
-                            "pos.Right")
-        item.show()
+        item = tpmenu.add_name("Right")
+        item.add_callback("activated", lambda w: self.set_tab_pos('right'))
 
-        item = Gtk.MenuItem(label="Close")
-        wsmenu.append(item)
-        item.connect_object("activate", lambda w: self.close(),
-                            "close")
+        item = wsmenu.add_name("Close")
+        item.add_callback("activated", lambda w: self.close())
         # currently disabled
-        item.set_sensitive(False)
-        item.show()
+        item.set_enabled(False)
         self.menu_close = item
 
         return wsmenu
 
 
     def build_tabmenu(self):
-        tabmenu = Gtk.Menu()
-        item = Gtk.MenuItem(label="Nop")
-        tabmenu.append(item)
-        item.show()
-
+        tabmenu = Widgets.Menu()
+        item = tabmenu.add_name("Nop")
         return tabmenu
 
 
     def set_tab_pos(self, pos):
-        self.nb.set_tab_pos(pos)
+        self.nb.set_tab_position(pos)
 
     def makename(self, name):
         with self.lock:
@@ -144,28 +118,21 @@ class Workspace(object):
                     title = newname
                 name = newname
 
-            # Create a label for the notebook tab
-            label = Gtk.Label(title)
-            label.show()
-
             # workspace context menu
             # NOTE: currently seems to be masked by the workspace
             # context menu--never pops up
-            tabmenu = self.build_tabmenu()
-            label.connect("event", self.popup_menu, tabmenu)
+            #tabmenu = self.build_tabmenu()
+            #label.connect("event", self.popup_menu, tabmenu)
 
             # Add the page to the notebook
-            self.nb.append_page(child, label)
-
-            self.nb.set_tab_reorderable(child, True)
-            self.nb.set_tab_detachable(child, True)
+            self.nb.add_widget(child, title=title)
 
             # Some attributes we force on our children
             pageobj.logger = self.logger
             # ?? cyclical reference causes problems for gc?
             pageobj.parent = self
-            pageobj.tablbl = label
-            pageobj.tabmenu = tabmenu
+            #pageobj.tabmenu = tabmenu
+            pageobj.widget = child
 
             # store away our handles to the page
             self.pages[name] = pageobj
@@ -188,7 +155,7 @@ class Workspace(object):
                 name = newname
 
             # Make a frame for the notebook tab content
-            child = Gtk.VBox()
+            child = Widgets.VBox()
 
             # Create the new object in the frame
             try:
@@ -218,7 +185,8 @@ class Workspace(object):
     def delpage(self, name):
         with self.lock:
             i = self.getIndexByName(name)
-            self.nb.remove_page(i)
+            child = self.nb.index_to_widget(i)
+            self.nb.remove(child)
 
             try:
                 del self.pages[name]
@@ -237,7 +205,7 @@ class Workspace(object):
 
     def select(self, name):
         i = self.getIndexByName(name)
-        self.nb.set_current_page(i)
+        self.nb.set_index(i)
 
     def getNames(self):
         with self.lock:
@@ -249,7 +217,7 @@ class Workspace(object):
 
     def getCurrentPage(self):
         with self.lock:
-            i = self.nb.get_current_page()
+            i = self.nb.get_index()
             for page in self.getPages():
                 if self.nb.page_num(page.frame) == i:
                     return page
@@ -260,7 +228,7 @@ class Workspace(object):
     def getIndexByName(self, name):
         with self.lock:
             page = self.getPage(name)
-            return self.nb.page_num(page.frame)
+            return self.nb.index_of(page.frame)
 
     def showTransient(self, name):
         with self.lock:
@@ -315,17 +283,19 @@ class Workspace(object):
         workspace._addpage(page.name, page.title, page.frame, page)
 
 
-    def _page_switched(self, nb, child, page_num):
+    def _page_switched(self, nb, child):
         with self.lock:
+            page_num = nb.index_of(child)
             for page in self.getPages():
-                if self.nb.page_num(page.frame) == page_num:
+                if self.nb.index_of(page.frame) == page_num:
                     if not page.name in self.transients:
                         self.lastPage = page
                     break
 
 
     # DRAG AND DROP TABS
-    def _page_added(self, nb, child, page_num):
+    def _page_added(self, nb, src_nb, child):
+        page_num = self.nb.index_of(child)
         self.logger.debug("page added %d" % page_num)
         with self.lock:
             if child not in self.pages_w:
@@ -337,8 +307,8 @@ class Workspace(object):
 
             return True
 
-    def _page_removed(self, nb, child, page_num):
-        self.logger.debug("page removed %d" % page_num)
+    def _page_removed(self, nb, child):
+        self.logger.debug("page removed %s" % str(child))
         with self.lock:
             try:
                 pageobj = child.ig_page
@@ -365,7 +335,3 @@ class Workspace(object):
         self.logger.info("detaching page %s" % (page.name))
         ws = self.parent.add_detached_noname(x=x, y=y)
         return ws.widget
-
-
-
-#END
