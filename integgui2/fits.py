@@ -230,7 +230,7 @@ class HSC_IntegGUINotify(IntegGUINotify):
 
         # Total number of frames in exposure
         self.total_count = dict(SUPA=10, HSCA=112,
-                                PFSA=4, PFSB=1, PFSC=1, PFSD=1, PFSF=1,
+                                PFSA=8, PFSB=3, PFSC=1, PFSD=1, PFSF=1,
                                 SWSB=2, SWSR=2)
 
 
