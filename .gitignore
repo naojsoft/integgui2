@@ -18,4 +18,4 @@ __pycache__
 # pip "in-place" build files and version.py file
 build
 *.egg-info
-integgui2/version.py
+version.py
