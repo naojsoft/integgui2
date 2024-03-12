@@ -372,6 +372,14 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.logger.debug("Parsing OPE file.")
             res = ope.check_ope(buf, include_dirs=include_dirs)
 
+            if len(res.prm_errmsg_list) > 0:
+                errmsg = '\n'.join(res.prm_errmsg_list)
+                common.view.statusMsg(errmsg)
+                if reporterror:
+                    common.view.popup_error(errmsg)
+                for errmsg in res.prm_errmsg_list:
+                    self.logger.error(errmsg)
+
             # store away our variable dictionary for future reference
             self.varDict = res.vardict
 
