@@ -169,6 +169,9 @@ class IntegGUINotify(object):
         frame_ids = list(vals.keys())
         frame_ids.sort()
         for frameid in frame_ids:
+            info = vals[frameid]
+            # 'propid' should be set in info['frameSvc']['propid']
+
             # check if this is a frame from an instrument that is
             # allocated to our session
             if not common.controller.is_frame_from_our_session(frameid):
@@ -230,7 +233,8 @@ class HSC_IntegGUINotify(IntegGUINotify):
 
         # Total number of frames in exposure
         self.total_count = dict(SUPA=10, HSCA=112,
-                                PFSA=8, PFSB=3, PFSC=1, PFSD=1, PFSF=1,
+                                PFSA=8, PFSB=4, PFSC=1, PFSD=1, PFSF=1,
+                                #PFSA=7, PFSB=2, PFSC=1, PFSD=1, PFSF=1,
                                 SWSB=2, SWSR=2)
 
 

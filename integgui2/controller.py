@@ -586,8 +586,9 @@ class IntegController(object):
             (frameid, subsys) = match.groups()
 
             # check if this is a frame from an instrument that is
-            # allocated
+            # allocated; if not, don't notify
             if not self.is_frame_from_our_session(frameid):
+                self.logger.info(f"frame {frameid} instrument not in the allocated session--skipping")
                 return
 
             try:
