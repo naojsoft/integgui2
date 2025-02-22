@@ -216,6 +216,9 @@ def main(options, args):
         mymon.start_server(wait=True, port=options.monport)
         server_started = True
 
+        # for sensitive operations that must be done serially
+        controller.start_serial_processing_queue()
+
         # subscribe our monitor to the central monitor hub
         if sub_channels:
             mymon.subscribe_remote(options.monitor, sub_channels, {})
