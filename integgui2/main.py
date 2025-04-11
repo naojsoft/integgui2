@@ -189,6 +189,7 @@ def main(options, args):
     svc = ro.remoteObjectServer(svcname=options.svcname,
                                 obj=controller, logger=logger,
                                 method_list=['get_ope_paths',
+                                             'get_target_info',
                                              'obs_play_sound_file',
                                              'obs_timer',
                                              'obs_confirmation',
@@ -215,9 +216,6 @@ def main(options, args):
         # publishing
         mymon.start_server(wait=True, port=options.monport)
         server_started = True
-
-        # for sensitive operations that must be done serially
-        controller.start_serial_processing_queue()
 
         # subscribe our monitor to the central monitor hub
         if sub_channels:

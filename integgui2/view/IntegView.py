@@ -1102,6 +1102,15 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def get_ope_paths(self):
         return self.get_file_paths_desktop(self.ds, regex='^.*\.(ope|OPE)$')
 
+    def get_target_info(self):
+        res_lst = []
+        for ws in self.ds.getWorkspaces():
+            for page in ws.getPages():
+                if isinstance(page, OpePage.OpePage):
+                    tgt_info = page.get_target_info()
+                    res_lst.append(tgt_info)
+        return res_lst
+
     def create_dialog(self, name, title):
         try:
             try:

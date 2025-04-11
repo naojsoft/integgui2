@@ -6,7 +6,6 @@ import re
 import os, time
 import threading
 import string
-from queue import Queue, Empty
 
 from integgui2.view import common
 from integgui2 import CommandQueue
@@ -93,7 +92,6 @@ class IntegController(object):
         self.options = options
         self.logtype = logtype
         self.histidx = 0
-        self.serial_queue = Queue()
 
         # TODO: improve this
         self.valid_monlogs = valid_monlogs
@@ -582,12 +580,6 @@ class IntegController(object):
                 str(payload), str(e)))
             return
 
-        match = regex_frame2.match(bnch.path)
-        if match:
-            # allocation of frames
-            self.serial_queue.put((self.fits.frameSvc_hdlr, (bnch.value,)))
-            return
-
         # Find out the source of this information by examining the path
         match = regex_frame.match(bnch.path)
         if match:
@@ -613,13 +605,25 @@ class IntegController(object):
                 # the handler
                 vals = self.monitor.getitems_suffixOnly(bnch.path)
 
-                self.serial_queue.put((method, (frameid, vals)))
+                method(frameid, vals)
                 return
 
             except Exception as e:
                 self.logger.error("Error processing '%s': %s" % (
                     str(bnch.path), str(e)))
             return
+
+        match = regex_frame2.match(bnch.path)
+        if match:
+            # frameSvc only
+            try:
+                #self.logger.debug("calling fits.frameSvc_hdlr with {}".format(bnch.value))
+                self.fits.frameSvc_hdlr(bnch.value)
+                return
+
+            except Exception as e:
+                self.logger.error("Error processing '%s': %s" % (
+                    str(bnch.path), str(e)))
 
         # Skip things that don't match the expected paths
         self.logger.error("No match for path '%s'" % bnch.path)
@@ -713,7 +717,6 @@ class IntegController(object):
         self.logger.info("-- Break --")
         soundfile = common.sound.break_executer
         self.playSound(soundfile, priority=22)
-
 
     def reset_executer(self):
         self.logger.info("Releasing all waiters!")
@@ -1027,6 +1030,15 @@ class IntegController(object):
         # dummy argument for Tajitsu-san's C code
         return self.gui.get_ope_paths()
 
+    def get_target_info(self):
+        # used by SPOT to sync target info
+        tgt_results = self.gui.get_target_info()
+        tgt_lst = []
+        for dct in tgt_results:
+            for tgt_bnch in dct['tgt_list_info']:
+                tgt_lst.append(dict(tgt_bnch))
+        return tgt_lst
+
     ## def load_page(self, filepath):
     ##     self.gui.load_file(filepath)
     ##     return 0
@@ -1076,38 +1088,5 @@ class IntegController(object):
             return False
 
         return True
-
-    def process_serial_queue(self):
-
-        self.logger.info("Starting serial processing queue ...")
-        while not self.ev_quit.is_set():
-            try:
-                packet = self.serial_queue.get(block=True, timeout=1.0)
-
-            except Empty:
-                # no more items to process
-                continue
-
-            try:
-                print("packet is:", packet)
-                if len(packet) == 1:
-                    method = packet[0]
-                    method()
-                elif len(packet) == 2:
-                    method, args = packet
-                    method(*args)
-                elif len(packet) == 3:
-                    method, args, kwargs = packet
-                    method(*args, **kwargs)
-
-            except Exception as e:
-                self.logger.error(f"Error processing serial method call: {e}",
-                                  exc_info=True)
-
-        self.logger.info("Stopping serial processing queue")
-
-    def start_serial_processing_queue(self):
-        t = Task.FuncTask2(self.process_serial_queue)
-        t.init_and_start(self)
 
 # END

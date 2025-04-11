@@ -29,39 +29,43 @@ class IntegGUINotify(object):
         self._max_time_alloc = 0.0
         self._max_time_frameid = ''
         self.sort_feature_on = False
+        self.lock = threading.RLock()
 
     def update_framelist(self):
-        return self.gui.update_frames(self.framelist)
+        with self.lock:
+            return self.gui.update_frames(self.framelist)
 
     def output_line(self, frameinfo):
         #print("output line: %s" % str(frameinfo))
         self.gui.update_frame(frameinfo)
 
     def clear(self):
-        self.framecache = {}
-        self.framelist = []
-        self._max_time_alloc = 0.0
-        self._max_time_frameid = ''
-        self.update_framelist()
+        with self.lock:
+            self.framecache = {}
+            self.framelist = []
+            self._max_time_alloc = 0.0
+            self._max_time_frameid = ''
+            self.update_framelist()
 
     def _getframe(self, frameid, **kwdargs):
-        if frameid in self.framecache:
-            d = self.framecache[frameid]
+        with self.lock:
+            if frameid in self.framecache:
+                d = self.framecache[frameid]
+                d.update(kwdargs)
+                return d
+
+            # Create a new entry
+            dct = dict.fromkeys(headers, '')
+            dct['frameid'] = frameid
+            dct['status'] = 'A'
+
+            d = Bunch.Bunch(dct)
             d.update(kwdargs)
+
+            self.framecache[frameid] = d
+            self.framelist.append(d)
+
             return d
-
-        # Create a new entry
-        dct = dict.fromkeys(headers, '')
-        dct['frameid'] = frameid
-        dct['status'] = 'A'
-
-        d = Bunch.Bunch(dct)
-        d.update(kwdargs)
-
-        self.framecache[frameid] = d
-        self.framelist.append(d)
-
-        return d
 
 
     def _sort_helper(self, finfo):
@@ -70,88 +74,85 @@ class IntegGUINotify(object):
     def frame_allocated(self, frameid, time_alloc):
         """Called when _frameid_ is allocated.
         """
-        # Create a new entry
-        d = self._getframe(frameid)
+        with self.lock:
+            # Create a new entry
+            d = self._getframe(frameid)
 
-        if self.sort_feature_on:
-            # check if the allocation time is less then some other
-            # frame we have recorded so far.  If so, we may need to
-            # reorder the list shown
+            if self.sort_feature_on:
+                # check if the allocation time is less then some other
+                # frame we have recorded so far.  If so, we may need to
+                # reorder the list shown
 
-            #print(frameid, 'time_alloc', time_alloc, d, type(d))
-            if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
-                #print('assigning time_alloc')
-                d['time_alloc'] = time_alloc
-                if time_alloc < self._max_time_alloc:
-                    #print('time_alloc is smaller')
-                    if frameid != self._max_time_frameid:
-                        #print('sorting framelist')
-                        self.framelist = sorted(self.framelist,
-                                                key=self._sort_helper)
-                        #print('updating framelist')
-                        self.gui.update_frames(self.framelist)
-                        #print('returning')
-                        return
+                if ('time_alloc' not in d) or (time_alloc < d['time_alloc']):
+                    d['time_alloc'] = time_alloc
+                    if time_alloc < self._max_time_alloc:
+                        if frameid != self._max_time_frameid:
+                            self.framelist = sorted(self.framelist,
+                                                    key=self._sort_helper)
+                            self.gui.update_frames(self.framelist)
+                            return
+                    else:
+                        self._max_time_alloc = time_alloc
+                        self._max_time_frameid = frameid
                 else:
-                    #print('time_alloc is larger')
-                    self._max_time_alloc = time_alloc
-                    self._max_time_frameid = frameid
-            else:
-                #print("time_alloc exists and is", d['time_alloc'])
-                pass
+                    pass
 
-        # self.gui adds 'row' item--if not present, update gui
-        if 'row' not in d:
-            self.output_line(d)
+            # self.gui adds 'row' item--if not present, update gui
+            if 'row' not in d:
+                self.output_line(d)
 
 
     def transfer_started(self, frameid):
         """Called when the _frameid_ transfer from the OBCP has been
         initiated.
         """
-        d = self._getframe(frameid)
-        # if necessary change status and update gui
-        if d.status == 'A':
-            d.status = 'X'
-            self.output_line(d)
+        with self.lock:
+            d = self._getframe(frameid)
+            # if necessary change status and update gui
+            if d.status == 'A':
+                d.status = 'X'
+                self.output_line(d)
 
 
     def transfer_done(self, frameid, status):
         """Called when the _frameid_ transfer from the OBCP has
         finished.  status==0 indicates success, error otherwise.
         """
-        d = self._getframe(frameid)
-        # if necessary change status and update gui
-        if d.status in ('X', 'A'):
-            if status == 0:
-                # received
-                d.status = 'R'
-            else:
-                # error
-                d.status = 'E'
+        with self.lock:
+            d = self._getframe(frameid)
+            # if necessary change status and update gui
+            if d.status in ('X', 'A'):
+                if status == 0:
+                    # received
+                    d.status = 'R'
+                else:
+                    # error
+                    d.status = 'E'
 
-            self.output_line(d)
+                self.output_line(d)
 
 
     def fits_info(self, frameid, frameinfo):
         """Called when there is some information about the frame.
         """
-        #d = self._getframe(frameid, **frameinfo)
-        d = self._getframe(frameid)
-        if d['OBJECT'] == '':
-            d.update(frameinfo)
-            self.output_line(d)
-        return ro.OK
+        with self.lock:
+            #d = self._getframe(frameid, **frameinfo)
+            d = self._getframe(frameid)
+            if d['OBJECT'] == '':
+                d.update(frameinfo)
+                self.output_line(d)
+            return ro.OK
 
 
     def in_stars(self, frameid, status):
         """Called when the _frameid_ has finished a transaction with STARS."""
 
-        d = self._getframe(frameid)
-        d.status = 'R' + status[0]
+        with self.lock:
+            d = self._getframe(frameid)
+            d.status = 'R' + status[0]
 
-        self.output_line(d)
-        return ro.OK
+            self.output_line(d)
+            return ro.OK
 
 
     def frameSvc_hdlr(self, vals):
@@ -265,43 +266,46 @@ class HSC_IntegGUINotify(IntegGUINotify):
 
         frameid = self.get_hsc_expid(frameid)
 
-        d = super(HSC_IntegGUINotify, self)._getframe(frameid, **kwdargs)
-        if 'count_xfers' not in d:
-            d.count_xfers = 0
-        if 'count_stars' not in d:
-            d.count_stars = 0
-        return d
+        with self.lock:
+            d = super(HSC_IntegGUINotify, self)._getframe(frameid, **kwdargs)
+            if 'count_xfers' not in d:
+                d.count_xfers = 0
+            if 'count_stars' not in d:
+                d.count_stars = 0
+            return d
 
 
     def transfer_done(self, frameid, status):
 
         total_count = self.total_count.get(frameid[0:4], 1)
-        d = self._getframe(frameid)
-        if d.status in ('X', 'A', 'E'):
-            if status == 0:
-                d.count_xfers += 1
-                if d.count_xfers == total_count:
-                    d.status = 'R'
-            else:
-                d.status = 'E'
+        with self.lock:
+            d = self._getframe(frameid)
+            if d.status in ('X', 'A'):
+                if status == 0:
+                    d.count_xfers += 1
+                    if d.count_xfers == total_count:
+                        d.status = 'R'
+                else:
+                    d.status = 'E'
 
-            self.output_line(d)
+                self.output_line(d)
 
 
     def in_stars(self, frameid, status):
 
         total_count = self.total_count.get(frameid[0:4], 1)
-        d = self._getframe(frameid)
-        if total_count == 1:
-            # Non-multiple frame case
-            d.status = 'R' + status[0]
-            self.output_line(d)
-        elif status == 'T':
-            d.count_stars += 1
-            if d.count_stars == total_count:
-                d.status = 'RT'
-            self.output_line(d)
-        return ro.OK
+        with self.lock:
+            d = self._getframe(frameid)
+            if total_count == 1:
+                # Non-multiple frame case
+                d.status = 'R' + status[0]
+                self.output_line(d)
+            elif status == 'T':
+                d.count_stars += 1
+                if d.count_stars == total_count:
+                    d.status = 'RT'
+                self.output_line(d)
+            return ro.OK
 
 
 # END

@@ -359,6 +359,18 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         except KeyError:
             raise Exception("No definition found for '%s'" % varname)
 
+    def get_target_info(self):
+        #common.view.assert_gui_thread()
+
+        # Get the entire buffer from the page's text widget
+        start, end = self.buf.get_bounds()
+        buf = self.buf.get_text(start, end, True).strip()
+
+        include_dirs = common.view.include_dirs
+
+        # extract the target info
+        return ope.get_targets(buf, include_dirs, ope_filename=self.filepath)
+
     def color(self, reporterror=True, eraseall=False):
         try:
             # Get the text from the code buffer
