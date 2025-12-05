@@ -240,7 +240,7 @@ class SearchReplace(object):
 
         self._case_sensitive = Gtk.CheckButton("Case sensitive")
         self._case_sensitive.set_active(True)
-        self._case_sensitive.set_sensitive(False)
+        self._case_sensitive.set_sensitive(True)
         self._case_sensitive.show()
         self.cvbox.pack_start(self._case_sensitive, False, False, 0)
 
