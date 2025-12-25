@@ -5,9 +5,6 @@ import sys
 import threading
 import traceback
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-
 from ginga.gw import Widgets
 
 from . import common

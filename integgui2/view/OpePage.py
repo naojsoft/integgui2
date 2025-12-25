@@ -5,14 +5,6 @@ import sys, traceback
 
 import os, re
 
-import gi
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import GdkPixbuf
-gi.require_version('GtkSource', '3.0')
-from gi.repository import GtkSource
-
 from ginga.gw import Widgets
 
 import oscript.parse.ope as ope
@@ -20,6 +12,7 @@ import oscript.parse.ope as ope
 from . import common
 from . import Page, CodePage
 from . import CommandObject
+from .syntax.ope_syntax import OPEHighlighter
 
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
@@ -85,38 +78,40 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.line_numbering(number_lines)
 
         # this is for variable definition popups
-        self.tw.set_property("has-tooltip", True)
-        self.tw.connect("query-tooltip", self.query_vardef)
+        self.tw.enable_tooltips(True)
+        self.tw.add_callback('tooltip', self.query_vardef)
         #self.tw.connect("focus-out-event", self.focus_out)
-        self.tw.connect("focus-in-event", self.focus_in)
+        #self.tw.connect("focus-in-event", self.focus_in)
 
-        self.tw.set_show_line_marks(True)
-        self.tw.set_insert_spaces_instead_of_tabs(True)
+        self.tw.enable_line_icons(True)
+        # TODO
+        #self.tw.set_insert_spaces_instead_of_tabs(True)
+        self.tw.set_syntax_highlighter_class(OPEHighlighter)
 
         # add marker pixbufs
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
-                                                              'apple-green.png'))
-        if pixbuf:
-            #self.tw.set_mark_category_pixbuf('executing', pixbuf)
-            attrs = GtkSource.MarkAttributes()
-            attrs.set_pixbuf(pixbuf)
-            self.tw.set_mark_attributes('executing', attrs, 0)
+        # pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
+        #                                                       'apple-green.png'))
+        # if pixbuf:
+        #     #self.tw.set_mark_category_pixbuf('executing', pixbuf)
+        #     attrs = GtkSource.MarkAttributes()
+        #     attrs.set_pixbuf(pixbuf)
+        #     self.tw.set_mark_attributes('executing', attrs, 0)
 
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
-                                                           'apple-red.png'))
-        if pixbuf:
-            #self.tw.set_mark_category_pixbuf('error', pixbuf)
-            attrs = GtkSource.MarkAttributes()
-            attrs.set_pixbuf(pixbuf)
-            self.tw.set_mark_attributes('error', attrs, 0)
+        # pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
+        #                                                    'apple-red.png'))
+        # if pixbuf:
+        #     #self.tw.set_mark_category_pixbuf('error', pixbuf)
+        #     attrs = GtkSource.MarkAttributes()
+        #     attrs.set_pixbuf(pixbuf)
+        #     self.tw.set_mark_attributes('error', attrs, 0)
 
-        # keyboard shortcuts
-        self.tw.connect("key-press-event", self.keypress)
+        # # keyboard shortcuts
+        # self.tw.connect("key-press-event", self.keypress)
 
         # add some bottom buttons
         self.btn_exec = Widgets.Button("Exec")
         self.btn_exec.add_callback("activated", lambda w: self.execute())
-        common.modify_bg(self.btn_exec, common.launcher_colors['execbtn'])
+        self.btn_exec.set_color(bg=common.launcher_colors['execbtn'])
         self.leftbtns.add_widget(self.btn_exec)
 
         self.btn_append = Widgets.Button("Append")
@@ -129,7 +124,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         self.btn_cancel = Widgets.Button("Cancel")
         self.btn_cancel.add_callback("activated", lambda w: self.cancel())
-        common.modify_bg(self.btn_cancel, common.launcher_colors['cancelbtn'])
+        self.btn_cancel.set_color(bg=common.launcher_colors['cancelbtn'])
         self.leftbtns.add_widget(self.btn_cancel)
 
         self.btn_pause = Widgets.Button("Pause")
@@ -164,14 +159,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         menu = self.add_pulldownmenu("Options")
 
-        item = menu.add_name("Wrap lines", checkable=True)
-        item.set_state(wrap_lines)
-        item.add_callback("activated", self.toggle_line_wrapping)
-
-        item = menu.add_name("Show line numbers", checkable=True)
-        item.set_state(number_lines)
-        item.add_callback("activated", self.toggle_line_numbering)
-
         item = menu.add_name("Don't link commands to page", checkable=True)
         item.set_state(False)
         item.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'add_frozen'))
@@ -184,11 +171,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.__dict__[key] = tf
 
     def build_dialog(self, title, text, func):
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.WARNING,
-                                   message_format=text)
-        dialog.set_title(title)
-        dialog.connect("response", func)
+        dialog = Widgets.MessageDialog(title=title, autoclose=True)
+        dialog.add_callback('activated', func)
+        dialog.set_message('warning', text)
         return dialog
 
     def load(self, filepath, buf):
@@ -330,8 +315,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         #common.view.assert_gui_thread()
 
         # Get the entire buffer from the page's text widget
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end, True).strip()
+        buf = self.tw.get_text().strip()
 
         include_dirs = common.view.include_dirs
 
@@ -341,8 +325,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def color(self, reporterror=True, eraseall=False):
         try:
             # Get the text from the code buffer
-            start, end = self.buf.get_bounds()
-            buf = self.buf.get_text(start, end, True)
+            buf = self.tw.get_text()
 
             # compute the variable dictionary
             include_dirs = common.view.include_dirs
@@ -350,6 +333,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # check the file
             self.logger.debug("Parsing OPE file.")
             res = ope.check_ope(buf, include_dirs=include_dirs)
+            hl = self.tw.get_syntax_highlighter()
+            hl.set_defined_vars(res.refset)
 
             if len(res.prm_errmsg_list) > 0:
                 errmsg = '\n'.join(res.prm_errmsg_list)
@@ -384,7 +369,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 try:
                     if gtktag:
                         self.buf.remove_tag_by_name(tag, start, end)
-                except:
+                except Exception:
                     # tag may not exist--that's ok
                     pass
 
@@ -394,13 +379,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 properties.update(bnch)
                 try:
                     self.buf.create_tag(tag, **properties)
-                except:
+                except Exception:
                     # tag may already exist--that's ok
                     pass
 
                 try:
                     tagpage.addtag(tag, **properties)
-                except:
+                except Exception:
                     # tag may already exist--that's ok
                     pass
 
@@ -417,23 +402,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     self.buf.apply_tag_by_name(tag, start, end)
 
                 tagpage.add_mapping(lineno, bnch.text, bnch.tags)
-
-            # apply desired tags to varrefs in main text buffer
-            self.logger.debug("Coloring refs.")
-            for bnch in res.reflist:
-                #print(bnch)
-                lineno = bnch.lineno - 1
-
-                start.set_line(lineno)
-                start.forward_chars(bnch.start)
-                end.set_line(lineno)
-                end.forward_chars(bnch.end)
-                if end.get_line() > lineno:
-                    end.backward_char()
-
-                self.buf.apply_tag_by_name('varref', start, end)
-                if bnch.varref in res.badset:
-                    self.buf.apply_tag_by_name('badref', start, end)
 
             self.logger.debug("Summarizing.")
             common.view.statusMsg('')
@@ -541,51 +509,50 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # this will reset Pause button, etc.
         super(OpePage, self).reset()
 
-    def query_vardef(self, tw, x, y, kbmode, ttw):
+    def query_vardef(self, widget, res, line_no, pos_in_line, text):
         # parameters are text widget, x and y coords, boolean for keyboard
-        # mode (?) and the tooltip widget.  Return True if a tooltip should
-        # be displayed
-        #print("tooltip: args are %s" % (str(args)))
-        buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
-                                                    x, y)
-        txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
-        if hasattr(txtiter, 'iter'):
-            # Gtk3, it seems
-            txtiter = txtiter.iter
-
-        buf = tw.get_buffer()
-        tagtbl = buf.get_tag_table()
-        varref = tagtbl.lookup('varref')
-        if not varref:
-            return False
-
-        # Check if we are in the middle of a varref
-        result = txtiter.has_tag(varref)
-        if not result:
-            #print("tooltip: not in word!")
-            return False
-
-        # Get boundaries of the tag.
-        # TODO: there must be a more efficient way to do this!
-        startiter = txtiter.copy()
-        while not startiter.begins_tag(varref):
-            startiter.backward_char()
-
-        enditer = txtiter.copy()
-        while not enditer.ends_tag(varref):
-            enditer.forward_char()
+        # mode (?) and the tooltip widget.  If a tooltip should be
+        # displayed, then append a string to `res`
+        #print(line_no, pos_in_line, text)
+        if len(text) == 0:
+            return
 
         # Get the text of the varref
-        varname = buf.get_text(startiter, enditer, True)
+        i = pos_in_line
+        if i >= len(text):
+            return
+        while i >= 0:
+            if text[i] == '$':
+                break
+            i -= 1
+        i = max(0, i)
+
+        if text[i] != '$':
+            return
+
+        j = pos_in_line
+        while j < len(text):
+            cur_word = text[i:j]
+            if re.match(r"^\$[\w\d_]+$", cur_word):
+                j += 1
+                continue
+            j -= 1
+            break
+
+        varname = text[i:j]
+        self.logger.debug(f"{varname=}")
+        if not re.match(r"^\$[\w\d_]+$", varname):
+            return
+        # strip off leading $
         varname = varname[1:]
+
         try:
-            res = self.get_vardef(varname)
-            ttw.set_text(res)
+            text = self.get_vardef(varname)
+            res.append(text)
         except Exception as e:
-            ttw.set_text(str(e))
+            pass
 
         return True
-
 
     def copy(self):
         # A hack to get around accidentally copying rich text tags along
@@ -933,31 +900,26 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             common.view.popup_error(str(e))
 
     def attach_queue(self):
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   buttons=Gtk.ButtonsType.OK_CANCEL,
-                                   message_format="Pick the destination queue:")
-        dialog.set_title("Connect Queue")
+        dialog = Widgets.MessageDialog(title="Connect Queue",
+                                       buttons=[("Ok", 1), ("Cancel", 0)])
+        dialog.set_message('question', "Pick the destination queue:")
         # Add a combo box to the content area containing the names of the
         # current queues
         vbox = dialog.get_content_area()
-        cbox = Gtk.ComboBoxText()
-        index = 0
+        cbox = Widgets.ComboBox()
         names = []
         for name in common.controller.queue.keys():
-            cbox.insert_text(index, name.capitalize())
+            cbox.append_text(name.capitalize())
             names.append(name)
-            index += 1
-        cbox.set_active(0)
-        vbox.add(cbox)
-        cbox.show()
-        dialog.connect("response", self.attach_queue_res, cbox, names)
+        cbox.set_index(0)
+        vbox.add_widget(cbox, stretch=0)
+        dialog.add_callback('activated', self.attach_queue_res, cbox, names)
         dialog.show()
 
     def attach_queue_res(self, w, rsp, cbox, names):
-        queueName = names[cbox.get_active()].strip().lower()
+        queueName = names[cbox.get_index()].strip().lower()
         w.destroy()
-        if rsp == Gtk.RESPONSE_OK:
+        if rsp == 1:
             if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
                 return True

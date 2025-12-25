@@ -6,12 +6,8 @@ import yaml
 import functools
 import decimal
 
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
-
 from ginga.misc import Bunch
-from ginga.gtk3w import GtkHelp
 
 from . import common
 from . import Page
@@ -32,7 +28,7 @@ class Launcher(object):
         self.execfn = execfn
 
         self.btn_exec = Widgets.Button(title)
-        self.btn_exec.get_widget().set_size_request(default_width, -1)
+        self.btn_exec.get_widget().resize(default_width, 20)
         self.btn_exec.add_callback("activated", lambda w: self.execute())
 
         self.llist.table.add_widget(self.btn_exec, self.llist.row, 0)
@@ -62,7 +58,8 @@ class Launcher(object):
         lbl = Widgets.Label(label)
         self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
         field = Widgets.TextEntry()
-        field.set_length(width)
+        #field.set_length(width)
+        field.resize(120, 20)
         field.set_text(str(defVal))
         self.llist.table.add_widget(field, self.llist.row, self.llist.col)
         self.bump_col()

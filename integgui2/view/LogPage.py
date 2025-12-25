@@ -4,13 +4,9 @@
 import time
 import threading
 
-from gi.repository import Gtk
-from gi.repository import GObject
-
 from ginga.gw import Widgets
 
 import os.path
-## import subprocess
 
 from . import common
 from . import Page
@@ -41,12 +37,6 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         # TODO: set margins
         #tw.set_border_width(4)
 
-        self.buf = tw.tw.get_buffer()
-        # hack to get auto-scrolling to work
-        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
-                                         False)
-
-        #self.add_close()
         menu = self.add_pulldownmenu("Page")
 
         item = menu.add_name("Save as ...")
@@ -55,7 +45,6 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         item = menu.add_name("Save selection as ...")
         item.add_callback("activated", lambda w: self.save_log_selection_as())
 
-        #self.add_close()
         item = menu.add_name("Close")
         item.add_callback("activated", lambda w: self.close())
         self.menu_close = item

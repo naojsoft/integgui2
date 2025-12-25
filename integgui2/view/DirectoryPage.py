@@ -5,9 +5,6 @@ import sys
 import glob
 import os, re
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-
 from . import common
 from . import LogPage
 
@@ -38,14 +35,6 @@ class DirectoryPage(LogPage.NotePage):
         # keyboard shortcuts
         self.tw.tw.connect("key-press-event", self.keypress)
         self.tw.tw.connect("enter-notify-event", self.focus_in)
-
-        # add some bottom buttons
-        ## self.btn_exec = Gtk.Button("Exec")
-        ## self.btn_exec.connect("clicked", lambda w: self.execute())
-        ## self.btn_exec.modify_bg(Gtk.StateType.NORMAL,
-        ##                         common.launcher_colors['execbtn'])
-        ## self.btn_exec.show()
-        ## self.leftbtns.pack_end(self.btn_exec, False, False, 0)
 
     def regist_clickfn(fn):
         """Register a function to be called on the files when you click them."""
@@ -132,29 +121,6 @@ class DirectoryPage(LogPage.NotePage):
         finally:
             self.moving_cursor = False
         return True
-
-    ## def jump_tag(self, w, evt):
-    ##     print(str(evt))
-    ##     widget = self.tw
-    ##     try:
-    ##         tup = widget.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
-    ##                                              evt.x, evt.y)
-    ##         #print(tup)
-    ##         buf_x1, buf_y1 = tup
-    ##     except Exception, e:
-    ##         self.logger.error("Error converting coordinates to line: %s" % (
-    ##             str(e)))
-    ##         return False
-
-    ##     (startiter, coord) = widget.get_line_at_y(buf_y1)
-    ##     lineno = startiter.get_line()
-    ##     ## enditer = startiter.copy()
-    ##     ## enditer.forward_to_line_end()
-    ##     ## text = self.buf.get_text(startiter, enditer, True)
-    ##     text = self.listing[lineno]
-    ##     self.process_line(text)
-
-    ##     return True
 
     def process_entry(self, text, keyname):
         """Subclass should override this to do something interesting when

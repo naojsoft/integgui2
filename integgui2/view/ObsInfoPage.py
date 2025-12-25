@@ -4,43 +4,11 @@
 
 import time
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-import cairo
-
-from ginga.gw import Widgets
+from ginga.gw import Widgets, Viewers
 
 from . import common
 from . import Page
-
-# Create a GTK+ widget on which we will draw using Cairo
-class CairoDrawable(Gtk.DrawingArea):
-
-    def __init__(self, drawfn):
-        self.draw = drawfn
-        super(CairoDrawable, self).__init__()
-
-        #self.set_events(Gdk.EventMask.EXPOSURE_MASK)
-        # prevents some flickering
-        self.set_double_buffered(True)
-        self.set_app_paintable(True)
-
-        self.connect('draw', self.draw_event)
-
-    def draw_event(self, widget, cr):
-
-        # Handle the expose-event by drawing
-        # Create the cairo context
-        #cr = self.window.cairo_create()
-
-        ## # Restrict Cairo to the exposed area; avoid extra work
-        ## cr.rectangle(event.area.x, event.area.y,
-        ##              event.area.width, event.area.height)
-        ## cr.clip()
-
-        rect = widget.get_allocation()
-        self.draw(cr, rect.width, rect.height)
+from . import Widgets as IGWidgets
 
 
 class ObsInfoPage(Page.ButtonPage):
@@ -49,11 +17,13 @@ class ObsInfoPage(Page.ButtonPage):
 
         super(ObsInfoPage, self).__init__(frame, name, title)
 
+        self.logger = common.view.logger
+
         # where we store updates
         self.obsdict = {}
         for key in ('OBSINFO1', 'OBSINFO2', 'OBSINFO3', 'OBSINFO4', 'OBSINFO5',
                     'TIMER', 'PROP-ID'):
-            self.obsdict[key] = ''
+            self.obsdict[key] = 'BLeah!'
 
         # rgb triplets we use
         self.black = (0.0, 0.0, 0.0)
@@ -62,16 +32,54 @@ class ObsInfoPage(Page.ButtonPage):
         self.white = (1.0, 1.0, 1.0)
         self.orange = (0.824, 0.412, 0.1176)
 
-        scrolled_window = Widgets.ScrollArea()
+        zi = Viewers.CanvasView(logger=self.logger)
+        #zi.set_desired_size(self._wd, self._ht)
+        zi.scale_to(1.0, 1.0)
+        zi.set_bg(*self.white)
+        zi.show_pan_mark(False)
+        self._viewer = zi
 
-        # create cairo drawing area
-        self.area = CairoDrawable(self.draw)
-        self.maxwd = 1200
-        self.maxht = 1000
+        bd = zi.get_bindings()
+        bd.enable(pan=False, zoom=False, flip=False, rotate=False)
 
-        scrolled_window.set_widget(Widgets.wrap(self.area))
+        iw = Viewers.GingaScrolledViewerWidget(zi)
+        iw.scroll_bars(horizontal='off', vertical='off')
+        #iw.resize(self._wd, self._ht)
+        self.content.add_widget(iw, stretch=1)
 
-        self.content.add_widget(scrolled_window, stretch=1)
+        # create drawing area
+        self.canvas = zi.get_canvas()
+        self.dc = self.canvas.get_draw_classes()
+
+        self.items = {
+            'prop-id': self.dc.Text(300, 20, text='', font="Sans Bold",
+                                    fontsize=18, color=self.black,
+                                    coord='window'),
+            'timer': self.dc.Text(550, 270, text='', font="Sans Bold",
+                                  fontsize=150, color=self.orange,
+                                  coord='window'),
+            'obsinfo1': self.dc.Text(10, 75, text='', font="Georgia",
+                                     fontsize=48, color=self.blue,
+                                     coord='window'),
+            'obsinfo2': self.dc.Text(250, 120, text='',
+                                     font="Georgia Italic Bold",
+                                     fontsize=42, color=self.green,
+                                     coord='window'),
+            'obsinfo3': self.dc.Text(10, 160, text='',
+                                     font="Georgia Italic Bold",
+                                     fontsize=24, color=self.black,
+                                     coord='window'),
+            'obsinfo4': self.dc.Text(250, 190, text='',
+                                     font="Georgia Italic Bold",
+                                     fontsize=24, color=self.black,
+                                     coord='window'),
+            'obsinfo5': self.dc.Text(500, 160, text='',
+                                     font="Georgia Italic Bold",
+                                     fontsize=24, color=self.black,
+                                     coord='window'),
+            }
+        for item in self.items.values():
+            self.canvas.add(item, redraw=True)
 
         menu = self.add_pulldownmenu("Page")
 
@@ -85,49 +93,12 @@ class ObsInfoPage(Page.ButtonPage):
         item.set_enabled(False)
         item.add_callback("activated", lambda w: self.close())
 
-    def _draw_blank(self, cr, width, height):
-        # Fill the background with white
-        cr.set_source_rgb(*self.white)
-        cr.rectangle(0, 0, width, height)
-        cr.fill()
+    def draw(self):
+        for name in ['prop-id', 'timer', 'obsinfo1', 'obsinfo2', 'obsinfo3',
+                     'obsinfo4', 'obsinfo5']:
+            self.items[name].text = self.obsdict[name.upper()]
 
-    def _draw_text(self, cr, x, y, text):
-        cr.move_to(x, y)
-        cr.show_text(text)
-
-    def draw(self, cr, width, height):
-        self._draw_blank(cr, width, height)
-
-        cr.select_font_face("Sans",
-                cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_source_rgb(*self.black)
-        cr.set_font_size(18.0)
-        self._draw_text(cr, 300, 20, self.obsdict['PROP-ID'])
-
-        cr.set_source_rgb(*self.orange)
-        cr.set_font_size(150.0)
-        self._draw_text(cr, 550, 270, self.obsdict['TIMER'])
-
-        cr.set_source_rgb(*self.blue)
-        cr.select_font_face("Georgia",
-                cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(48.0)
-        self._draw_text(cr, 10, 75, self.obsdict['OBSINFO1'])
-
-        cr.set_source_rgb(*self.green)
-        cr.set_font_size(42.0)
-        self._draw_text(cr, 250, 120, self.obsdict['OBSINFO2'])
-
-        cr.set_source_rgb(*self.black)
-        cr.set_font_size(24.0)
-        self._draw_text(cr,  10, 160, self.obsdict['OBSINFO3'])
-        self._draw_text(cr, 250, 190, self.obsdict['OBSINFO4'])
-        self._draw_text(cr, 500, 160, self.obsdict['OBSINFO5'])
-
-    def redraw(self):
-        # invalidate the draw area and it will be drawn
-        rect = self.area.get_allocation()
-        self.area.queue_draw_area(0, 0, rect.width, rect.height)
+        self._viewer.redraw(whence=3)
 
     def update_obsinfo(self, obsdict):
 
@@ -137,11 +108,11 @@ class ObsInfoPage(Page.ButtonPage):
         if 'TIMER_SEC' in obsdict:
             self.set_timer(obsdict['TIMER_SEC'])
 
-        self.redraw()
+        self.draw()
 
     def cancel_timer(self):
         self.obsdict['TIMER'] = ''
-        self.redraw()
+        self.draw()
 
     def set_timer(self, val):
         self.logger.debug("val = %s" % str(val))
@@ -161,4 +132,4 @@ class ObsInfoPage(Page.ButtonPage):
         else:
             self.obsdict['TIMER'] = str(diff).rjust(5)
 
-        self.redraw()
+        self.draw()

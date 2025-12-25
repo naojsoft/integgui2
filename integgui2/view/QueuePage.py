@@ -3,9 +3,6 @@
 #
 import os, re
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 

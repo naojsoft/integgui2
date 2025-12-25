@@ -6,9 +6,7 @@
 
 import os, glob
 
-from gi.repository import Gtk
-from gi.repository import GdkPixbuf
-from gi.repository import Pango
+from ginga.gw import Widgets
 
 from . import common
 from . import Page

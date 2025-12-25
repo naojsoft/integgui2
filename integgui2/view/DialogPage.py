@@ -4,8 +4,6 @@
 # E. Jeschke
 #
 
-from gi.repository import Gtk
-
 from . import common
 from . import Page
 from . import Widgets as IGWidgets

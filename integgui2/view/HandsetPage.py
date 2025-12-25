@@ -3,19 +3,20 @@
 #
 # E. Jeschke
 #
-from gi.repository import Gtk
-from gi.repository import GdkPixbuf
-from gi.repository import Pango
+import sys, os
 
 from ginga.gw import Widgets
+from ginga.misc import Bunch
 
 import yaml
 
 from . import common
 from . import Page
 from . import CommandObject
+from . import Widgets as IGWidgets
 
-from ginga.misc import Bunch
+thisDir = os.path.split(sys.modules[__name__].__file__)[0]
+icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
 
 compass_template = """
   %(n)s
@@ -38,9 +39,9 @@ class HandsetPage(Page.CommandPage):
 
         scrolled_window = Widgets.ScrollArea()
 
-        lw = Gtk.Layout()
-        lw.set_size(420, 340)
-        scrolled_window.set_widget(Widgets.wrap(lw))
+        lw = IGWidgets.FixedLayout()
+        lw.resize(420, 340)
+        scrolled_window.set_widget(lw)
 
         self.content.add_widget(scrolled_window, stretch=1)
 
@@ -71,26 +72,22 @@ class HandsetPage(Page.CommandPage):
 
     def _make_compass(self, n, s, e, w):
         txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
-        lbl = Gtk.Label(txt)
-        lbl.modify_font(Pango.FontDescription('Monospace 11'))
-        lbl.show()
+        lbl = Widgets.Label(txt)
+        lbl.set_font('Monospace', 11)
         return lbl
 
     def _make_button(self, name):
-        img = Gtk.Image()
         # make xpm image from inline data
         try:
-            xpm_data = icons[name]
-            pixbuf = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_data)
-            img.set_from_pixbuf(pixbuf)
-        except:
-            img = Gtk.Label(name)
+            icon_file = icons[name]
+            #n_image = Widgets.Image.get_native_image_from_file(icon_file)
+            #img = Widgets.Image(native_image=n_image, style='clickable')
+            #img = IGWidgets.ImageButton(icon_file)
+            img = Widgets.Button(iconpath=icon_file)
+        except Exception as e:
+            img = Widgets.Button(name)
 
-        btn = Gtk.Button()
-        btn.add(img)
-        img.show()
-        btn.show()
-        return btn
+        return img
 
     def build_handset(self):
         self.arrow_stepval = 1.0
@@ -116,31 +113,28 @@ class HandsetPage(Page.CommandPage):
                                        (off_xv, off_yh+140, 'down3', 0, -10),
                                  ):
             btn = self._make_button(name)
-            btn.connect("clicked", self.arrowMove, axis, mult)
+            btn.add_callback('activated', self.arrowMove, axis, mult)
             btns[name] = btn
-            self.lw.put(btn, x, y)
+            self.lw.add_widget(btn, x, y)
 
         # Place entries
         ents = widgets.setdefault('entries', {})
         for x, y, width, name in ((off_xv-35, off_yh+5, 10, 'mainstep'),):
-            ent = Gtk.Entry()
-            ent.set_alignment(1.0)
+            ent = Widgets.TextEntry()
+            #ent.set_alignment(1.0)
             ent.set_text("0")
-            ent.set_width_chars(width)
-            ent.show()
+            ent.resize(85, 20)
             ents[name] = ent
-            self.lw.put(ent, x, y)
+            self.lw.add_widget(ent, x, y)
 
         # Place spin buttons
         for x, y, name in ((20, 250, 'lspin'), (120, 250, 'rspin')):
-            ent = Gtk.SpinButton()
-            ent.show()
-            ent.set_alignment(1.0)
-            ent.set_update_policy(Gtk.SpinButtonUpdatePolicy.ALWAYS)
+            ent = Widgets.SpinBox(dtype=float)
+            #ent.set_alignment(1.0)
             # this seems to force size
-            ent.set_range(-1000, 1000)
+            ent.set_limits(-1000, 1000, 1)
             ents[name] = ent
-            self.lw.put(ent, x, y)
+            self.lw.add_widget(ent, x, y)
 
         # Place labels
         lbls = widgets.setdefault('labels', {})
@@ -153,31 +147,28 @@ class HandsetPage(Page.CommandPage):
                                 (120, 232, '+E/-W', 'rstep'),
                                 (20, 275, 'arcsec', 'lstepunit'),
                                 (120, 275, 'arcsec', 'rstepunit')):
-            lbl = Gtk.Label(txt)
-            lbl.show()
+            lbl = Widgets.Label(txt)
             lbls[name] = lbl
-            self.lw.put(lbl, x, y)
+            self.lw.add_widget(lbl, x, y)
 
         # Compass
         lbl = self._make_compass('N', 'S', 'E', 'W')
         lbls['compass'] = lbl
-        self.lw.put(lbl, off_xv+80, off_yh-120)
+        self.lw.add_widget(lbl, off_xv+80, off_yh-120)
 
         # Place buttons
         btns = widgets['buttons']
-        btn = Gtk.Button('Move')
+        btn = Widgets.Button('Move')
         #btn.set_size(10, -1)
-        btn.connect("clicked", self.execute)
-        btn.show()
+        btn.add_callback('activated', self.execute)
         btns['move'] = btn
-        self.lw.put(btn, 20, 300)
+        self.lw.add_widget(btn, 20, 300)
 
         # Mode drop-down
-        cbox = Gtk.ComboBoxText()
-        cbox.show()
-        cbox.connect("changed", self.changeMode)
+        cbox = Widgets.ComboBox()
+        cbox.add_callback('activated', self.changeMode)
         btns['mode'] = cbox
-        self.lw.put(cbox, 20, 50)
+        self.lw.add_widget(cbox, 20, 50)
 
         self.widgets = widgets
 
@@ -187,37 +178,28 @@ class HandsetPage(Page.CommandPage):
                      'right1', 'right2', 'right3', 'down1', 'down2',
                      'down3', 'move'):
             btn = self.widgets['buttons'][name]
-            common.modify_bg(Widgets.wrap(btn),
-                             common.launcher_colors['normal'])
+            common.modify_bg(btn, common.launcher_colors['normal'])
 
     def addModes(self, modes):
         cbox = self.widgets['buttons']['mode']
 
         # remove old labels
-        try:
-            for i in range(0, 100):
-                cbox.remove_text(i)
-        except:
-            pass
+        cbox.clear()
 
         # add new labels
         self.modes = []
-        index = 0
         for d in modes:
             assert isinstance(d, dict) and 'label' in d, \
                    HandsetError("Malformed handset mode: expected key 'modes': %s" % (
                 str(d)))
             name = d['label']
-            cbox.insert_text(index, name)
+            cbox.append_text(name)
             self.modes.append(d)
-            index += 1
 
-        cbox.set_active(0)
+        cbox.set_index(0)
 
-
-    def changeMode(self, w):
+    def changeMode(self, w, i):
         # Combobox widget gives us an index
-        i = w.get_active()
         assert i < len(self.modes), Exception("No modes loaded!")
 
         self.loadMode(self.modes[i])
@@ -274,11 +256,11 @@ class HandsetPage(Page.CommandPage):
 
             # Adjust spin widgets to step value
             lspin = self.widgets['entries']['lspin']
-            lspin.set_digits(numdigits)
-            lspin.set_increments(self.stepval, self.stepval*3)
+            lspin.set_decimals(numdigits)
+            #lspin.set_limits(self.stepval, self.stepval*3)
             rspin = self.widgets['entries']['rspin']
-            rspin.set_digits(numdigits)
-            rspin.set_increments(self.stepval, self.stepval*3)
+            rspin.set_decimals(numdigits)
+            #rspin.set_limits(self.stepval, self.stepval*3)
 
             (decvar, n, s) = info['dec']
             (ravar,  e, w) = info['ra']
@@ -288,10 +270,10 @@ class HandsetPage(Page.CommandPage):
                                           dec_var=decvar, ra_var=ravar)
 
             # set main units label
-            self.widgets['labels']['mainunit'].set_label(info['unit'])
+            self.widgets['labels']['mainunit'].set_text(info['unit'])
             # set compass label
             txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
-            self.widgets['labels']['compass'].set_label(txt)
+            self.widgets['labels']['compass'].set_text(txt)
 
             info = d['button']
             for key in ('cmd', 'dec', 'ra'):
@@ -308,10 +290,10 @@ class HandsetPage(Page.CommandPage):
             (decvar, decunit, n, s, decval) = info['dec']
             (ravar,  raunit, e, w, raval) = info['ra']
 
-            self.widgets['labels']['lstep'].set_label('%s/%s' % (n, s))
-            self.widgets['labels']['rstep'].set_label('%s/%s' % (e, w))
-            self.widgets['labels']['lstepunit'].set_label(decunit)
-            self.widgets['labels']['rstepunit'].set_label(raunit)
+            self.widgets['labels']['lstep'].set_text('%s/%s' % (n, s))
+            self.widgets['labels']['rstep'].set_text('%s/%s' % (e, w))
+            self.widgets['labels']['lstepunit'].set_text(decunit)
+            self.widgets['labels']['rstepunit'].set_text(raunit)
             lspin.set_value(decval)
             rspin.set_value(raval)
 
@@ -410,8 +392,7 @@ class HandsetCommandObject(CommandObject.CommandObject):
         if state == 'queued':
             state = 'normal'
 
-        common.modify_bg(Widgets.wrap(self.widget),
-                         common.launcher_colors[state])
+        common.modify_bg(self.widget, common.launcher_colors[state])
 
     def mark_status(self, txttag):
         # This MAY be called from a non-gui thread
@@ -420,413 +401,417 @@ class HandsetCommandObject(CommandObject.CommandObject):
 
 ##### Icon data #####
 
-_icon_left1 = [
-"26 26 4 1 0 0",
-"       s none  m none  c none",
-".      c #00000000D0D0",
-"X      c #D0D0D0D0FEFE",
-"o      c #00000000FEFE",
-"                          ",
-"                          ",
-"                 .X       ",
-"                .oX       ",
-"               .X.X       ",
-"              .X .X       ",
-"             .X  .X       ",
-"            .X   .X       ",
-"           .X    .X       ",
-"          .X     .X       ",
-"         .X      .X       ",
-"        .X       .X       ",
-"       .X        .X       ",
-"       .X        .X       ",
-"        .X       .X       ",
-"         .X      .X       ",
-"          .X     .X       ",
-"           .X    .X       ",
-"            .X   .X       ",
-"             .X  .X       ",
-"              .X .X       ",
-"               .X.X       ",
-"                .oX       ",
-"                 .X       ",
-"                          ",
-"                          "]
+# _icon_left1 = [
+# "26 26 4 1 0 0",
+# "       s none  m none  c none",
+# ".      c #00000000D0D0",
+# "X      c #D0D0D0D0FEFE",
+# "o      c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "                 .X       ",
+# "                .oX       ",
+# "               .X.X       ",
+# "              .X .X       ",
+# "             .X  .X       ",
+# "            .X   .X       ",
+# "           .X    .X       ",
+# "          .X     .X       ",
+# "         .X      .X       ",
+# "        .X       .X       ",
+# "       .X        .X       ",
+# "       .X        .X       ",
+# "        .X       .X       ",
+# "         .X      .X       ",
+# "          .X     .X       ",
+# "           .X    .X       ",
+# "            .X   .X       ",
+# "             .X  .X       ",
+# "              .X .X       ",
+# "               .X.X       ",
+# "                .oX       ",
+# "                 .X       ",
+# "                          ",
+# "                          "]
 
-_icon_left2 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #00000000D0D0",
-"X	c #D0D0D0D0FEFE",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"               .X   .X    ",
-"              .oX  .oX    ",
-"             .X.X .X.X    ",
-"            .X .X.X .X    ",
-"           .X  .oX  .X    ",
-"          .X   .X   .X    ",
-"         .X   .X    .X    ",
-"        .X   .X     .X    ",
-"       .X   .X      .X    ",
-"      .X   .X       .X    ",
-"     .X   .X        .X    ",
-"     .X   .X        .X    ",
-"      .X   .X       .X    ",
-"       .X   .X      .X    ",
-"        .X   .X     .X    ",
-"         .X   .X    .X    ",
-"          .X   .X   .X    ",
-"           .X  .oX  .X    ",
-"            .X .X.X .X    ",
-"             .X.X .X.X    ",
-"              .oX  .oX    ",
-"               .X   .X    ",
-"                          ",
-"                          "]
+# _icon_left2 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #00000000D0D0",
+# "X	c #D0D0D0D0FEFE",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "               .X   .X    ",
+# "              .oX  .oX    ",
+# "             .X.X .X.X    ",
+# "            .X .X.X .X    ",
+# "           .X  .oX  .X    ",
+# "          .X   .X   .X    ",
+# "         .X   .X    .X    ",
+# "        .X   .X     .X    ",
+# "       .X   .X      .X    ",
+# "      .X   .X       .X    ",
+# "     .X   .X        .X    ",
+# "     .X   .X        .X    ",
+# "      .X   .X       .X    ",
+# "       .X   .X      .X    ",
+# "        .X   .X     .X    ",
+# "         .X   .X    .X    ",
+# "          .X   .X   .X    ",
+# "           .X  .oX  .X    ",
+# "            .X .X.X .X    ",
+# "             .X.X .X.X    ",
+# "              .oX  .oX    ",
+# "               .X   .X    ",
+# "                          ",
+# "                          "]
 
-_icon_left3 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #00000000D0D0",
-"X	c #D0D0D0D0FEFE",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"            .X   .X    .X ",
-"           .oX  .oX   .oX ",
-"          .X.X .X.X  .X.X ",
-"         .X .X.X .X .X .X ",
-"        .X  .oX  .X.X  .X ",
-"       .X   .X   .oX   .X ",
-"      .X   .X    .X    .X ",
-"     .X   .X    .X     .X ",
-"    .X   .X    .X      .X ",
-"   .X   .X    .X       .X ",
-"  .X   .X    .X        .X ",
-"  .X   .X    .X        .X ",
-"   .X   .X    .X       .X ",
-"    .X   .X    .X      .X ",
-"     .X   .X    .X     .X ",
-"      .X   .X    .X    .X ",
-"       .X   .X   .oX   .X ",
-"        .X  .oX  .X.X  .X ",
-"         .X .X.X .X .X .X ",
-"          .X.X .X.X  .X.X ",
-"           .oX  .oX   .oX ",
-"            .X   .X    .X ",
-"                          ",
-"                          "]
+# _icon_left3 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #00000000D0D0",
+# "X	c #D0D0D0D0FEFE",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "            .X   .X    .X ",
+# "           .oX  .oX   .oX ",
+# "          .X.X .X.X  .X.X ",
+# "         .X .X.X .X .X .X ",
+# "        .X  .oX  .X.X  .X ",
+# "       .X   .X   .oX   .X ",
+# "      .X   .X    .X    .X ",
+# "     .X   .X    .X     .X ",
+# "    .X   .X    .X      .X ",
+# "   .X   .X    .X       .X ",
+# "  .X   .X    .X        .X ",
+# "  .X   .X    .X        .X ",
+# "   .X   .X    .X       .X ",
+# "    .X   .X    .X      .X ",
+# "     .X   .X    .X     .X ",
+# "      .X   .X    .X    .X ",
+# "       .X   .X   .oX   .X ",
+# "        .X  .oX  .X.X  .X ",
+# "         .X .X.X .X .X .X ",
+# "          .X.X .X.X  .X.X ",
+# "           .oX  .oX   .oX ",
+# "            .X   .X    .X ",
+# "                          ",
+# "                          "]
 
-_icon_right1 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"       .X                 ",
-"       .oX                ",
-"       .X.X               ",
-"       .X .X              ",
-"       .X  .X             ",
-"       .X   .X            ",
-"       .X    .X           ",
-"       .X     .X          ",
-"       .X      .X         ",
-"       .X       .X        ",
-"       .X        .X       ",
-"       .X        .X       ",
-"       .X       .X        ",
-"       .X      .X         ",
-"       .X     .X          ",
-"       .X    .X           ",
-"       .X   .X            ",
-"       .X  .X             ",
-"       .X .X              ",
-"       .X.X               ",
-"       .oX                ",
-"       .X                 ",
-"                          ",
-"                          "]
+# _icon_right1 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "       .X                 ",
+# "       .oX                ",
+# "       .X.X               ",
+# "       .X .X              ",
+# "       .X  .X             ",
+# "       .X   .X            ",
+# "       .X    .X           ",
+# "       .X     .X          ",
+# "       .X      .X         ",
+# "       .X       .X        ",
+# "       .X        .X       ",
+# "       .X        .X       ",
+# "       .X       .X        ",
+# "       .X      .X         ",
+# "       .X     .X          ",
+# "       .X    .X           ",
+# "       .X   .X            ",
+# "       .X  .X             ",
+# "       .X .X              ",
+# "       .X.X               ",
+# "       .oX                ",
+# "       .X                 ",
+# "                          ",
+# "                          "]
 
-_icon_right2 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"    .X   .X               ",
-"    .oX  .oX              ",
-"    .X.X .X.X             ",
-"    .X .X.X .X            ",
-"    .X  .oX  .X           ",
-"    .X   .X   .X          ",
-"    .X    .X   .X         ",
-"    .X     .X   .X        ",
-"    .X      .X   .X       ",
-"    .X       .X   .X      ",
-"    .X        .X   .X     ",
-"    .X        .X   .X     ",
-"    .X       .X   .X      ",
-"    .X      .X   .X       ",
-"    .X     .X   .X        ",
-"    .X    .X   .X         ",
-"    .X   .X   .X          ",
-"    .X  .oX  .X           ",
-"    .X .X.X .X            ",
-"    .X.X .X.X             ",
-"    .oX  .oX              ",
-"    .X   .X               ",
-"                          ",
-"                          "]
+# _icon_right2 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "    .X   .X               ",
+# "    .oX  .oX              ",
+# "    .X.X .X.X             ",
+# "    .X .X.X .X            ",
+# "    .X  .oX  .X           ",
+# "    .X   .X   .X          ",
+# "    .X    .X   .X         ",
+# "    .X     .X   .X        ",
+# "    .X      .X   .X       ",
+# "    .X       .X   .X      ",
+# "    .X        .X   .X     ",
+# "    .X        .X   .X     ",
+# "    .X       .X   .X      ",
+# "    .X      .X   .X       ",
+# "    .X     .X   .X        ",
+# "    .X    .X   .X         ",
+# "    .X   .X   .X          ",
+# "    .X  .oX  .X           ",
+# "    .X .X.X .X            ",
+# "    .X.X .X.X             ",
+# "    .oX  .oX              ",
+# "    .X   .X               ",
+# "                          ",
+# "                          "]
 
-_icon_right3 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-" .X    .X   .X            ",
-" .oX   .oX  .oX           ",
-" .X.X  .X.X .X.X          ",
-" .X .X .X .X.X .X         ",
-" .X  .X.X  .oX  .X        ",
-" .X   .oX   .X   .X       ",
-" .X    .X    .X   .X      ",
-" .X     .X    .X   .X     ",
-" .X      .X    .X   .X    ",
-" .X       .X    .X   .X   ",
-" .X        .X    .X   .X  ",
-" .X        .X    .X   .X  ",
-" .X       .X    .X   .X   ",
-" .X      .X    .X   .X    ",
-" .X     .X    .X   .X     ",
-" .X    .X    .X   .X      ",
-" .X   .oX   .X   .X       ",
-" .X  .X.X  .oX  .X        ",
-" .X .X .X .X.X .X         ",
-" .X.X  .X.X .X.X          ",
-" .oX   .oX  .oX           ",
-" .X    .X   .X            ",
-"                          ",
-"                          "]
+# _icon_right3 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# " .X    .X   .X            ",
+# " .oX   .oX  .oX           ",
+# " .X.X  .X.X .X.X          ",
+# " .X .X .X .X.X .X         ",
+# " .X  .X.X  .oX  .X        ",
+# " .X   .oX   .X   .X       ",
+# " .X    .X    .X   .X      ",
+# " .X     .X    .X   .X     ",
+# " .X      .X    .X   .X    ",
+# " .X       .X    .X   .X   ",
+# " .X        .X    .X   .X  ",
+# " .X        .X    .X   .X  ",
+# " .X       .X    .X   .X   ",
+# " .X      .X    .X   .X    ",
+# " .X     .X    .X   .X     ",
+# " .X    .X    .X   .X      ",
+# " .X   .oX   .X   .X       ",
+# " .X  .X.X  .oX  .X        ",
+# " .X .X .X .X.X .X         ",
+# " .X.X  .X.X .X.X          ",
+# " .oX   .oX  .oX           ",
+# " .X    .X   .X            ",
+# "                          ",
+# "                          "]
 
-_icon_up1 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #00000000D0D0",
-"X	c #D0D0D0D0FEFE",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"            ..            ",
-"           .XX.           ",
-"          .X  X.          ",
-"         .X    X.         ",
-"        .X      X.        ",
-"       .X        X.       ",
-"      .X          X.      ",
-"     .X            X.     ",
-"    .X              X.    ",
-"   .X                X.   ",
-"  .o..................o.  ",
-"  XXXXXXXXXXXXXXXXXXXXXX  ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          "]
+# _icon_up1 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #00000000D0D0",
+# "X	c #D0D0D0D0FEFE",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "            ..            ",
+# "           .XX.           ",
+# "          .X  X.          ",
+# "         .X    X.         ",
+# "        .X      X.        ",
+# "       .X        X.       ",
+# "      .X          X.      ",
+# "     .X            X.     ",
+# "    .X              X.    ",
+# "   .X                X.   ",
+# "  .o..................o.  ",
+# "  XXXXXXXXXXXXXXXXXXXXXX  ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          "]
 
-_icon_up2 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #00000000D0D0",
-"X	c #D0D0D0D0FEFE",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"            ..            ",
-"           .XX.           ",
-"          .X  X.          ",
-"         .X    X.         ",
-"        .X      X.        ",
-"       .X   ..   X.       ",
-"      .X   .XX.   X.      ",
-"     .X   .X  X.   X.     ",
-"    .X   .X    X.   X.    ",
-"   .X   .X      X.   X.   ",
-"  .o....X        X....o.  ",
-"  XXXXoX          XoXXXX  ",
-"     .X            X.     ",
-"    .X              X.    ",
-"   .X                X.   ",
-"  .o..................o.  ",
-"  XXXXXXXXXXXXXXXXXXXXXX  ",
-"                          ",
-"                          ",
-"                          ",
-"                          "]
+# _icon_up2 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #00000000D0D0",
+# "X	c #D0D0D0D0FEFE",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "            ..            ",
+# "           .XX.           ",
+# "          .X  X.          ",
+# "         .X    X.         ",
+# "        .X      X.        ",
+# "       .X   ..   X.       ",
+# "      .X   .XX.   X.      ",
+# "     .X   .X  X.   X.     ",
+# "    .X   .X    X.   X.    ",
+# "   .X   .X      X.   X.   ",
+# "  .o....X        X....o.  ",
+# "  XXXXoX          XoXXXX  ",
+# "     .X            X.     ",
+# "    .X              X.    ",
+# "   .X                X.   ",
+# "  .o..................o.  ",
+# "  XXXXXXXXXXXXXXXXXXXXXX  ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          "]
 
-_icon_up3 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #00000000D0D0",
-"X	c #D0D0D0D0FEFE",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"            ..            ",
-"           .XX.           ",
-"          .X  X.          ",
-"         .X    X.         ",
-"        .X      X.        ",
-"       .X   ..   X.       ",
-"      .X   .XX.   X.      ",
-"     .X   .X  X.   X.     ",
-"    .X   .X    X.   X.    ",
-"   .X   .X      X.   X.   ",
-"  .o....X        X....o.  ",
-"  XXXXoX    ..    XoXXXX  ",
-"     .X    .XX.    X.     ",
-"    .X    .X  X.    X.    ",
-"   .X    .X    X.    X.   ",
-"  .o.....X      X.....o.  ",
-"  XXXXXoX        XoXXXXX  ",
-"      .X          X.      ",
-"     .X            X.     ",
-"    .X              X.    ",
-"   .X                X.   ",
-"  .o..................o.  ",
-"  XXXXXXXXXXXXXXXXXXXXXX  ",
-"                          "]
+# _icon_up3 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #00000000D0D0",
+# "X	c #D0D0D0D0FEFE",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "            ..            ",
+# "           .XX.           ",
+# "          .X  X.          ",
+# "         .X    X.         ",
+# "        .X      X.        ",
+# "       .X   ..   X.       ",
+# "      .X   .XX.   X.      ",
+# "     .X   .X  X.   X.     ",
+# "    .X   .X    X.   X.    ",
+# "   .X   .X      X.   X.   ",
+# "  .o....X        X....o.  ",
+# "  XXXXoX    ..    XoXXXX  ",
+# "     .X    .XX.    X.     ",
+# "    .X    .X  X.    X.    ",
+# "   .X    .X    X.    X.   ",
+# "  .o.....X      X.....o.  ",
+# "  XXXXXoX        XoXXXXX  ",
+# "      .X          X.      ",
+# "     .X            X.     ",
+# "    .X              X.    ",
+# "   .X                X.   ",
+# "  .o..................o.  ",
+# "  XXXXXXXXXXXXXXXXXXXXXX  ",
+# "                          "]
 
-_icon_down1 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"  ......................  ",
-"  XoXXXXXXXXXXXXXXXXXXoX  ",
-"   X.                .X   ",
-"    X.              .X    ",
-"     X.            .X     ",
-"      X.          .X      ",
-"       X.        .X       ",
-"        X.      .X        ",
-"         X.    .X         ",
-"          X.  .X          ",
-"           X..X           ",
-"            XX            ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          "]
+# _icon_down1 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "  ......................  ",
+# "  XoXXXXXXXXXXXXXXXXXXoX  ",
+# "   X.                .X   ",
+# "    X.              .X    ",
+# "     X.            .X     ",
+# "      X.          .X      ",
+# "       X.        .X       ",
+# "        X.      .X        ",
+# "         X.    .X         ",
+# "          X.  .X          ",
+# "           X..X           ",
+# "            XX            ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          "]
 
-_icon_down2 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"  ......................  ",
-"  XoXXXXXXXXXXXXXXXXXXoX  ",
-"   X.                .X   ",
-"    X.              .X    ",
-"     X.            .X     ",
-"  ....o.          .o....  ",
-"  XoXXXX.        .XXXXoX  ",
-"   X.   X.      .X   .X   ",
-"    X.   X.    .X   .X    ",
-"     X.   X.  .X   .X     ",
-"      X.   X..X   .X      ",
-"       X.   XX   .X       ",
-"        X.      .X        ",
-"         X.    .X         ",
-"          X.  .X          ",
-"           X..X           ",
-"            XX            ",
-"                          ",
-"                          ",
-"                          ",
-"                          ",
-"                          "]
+# _icon_down2 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "  ......................  ",
+# "  XoXXXXXXXXXXXXXXXXXXoX  ",
+# "   X.                .X   ",
+# "    X.              .X    ",
+# "     X.            .X     ",
+# "  ....o.          .o....  ",
+# "  XoXXXX.        .XXXXoX  ",
+# "   X.   X.      .X   .X   ",
+# "    X.   X.    .X   .X    ",
+# "     X.   X.  .X   .X     ",
+# "      X.   X..X   .X      ",
+# "       X.   XX   .X       ",
+# "        X.      .X        ",
+# "         X.    .X         ",
+# "          X.  .X          ",
+# "           X..X           ",
+# "            XX            ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          ",
+# "                          "]
 
-_icon_down3 = [
-"26 26 4 1 0 0",
-" 	s none	m none	c none",
-".	c #D0D0D0D0FEFE",
-"X	c #00000000D0D0",
-"o	c #00000000FEFE",
-"                          ",
-"  ......................  ",
-"  XoXXXXXXXXXXXXXXXXXXoX  ",
-"   X.                .X   ",
-"    X.              .X    ",
-"     X.            .X     ",
-"      X.          .X      ",
-"  .....o.        .o.....  ",
-"  XoXXXXX.      .XXXXXoX  ",
-"   X.    X.    .X    .X   ",
-"    X.    X.  .X    .X    ",
-"     X.    X..X    .X     ",
-"  ....o.    XX    .o....  ",
-"  XoXXXX.        .XXXXoX  ",
-"   X.   X.      .X   .X   ",
-"    X.   X.    .X   .X    ",
-"     X.   X.  .X   .X     ",
-"      X.   X..X   .X      ",
-"       X.   XX   .X       ",
-"        X.      .X        ",
-"         X.    .X         ",
-"          X.  .X          ",
-"           X..X           ",
-"            XX            ",
-"                          ",
-"                          "]
+# _icon_down3 = [
+# "26 26 4 1 0 0",
+# " 	s none	m none	c none",
+# ".	c #D0D0D0D0FEFE",
+# "X	c #00000000D0D0",
+# "o	c #00000000FEFE",
+# "                          ",
+# "  ......................  ",
+# "  XoXXXXXXXXXXXXXXXXXXoX  ",
+# "   X.                .X   ",
+# "    X.              .X    ",
+# "     X.            .X     ",
+# "      X.          .X      ",
+# "  .....o.        .o.....  ",
+# "  XoXXXXX.      .XXXXXoX  ",
+# "   X.    X.    .X    .X   ",
+# "    X.    X.  .X    .X    ",
+# "     X.    X..X    .X     ",
+# "  ....o.    XX    .o....  ",
+# "  XoXXXX.        .XXXXoX  ",
+# "   X.   X.      .X   .X   ",
+# "    X.   X.    .X   .X    ",
+# "     X.   X.  .X   .X     ",
+# "      X.   X..X   .X      ",
+# "       X.   XX   .X       ",
+# "        X.      .X        ",
+# "         X.    .X         ",
+# "          X.  .X          ",
+# "           X..X           ",
+# "            XX            ",
+# "                          ",
+# "                          "]
 
-icons = { 'left1': _icon_left1,
-          'left2': _icon_left2,
-          'left3': _icon_left3,
-          'right1': _icon_right1,
-          'right2': _icon_right2,
-          'right3': _icon_right3,
-          'up1': _icon_up1,
-          'up2': _icon_up2,
-          'up3': _icon_up3,
-          'down1': _icon_down1,
-          'down2': _icon_down2,
-          'down3': _icon_down3,
-          }
+# icons = { 'left1': _icon_left1,
+#           'left2': _icon_left2,
+#           'left3': _icon_left3,
+#           'right1': _icon_right1,
+#           'right2': _icon_right2,
+#           'right3': _icon_right3,
+#           'up1': _icon_up1,
+#           'up2': _icon_up2,
+#           'up3': _icon_up3,
+#           'down1': _icon_down1,
+#           'down2': _icon_down2,
+#           'down3': _icon_down3,
+#           }
+
+icons = {name: os.path.join(icondir, name + '.png')
+         for name in ['left1', 'left2', 'left3', 'right1', 'right2', 'right3',
+                      'up1', 'up2', 'up3', 'down1', 'down2', 'down3']}
 #END

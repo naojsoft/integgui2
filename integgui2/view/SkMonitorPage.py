@@ -6,9 +6,6 @@ import sys
 import re, time
 import threading
 
-# Special library imports
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
 
 from g2base.remoteObjects import remoteObjects as ro

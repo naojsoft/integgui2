@@ -3,8 +3,6 @@
 #
 import os
 
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
 
 from g2base import myproc

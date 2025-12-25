@@ -6,9 +6,6 @@
 import sys
 import os.path
 
-from gi.repository import Gtk
-from gi.repository import GdkPixbuf
-
 from ginga.misc import Bunch
 
 from . import Page

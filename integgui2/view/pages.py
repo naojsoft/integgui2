@@ -20,14 +20,13 @@ from .CopyTSCTrackPage import *
 from .HandsetPage import *
 from .TerminalPage import *
 from .FrameInfoPage import *
+from .CommandHistoryPage import *
 from .LauncherPage import *
 from .ObsInfoPage import *
 from .WorkspacePage import *
 from .SkMonitorPage import *
-#from FitsViewerPage import *
 from .LogPage import *
 from .DialogPage import *
-from .StatMonPage import *
 from .OptionsPage import *
 
 #END

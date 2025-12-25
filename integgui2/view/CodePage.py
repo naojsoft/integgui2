@@ -4,15 +4,12 @@
 import os.path
 import string
 
+from ginga.gw import Widgets
+
 from . import common
 from . import Page
 from . import dialogs
-
-from gi.repository import Gtk
-from gi.repository import GtkSource
-from gi.repository import Pango
-
-from ginga.gw import Widgets
+from . import Widgets as IGWidgets
 
 warning_close = """
 WARNING: Buffer is modified
@@ -29,7 +26,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
 
-        super(CodePage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # Path of the file loaded into this buffer
         self.filepath = ''
@@ -43,42 +40,23 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         self.border = Widgets.Frame(title='')
         w = self.border.get_widget()
-        w.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
-        w.set_label_align(0.1, 0.5)
+        # TODO
+        #w.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
+        #w.set_label_align(0.1, 0.5)
 
-        # Create the widgets for the OPE file text
-        scrolled_window = Widgets.ScrollArea()
+        # Create the widgets for the code file text
+        tw = IGWidgets.NumberedTextArea(wrap=False, editable=True)
+        # TODO
+        #tw.set_left_margin(4)
+        #tw.set_right_margin(4)
 
-        # create buffer
-        lm = GtkSource.LanguageManager()
-        self.buf = GtkSource.Buffer()
-        self.buf_lm = lm
-
-        tw = GtkSource.View.new_with_buffer(self.buf)
-        w = Widgets.wrap(tw)
-        scrolled_window.set_widget(w)
-
-        tw.set_editable(True)
-        tw.set_wrap_mode(Gtk.WrapMode.NONE)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-
-        # Set font because we don't seem to be able to do it via CSS separately
-        # from generic GtkTextView's.
-        tw.modify_font(Pango.FontDescription('DejaVuSans 10'))
-
+        tw.set_font('DejaVuSans', 10)
         self.tw = tw
-        # hack to get auto-scrolling to work
-        self.mark = self.buf.create_mark('end', self.buf.get_end_iter(),
-                                         False)
-        # For find & replace
-        self.searchmark = self.buf.create_mark('search',
-                                               self.buf.get_start_iter(),
-                                               False)
-        self.sr = dialogs.SearchReplace("Find and/or Replace")
-        self.buf.connect('mark-set', self.place_cursor_cb)
 
-        self.border.set_widget(scrolled_window)
+        self.sr = dialogs.SearchReplace("Find and/or Replace")
+        #self.buf.connect('mark-set', self.place_cursor_cb)
+
+        self.border.set_widget(tw)
 
         self.content.add_widget(self.border, stretch=1)
 
@@ -105,8 +83,18 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         item = menu.add_name("Find/Replace ...")
         item.add_callback("activated", lambda w: self.find())
 
-        item = menu.add_name("Print ...")
-        item.add_callback("activated", lambda w: self.print_cb())
+        item = menu.add_name("Wrap lines", checkable=True)
+        wrap_lines = False
+        item.set_state(wrap_lines)
+        item.add_callback("activated", self.toggle_line_wrapping)
+
+        item = menu.add_name("Show line numbers", checkable=True)
+        number_lines = False
+        item.set_state(number_lines)
+        item.add_callback("activated", self.toggle_line_numbering)
+
+        # item = menu.add_name("Print ...")
+        # item.add_callback("activated", lambda w: self.print_cb())
 
 
     def loadbuf(self, buftxt):
@@ -134,50 +122,16 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         buftxt = '\n'.join(res)
         res = []
 
-        self.buf.begin_not_undoable_action()
-
         # insert text
-        tags = ['code']
-        #tags = []
-        try:
-            start, end = self.buf.get_bounds()
-            self.buf.remove_source_marks(start, end)
-            self.buf.delete(start, end)
-        except:
-            pass
-
-        # Create default 'code' tag
-        try:
-            self.buf.create_tag('code', foreground="black")
-        except:
-            # tag may be already created
-            pass
-
-        self.buf.insert_with_tags_by_name(start, buftxt, *tags)
-        self.buf.set_modified(False)
-
-        self.buf.end_not_undoable_action()
-
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end, True)
+        self.tw.set_text(buftxt)
+        self.tw.set_scroll_pos(0)
 
     def load(self, filepath, buf):
         self.loadbuf(buf)
         self.filepath = filepath
         self.border.set_text(filepath)
 
-        manager = self.buf_lm
-        language = manager.guess_language(filepath)
-        if language:
-            self.buf.set_highlight_syntax(True)
-            self.buf.set_language(language)
-        else:
-            self.logger.info('No language found for file "%s"' % filepath)
-            self.buf.set_highlight_syntax(False)
-
-        #self.buf.set_modified(False)
-
-        #self._do_save()
+        # TODO: set syntax highlighter based on file extension?
 
     def reload(self):
         try:
@@ -194,8 +148,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             # TODO: make backup?
 
             # get text to save
-            start, end = self.buf.get_bounds()
-            buf = self.buf.get_text(start, end, True)
+            buf = self.tw.get_text()
 
             try:
                 with open(self.filepath, 'w') as out_f:
@@ -204,8 +157,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             except IOError as e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
                         self.filepath, str(e)))
-
-            self.buf.set_modified(False)
 
     def save(self):
         def _save(res):
@@ -218,21 +169,23 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                   'Really save "%s"?' % filename,
                                   _save)
 
-    def build_dialog(self, title, text, func):
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.WARNING,
-                                   message_format=text)
-        dialog.set_title(title)
-        dialog.connect("response", func)
+    def build_dialog(self, title, text, buttons=[("Dismiss", 0)]):
+        dialog = Widgets.Dialog(title=title,
+                                buttons=buttons)
+        vbox = warn.get_content_area()
+        vbox.set_margins(4, 4, 4, 4)
+        lbl = Widgets.Label(text)
+        vbox.add_widget(lbl, stretch=1)
         return dialog
 
     def close(self):
-        if self.buf.get_modified():
-            w = self.build_dialog("Close file",
-                                  warning_close, self._close_check_res)
-            w.add_button("Cancel", 1)
-            w.add_button("Close", 2)
-            w.add_button("Save and Close", 3)
+        if self.tw.get_modified():
+            w = self.build_dialog("Close file", warning_close,
+                                  buttons=[("Cancel", 1), ("Close", 2),
+                                           ("Save and Close", 3)])
+            w.add_callback('activated', _close_check_res)
+            w.add_callback('close', _close_check_res, 1)
+            self.add_window(w)
             w.show()
             return False
 
@@ -240,6 +193,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         return True
 
     def _close_check_res(self, w, rsp):
+        self.remove_window(w)
         w.destroy()
         if rsp == 2:
             super(CodePage, self).close()
@@ -254,63 +208,15 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         return self.filepath
 
     def line_numbering(self, onoff):
-        self.tw.set_show_line_numbers(onoff)
+        self.tw.show_line_numbers(onoff)
 
     def toggle_line_numbering(self, widget, tf):
         self.line_numbering(tf)
         return True
 
-    def line_wrapping(self, kind):
-        d = { 'none': Gtk.WrapMode.NONE,
-              'char': Gtk.WrapMode.CHAR,
-              'word': Gtk.WrapMode.WORD,
-              'full': Gtk.WrapMode.WORD_CHAR }
-        self.tw.set_wrap_mode(d[kind])
-
     def toggle_line_wrapping(self, widget, tf):
-        if tf:
-            self.line_wrapping('full')
-        else:
-            self.line_wrapping('none')
+        self.tw.set_wrap(tf)
         return True
-
-    ##### Printing callbacks
-
-    def begin_print_cb(self, operation, context, compositor):
-        while not compositor.paginate(context):
-            pass
-        n_pages = compositor.get_n_pages()
-        operation.set_n_pages(n_pages)
-
-    def draw_page_cb(self, operation, context, page_nr, compositor):
-        compositor.draw_page(context, page_nr)
-
-    def print_cb(self):
-        sourceview = self.tw
-        window = sourceview.get_toplevel()
-        buffer = sourceview.get_buffer()
-
-        compositor = GtkSource.PrintCompositor.new_from_view(sourceview)
-        compositor.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        compositor.set_highlight_syntax(True)
-        #compositor.set_print_line_numbers(5)
-        #compositor.set_header_format(False, 'Printed on %A', None, '%F')
-        filename = self.get_filepath()
-        compositor.set_footer_format(True, '%T %F', filename, 'Page %N/%Q')
-        compositor.set_print_header(False)
-        compositor.set_print_footer(True)
-
-        print_op = Gtk.PrintOperation()
-        print_op.connect("begin-print", self.begin_print_cb, compositor)
-        print_op.connect("draw-page", self.draw_page_cb, compositor)
-        res = print_op.run(Gtk.PrintOperationAction.PRINT_DIALOG, window)
-
-        if res == Gtk.PrintOperationResult.ERROR:
-            #error_dialog(window, "Error printing file:\n\n" + filename)
-            return common.view.popup_error("Error printing file '%s'" % (
-                filename))
-        elif res == Gtk.PrintOperationResult.APPLY:
-            common.view.statusMsg('File printed: %s' % filename)
 
     ##### Find and Replace callbacks
 

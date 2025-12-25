@@ -2,8 +2,6 @@
 # E. Jeschke
 #
 
-#from gi.repository import Gtk
-
 from . import Workspace
 from . import Page
 

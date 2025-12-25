@@ -6,13 +6,9 @@
 import sys, os
 import threading
 
-# Special library imports
-import gi
-gi.require_version('Gtk', '3.0')
-
 from ginga.misc import Bunch, ModuleManager, Datasrc, Settings
 import ginga.toolkit as ginga_toolkit
-ginga_toolkit.use('gtk3')
+ginga_toolkit.use('qt')
 
 # SSD/Gen2 imports
 from g2base.remoteObjects import remoteObjects as ro

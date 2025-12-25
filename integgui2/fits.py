@@ -216,13 +216,6 @@ class HSC_IntegGUINotify(IntegGUINotify):
     def __init__(self, gui, fitsdir):
         super(HSC_IntegGUINotify, self).__init__(gui, fitsdir)
 
-        header = "FrameNo      State  Cnt   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
-
-        # Format string used to pass information to IntegGUI
-        format_str = "%(frameid)-12.12s %(status)5.5s  %(count_xfers)03d  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
-
-        gui.set_format(header, format_str)
-
         # Total number of frames in exposure
         self.total_count = dict(SUPA=10, HSCA=112,
                                 PFSA=8, PFSB=4, PFSC=1, PFSD=1, PFSF=1,

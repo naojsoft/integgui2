@@ -4,11 +4,7 @@
 import time
 import threading
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import Pango
-from gi.repository import GdkPixbuf
+from ginga.gw import Widgets
 
 from . import common
 
@@ -63,39 +59,29 @@ def cancel_dialog(tag):
 # widget each time it is needed and destroy it afterwards
 #
 
-class FileSelection(object):
+class FileSelection:
 
-    # Get the selected filename and print it to the console
-    def file_ok_sel(self, w, rsp):
-        filepath = w.get_filename()
-        #print("(dialog) File is %s" % filepath)
+    # Get the selected filename
+    def file_ok_sel(self, w, filenames):
         self.close(w)
-        if rsp == 0:
-            return
 
-        self.callfn(filepath)
+        self.callfn(filenames)
 
-    def __init__(self, action=Gtk.FileChooserAction.OPEN):
+    def __init__(self, action='file'):
         self.action = action
 
     def _create_widget(self, action):
-        # Create a new file selection widget
-        self.filew = Gtk.FileChooserDialog(title="Select a file",
-                                           action=action)
-        # See NOTE [1]
-        #self.filew.connect("destroy", self.close)
-        if action == Gtk.FileChooserAction.SAVE:
-            self.filew.add_buttons(Gtk.STOCK_SAVE, 1, Gtk.STOCK_CANCEL, 0)
+        if action == 'save':
+            buttons = [("Save", 1), ("Cancel", 0)]
         else:
-            self.filew.add_buttons(Gtk.STOCK_OPEN, 1, Gtk.STOCK_CANCEL, 0)
-        self.filew.set_default_response(1)
+            buttons = [("Open", 1), ("Cancel", 0)]
 
-        # Connect the ok_button to file_ok_sel method
-        #self.filew.ok_button.connect("clicked", self.file_ok_sel)
-        self.filew.connect("response", self.file_ok_sel)
-
-        # Connect the cancel_button to destroy the widget
-        #self.filew.cancel_button.connect("clicked", self.close)
+        # Create a new file selection widget
+        self.filew = Widgets.FileDialog(title="Select a file",
+                                        parent=common.view.w.root)
+        self.filew.set_mode(action)
+        self.filew.connect("close", self.close)
+        self.filew.connect("activated", self.file_ok_sel)
 
     def popup(self, title, callfn, initialdir=None,
               filename=None):
@@ -105,86 +91,27 @@ class FileSelection(object):
         self.callfn = callfn
         self.filew.set_title(title)
         if initialdir:
-            self.filew.set_current_folder(initialdir)
+            self.filew.set_directory(initialdir)
 
         if filename:
-            #self.filew.set_filename(filename)
-            self.filew.set_current_name(filename)
+            self.filew.set_filename(filename)
 
         self.filew.show()
 
     def close(self, widget):
-        # See NOTE [1]
         #self.filew.hide()
-        self.filew.destroy()
-        self.filew = None
+        w, self.filew = self.filew, None
+        w.destroy()
 
-class MultFileSelection(FileSelection):
-    def __init__(self, action=Gtk.FileChooserAction.OPEN, buttons=None):
-        super(MultFileSelection, self).__init__(action=action)
-        self.buttons = buttons
 
-    def file_ok_sel(self, w, rsp):
-        # rsp == 0 => User pressed "Cancel"
-        # rsp == 1 => User pressed "Open" or "Save"
-        if rsp < 0:
-            val = None
-        else:
-            val = rsp
-
-        if w.get_select_multiple():
-            filepath = w.get_filenames()
-        else:
-            filepath = w.get_filename()
-        self.close(w)
-
-        return self.callfn(val, filepath)
-
-    def _create_widget(self, action):
-        # Create a new file selection widget
-        self.filew = Gtk.FileChooserDialog(title="Select file(s)",
-                                           action=action)
-        # See NOTE [1]
-        if self.buttons:
-            for button in self.buttons:
-                button_text, response_id = button
-                self.filew.add_buttons(button_text, response_id)
-        else:
-            if action == Gtk.FILE_CHOOSER_ACTION_SAVE:
-                self.filew.add_buttons(Gtk.STOCK_SAVE, 1, Gtk.STOCK_CANCEL, 0)
-            else:
-                self.filew.add_buttons(Gtk.STOCK_OPEN, 1, Gtk.STOCK_CANCEL, 0)
-        self.filew.set_default_response(1)
-
-        # Connect the ok_button to file_ok_sel method
-        self.filew.connect("response", self.file_ok_sel)
-
-    def popup(self, title, callfn, initialdir=None,
-              initialfile=None, multiple=True):
-        super(MultFileSelection, self).popup(title, callfn, initialdir=initialdir,
-                                             filename=initialfile)
-
-        if initialfile:
-            if self.action == Gtk.FileChooserAction.OPEN:
-                self.filew.set_filename(initialfile)
-            elif self.action == Gtk.FileChooserAction.SAVE:
-                self.filew.set_current_name(initialfile)
-
-        self.filew.set_select_multiple(multiple)
-
-class MyDialog(Gtk.Dialog):
+class MyDialog(Widgets.Dialog):
     def __init__(self, title=None, flags=None, buttons=None,
                  callback=None):
 
-        button_list = []
-        for name, val in buttons:
-            button_list.extend([name, val])
-
-        super(MyDialog, self).__init__(title=title, flags=flags,
-                                       buttons=tuple(button_list))
+        super().__init__(title=title, flags=flags, buttons=buttons)
         #self.w.connect("close", self.close)
         if callback:
-            self.connect("response", callback)
+            self.connect("activated", callback)
 
 
 class SearchReplace(object):
@@ -202,82 +129,72 @@ class SearchReplace(object):
         embed_dialogs = settings.get('embed_dialogs', False)
 
         if not embed_dialogs:
-            self.w = MyDialog(title=self.title,
-                              flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                              buttons=buttons,
-                              callback=callback)
+            self.w = MyDialog(title=self.title, flags=0,
+                              buttons=buttons, callback=callback)
         else:
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
-            self.w = common.view.create_dialog(name, name)
-            self.w.add_hook('close', lambda: common.view.lower_page_transient('dialogs'))
+            self.w = common.view.create_dialog(name, name, buttons=buttons,
+                                               callback=callback)
+            self.w.add_callback('close', lambda w: common.view.lower_page_transient('dialogs'))
             common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
-            self.w.add_buttons(buttons, callback)
 
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
+        cvbox.set_spacing(2)
 
-        lbl = Gtk.Label('Search string:')
-        lbl.show()
-        self.cvbox.pack_start(lbl, True, False, 0)
-        self._search_widget = Gtk.Entry()
+        lbl = Widgets.Label('Search string:')
+        self.cvbox.add_widget(lbl, stretch=0)
+        self._search_widget = Widgets.Entry()
         if self.what:
             self._search_widget.set_text(self.what)
-        self._search_widget.set_activates_default(True)
-        self._search_widget.show()
-        self.cvbox.pack_start(self._search_widget, True, True, 0)
+        #self._search_widget.set_activates_default(True)
+        self.cvbox.add_widget(self._search_widget, stretch=0)
 
-        lbl = Gtk.Label('Replacement string:')
-        lbl.show()
-        self.cvbox.pack_start(lbl, True, False, 0)
-        self._replace_widget = Gtk.Entry()
+        lbl = Widgets.Label('Replacement string:')
+        self.cvbox.add_widget(lbl, stretch=0)
+        self._replace_widget = Widgets.Entry()
         if self.replacement:
             self._replace_widget.set_text(self.replacement)
-        self._replace_widget.set_activates_default(True)
-        self._replace_widget.show()
-        self.cvbox.pack_start(self._replace_widget, True, True, 0)
+        #self._replace_widget.set_activates_default(True)
+        self.cvbox.add_widget(self._replace_widget, stretch=0)
 
-        self._case_sensitive = Gtk.CheckButton("Case sensitive")
-        self._case_sensitive.set_active(True)
+        self._case_sensitive = Widgets.CheckButton("Case sensitive")
+        self._case_sensitive.set_state(True)
         self._case_sensitive.set_sensitive(False)
-        self._case_sensitive.show()
-        self.cvbox.pack_start(self._case_sensitive, False, False, 0)
+        self.cvbox.add_widget(self._case_sensitive, stretch=0)
 
-        self._reverse = Gtk.CheckButton("Reverse")
-        self._reverse.show()
-        self.cvbox.pack_start(self._reverse, False, False, 0)
+        self._reverse = Widgets.CheckButton("Reverse")
+        self.cvbox.add_widget(self._reverse, stretch=0)
 
-        self._message = Gtk.Label('')
-        self._message.show()
-        self.cvbox.pack_start(self._message, True, True, 0)
+        self._message = Widgets.Label('')
+        self.cvbox.add_widget(self._message, stretch=0)
 
     def popup(self, callfn):
-        button_list = [['Close', 0], ['Replace', 1], ['Find', 2], ]
-        button_vals = ['close', 'replace', 'find']
+        button_list = [('Close', 0), ('Replace', 1), ('Find', 2)]
 
         def callback(w, rsp):
             if rsp < 0:
                 val = 'close'
             else:
                 val = button_list[rsp][0].lower()
-                #print("rsp=%d val=%s" % (rsp, val))
 
             if val == 'close':
                 self.close(w)
 
             return callfn(val)
 
-        self._create_widget(tuple(button_list), callback)
+        self._create_widget(button_list, callback)
         self.set_message("Search begins at cursor")
 
         self.w.show()
 
     def is_case_sensitive(self):
-        return self._case_sensitive.get_active()
+        return self._case_sensitive.get_state()
 
     def is_reverse_search(self):
-        return self._reverse.get_active()
+        return self._reverse.get_state()
 
     def get_search_text(self):
         self.what = self._search_widget.get_text()
@@ -320,27 +237,25 @@ class Confirmation(object):
             ## #self.w.connect("close", self.close)
             ## self.w.connect("response", callback)
             self.w = MyDialog(title=self.title,
-                              flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                              flags=0,
                               buttons=buttons,
                               callback=callback)
         else:
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
-            self.w = common.view.create_dialog(name, name)
-            self.w.add_hook('close', lambda: common.view.lower_page_transient('dialogs'))
+            self.w = common.view.create_dialog(name, name,
+                                               buttons=buttons,
+                                               callback=callback)
+            self.w.add_hook('close', lambda w: common.view.lower_page_transient('dialogs'))
             common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
-            self.w.add_buttons(buttons, callback)
 
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
-        tw = Gtk.TextView()
-        # TODO: parameterize this
-        pangoFont = Pango.FontDescription("Sans Bold 14")
-        tw.modify_font(pangoFont)
-        tw.set_editable(False)
-        tw.set_cursor_visible(False)
-        tw.set_size_request(425, -1)
+        tw = Widgets.TextView(editable=False)
+        tw.set_font("Sans Bold", 14)
+        #tw.set_cursor_visible(False)
+        #tw.resize(425, -1)
         tw.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         tw.set_left_margin(4)
         tw.set_right_margin(4)

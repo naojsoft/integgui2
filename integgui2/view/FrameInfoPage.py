@@ -2,183 +2,63 @@
 # E. Jeschke
 #
 
-import os, time
-
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
+from ginga.misc import Bunch
 
-from . import LogPage
-from . import common
-from . import Widgets as IGWidgets
-
-from g2base import Bunch
+from . import Page
 
 
-header = "FrameNo      State   Date_Obs     Ut       Exptime  ObsMode         Object          Disperser,Filters    [memo................]"
-
-# Format string used to pass information to IntegGUI
-format_str = "%(frameid)-12.12s %(status)5.5s  %(DATE-OBS)-10.10s %(UT-STR)-8.8s %(EXPTIME)10.10s  %(OBS-MOD)-15.15s %(OBJECT)-15.15s %(FILTERS)-20.20s %(MEMO)-s"
-
-frame_tags = [
-    ('A', 'normal', Bunch.Bunch(foreground='black', background='white')),
-    ('X', 'transfer', Bunch.Bunch(background='palegreen')),
-    ('R', 'received', Bunch.Bunch(foreground='dark green', background='white')),
-    ('RS', 'stars', Bunch.Bunch(foreground='blue2', background='white')),
-    ('RT', 'starstrans', Bunch.Bunch(foreground='darkgreen', background='white')),
-    ('RE', 'starserror', Bunch.Bunch(foreground='orange', background='white')),
-    ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow')),
-    ]
-
-
-class FrameInfoPage(LogPage.NotePage):
+class FrameInfoPage(Page.TablePage):
 
     def __init__(self, frame, name, title):
 
-        super(FrameInfoPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
-        self.header = header
-        self.format_str = format_str
+        # columns to be shown in the table
+        column_info = [dict(col_hdr="Frame ID", col_key='FRAMEID'),
+                       dict(col_hdr="State", col_key='status'),
+                       dict(col_hdr="Date Obs", col_key='DATE-OBS'),
+                       dict(col_hdr="UT", col_key='UT'),
+                       dict(col_hdr="Exp Time", col_key='EXPTIME'),
+                       dict(col_hdr="Obs Mode", col_key='OBS-MOD'),
+                       dict(col_hdr="Object", col_key='OBJECT'),
+                       dict(col_hdr="Filters", col_key='FILTERS'),
+                       dict(col_hdr="Memo", col_key='G_MEMO'),
+                       ]
+        self.set_column_info(column_info, sort_idx=0, nesting=1)
 
-        # bottom buttons
-        btns = self._get_side('right')
-
-#         self.btn_load = Widgets.Button("Load")
-#         self.btn_load.add_callback("activated", lambda w: self.load_frames())
-#         btns.add_widget(self.btn_load)
-
-#        menu = self.add_menu()
-#        self.add_close()
-
-        menu = self.add_pulldownmenu("Page")
-
-        # item = menu.add_name("Print")
-        # item.add_callback("activated", lambda w: self.print_journal())
+        # menu = self.add_pulldownmenu("Page")
 
         # For line coloring
-        self.colortbl = {}
-        for status, tag, bnch in frame_tags:
-            properties = {}
-            properties.update(bnch)
-            self.addtag(tag, **properties)
-
-            self.colortbl[status] = tag
-
-    def set_format(self, header, format_str):
-        self.header = header
-        self.format_str = format_str
+        self.colortbl = {
+            'A': Bunch.Bunch(foreground='black', background='white'),
+            'X': Bunch.Bunch(background='palegreen'),
+            'R': Bunch.Bunch(foreground='dark green', background='white'),
+            'RS': Bunch.Bunch(foreground='blue2', background='white'),
+            'RT': Bunch.Bunch(foreground='darkgreen', background='white'),
+            'RE': Bunch.Bunch(foreground='orange', background='white'),
+            'E': Bunch.Bunch(foreground='red', background='lightyellow'),
+        }
 
     def update_frame(self, frameinfo):
         self.logger.debug("update frame: %s" % str(frameinfo))
 
         frameid = frameinfo.frameid
         with self.lock:
-            text = self.format_str % frameinfo
+            self.update_internal(frameinfo)
 
-            # set tags according to content of message
             try:
-                tags = [ self.colortbl[frameinfo.status] ]
+                bnch = self.colortbl[frameinfo.status]
             except Exception as e:
-                self.logger.warn("Bad status in frameinfo: %s" % (str(e)))
-                tags = ['normal']
+                self.logger.warning("Bad status in frameinfo: %s" % (str(e)))
+                bnch = self.colortbl['A']
 
-            #print(tags, frameinfo)
-            if 'row' in frameinfo:
-                row = frameinfo.row
-                #common.update_line(self.buf, row, text)
-                common.update_line(self.buf, row, text, tags=tags)
-
-            else:
-                end = self.buf.get_end_iter()
-                frameinfo.row = end.get_line()
-
-                self.append(text+'\n', tags)
-
+            # TODO: update bg and or fg of row
 
     def update_frames(self, framelist):
 
         framelist = list(framelist)
         with self.lock:
-            # Delete frames text
-            start, end = self.buf.get_bounds()
-            self.buf.delete(start, end)
-
-            # Create header
-            self.append(self.header + '\n', [])
-            row = 1
-
             # add frames
             for frameinfo in framelist:
-                frameinfo.row = row
-                row += 1
                 self.update_frame(frameinfo)
-
-
-    def select_frame(self, w, evt):
-        with self.lock:
-            widget = self.tw.tw
-            win = Gtk.TextWindowType.TEXT
-            buf_x1, buf_y1 = widget.window_to_buffer_coords(win, evt.x, evt.y)
-            (startiter, coord) = widget.get_line_at_y(buf_y1)
-            (enditer, coord) = widget.get_line_at_y(buf_y1)
-            enditer.forward_to_line_end()
-            text = self.buf.get_text(startiter, enditer, True).strip()
-            frameno = text.split()[0]
-            line = startiter.get_line()
-            print("%d: %s" % (line, frameno))
-
-            #self._select_frames = [frameno]
-
-        return True
-
-
-    def load_frames(self):
-        if not self.buf.get_has_selection():
-            common.view.popup_error("No selection!")
-            return
-
-        # Get the range of text selected
-        first, last = self.buf.get_selection_bounds()
-        frow = first.get_line()
-        lrow = last.get_line()
-
-        # Clear the selection
-        self.buf.move_mark_by_name("insert", first)
-        self.buf.move_mark_by_name("selection_bound", first)
-
-        # Break selection into individual lines
-        frames = []
-
-        for i in range(int(lrow) + 1 - frow):
-
-            row = frow+i
-
-            first.set_line(row)
-            last.set_line(row)
-            last.forward_to_line_end()
-
-            # skip comments and blank lines
-            line = self.buf.get_text(first, last, True).strip()
-            if len(line) == 0:
-                continue
-
-            frameno = line.split()[0]
-            frames.append(frameno, [])
-
-        common.controller.load_frames(frames)
-
-    def clear(self):
-        super(FrameInfoPage, self).clear()
-
-        # Create header
-        self.append(self.header + '\n', [])
-
-    def save_journal(self):
-        homedir = os.path.join(os.environ['HOME'], 'Procedure')
-        filename = time.strftime("%Y%m%d-obs") + '.txt'
-
-        common.view.popup_save("Save frame journal", self._savefile,
-                               homedir, filename=filename)
-
-    def print_journal(self):
-        pass

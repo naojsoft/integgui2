@@ -2,8 +2,6 @@
 # E. Jeschke
 #
 
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
 
 from . import common

@@ -3,6 +3,7 @@
 #
 import os
 import threading
+from collections import OrderedDict
 
 from ginga.misc import Bunch, Callback
 from ginga.gw import Widgets
@@ -33,7 +34,7 @@ class Page(Callback.Callbacks):
         self.enable_callback('close')
 
     def close(self):
-        self.make_callbacks('close')
+        self.make_callback('close')
 
         # parent attribute is assigned by parent
         self.parent.delpage(self.name)
@@ -66,7 +67,7 @@ class ButtonPage(Page):
 
         # content area
         self.content = Widgets.VBox()
-        self.content.set_border_width(0)
+        self.content.set_border_width(2)
         self.content.set_spacing(0)
         frame.add_widget(self.content, stretch=1)
 
@@ -183,6 +184,66 @@ class CommandPage(ButtonPage):
         self.reset_pause()
 
 
+class TablePage(ButtonPage):
+    """Subclass for pages primarily showing a table."""
+
+    def __init__(self, frame, name, title):
+
+        super().__init__(frame, name, title)
+
+        self.table = Widgets.TreeView(auto_expand=True, sortable=True,
+                                      use_alt_row_color=False)
+
+        self.sort_hdr = None
+        self.sort_kwd = None
+
+        # columns to be shown in the table
+        self.rpt_columns = []
+        self.col_widths = []
+        self.column_info = []
+        self.rpt_dict = OrderedDict({})
+        # For row coloring
+        self.colortbl = {}
+
+        self.content.add_widget(self.table, stretch=1)
+
+    def set_column_info(self, spec_lst, sort_idx=0, nesting=1):
+        self.column_info = spec_lst
+        self.sort_kwd = spec_lst[0]['col_key']
+        self.sort_hdr = spec_lst[0]['col_hdr']
+        self.rpt_columns = []
+        self.col_widths = []
+        for dct in spec_lst:
+            self.rpt_columns.append((dct['col_hdr'], dct['col_key']))
+            self.col_widths.append(dct.get('col_width', None))
+
+        tv = self.table
+        tv.setup_table(self.rpt_columns, nesting, self.sort_kwd)
+
+        # set any specified column widths
+        tv.set_optimal_column_widths()
+        for i, wd in enumerate(self.col_widths):
+            if wd is None:
+                continue
+            tv.set_column_width(i, wd)
+
+    def update_internal(self, dct):
+        self.rpt_dict.update(dct)
+
+    def refresh(self, dct, expand_new=False):
+        self.table.update_tree(self.rpt_dict, expand_new=expand_new)
+
+    def color_row(self, key, fg='black', bg=None):
+        self.colortbl[key] = dict(fg=fg, bg=bg)
+        #self.table.set_path_background()
+        self.table.highlight_path(path, True, font_color=fg)
+
+    def clear(self):
+        self.colortbl = dict()
+        self.rpt_dict = OrderedDict({})
+        self.table.clear()
+
+
 class TextPage(Page):
     """Mixin class adding methods for text manipulation.
     """
@@ -237,21 +298,13 @@ class TextPage(Page):
         common.view.popup_save("Save selection as", _save,
                                dirpath, filename=filename)
 
-    def _savefile(self, filepath, iterbounds=None):
+    def _savefile(self, filepath, buf):
         """Save buffer to (filepath).  If the file exists, confirm whether
         to overwrite it.
         """
         def _save(res):
             if res != 'yes':
                 return
-
-            # get text to save
-            if iterbounds is not None:
-                start, end = iterbounds
-            else:
-                start, end = self.buf.get_bounds()
-
-            buf = self.buf.get_text(start, end, True)
 
             try:
                 with open(filepath, 'w') as out_f:
@@ -270,33 +323,21 @@ class TextPage(Page):
             _save('yes')
 
     def select_all(self):
-        start, end = self.buf.get_bounds()
-        self.buf.select_range(start, end)
+        common.select_all(self.tw)
 
     def select_clear(self):
-        common.clear_selection(self.tw.tw)
+        common.clear_selection(self.tw)
 
     def get_end_lineno(self):
-        loc = self.buf.get_end_iter()
-        return loc.get_line()
+        return common.get_end_lineno(self.tw)
 
     def scroll_to_lineno(self, lineno):
-        loc = self.buf.get_start_iter()
-        loc.set_line(lineno)
-        self.buf.move_mark(self.mark, loc)
-        #res = self.tw.tw.scroll_to_iter(loc, 0.5, False, 0.0, 0.0)
-        res = self.tw.tw.scroll_to_mark(self.mark, 0.2, True, 0.0, 0.0)
-        if not res:
-            res = self.tw.tw.scroll_mark_onscreen(self.mark)
-        #print("line->%d res=%s" % (lineno, res))
+        return common.scroll_to_lineno(self.tw, lineno)
 
     def scroll_to_end(self):
-        lineno = self.get_end_lineno()
-        self.scroll_to_lineno(lineno)
+        return common.scroll_to_end(self.tw)
 
     def focus_in(self, *args):
-        #print(args)
-        self.tw.tw.grab_focus()
-        return True
+        return common.focus_in(self.tw)
 
 #END

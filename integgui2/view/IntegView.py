@@ -9,11 +9,8 @@ import threading
 import queue as Queue
 import traceback
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-
 from ginga.gw import Widgets, GwMain, Desktop as GwDesktop
+from ginga.util.paths import icondir as ginga_icon_dir
 
 # SSD/Gen2 imports
 from ginga.misc import Bunch, Future
@@ -25,13 +22,7 @@ from . import Page as PG
 from . import Workspace as WS
 from . import dialogs
 from . import Widgets as IGWidgets
-
-# Parse our gtk resource file
-thisDir = os.path.split(sys.modules[__name__].__file__)[0]
-css_file = os.path.join(thisDir, "gtk_css")
-
-# Formatting string used to format History table
-fmt_history = "%(t_start)s  %(t_end)s  %(t_elapsed)7.7s %(result)s %(queue)8.8s  %(cmdstr)s"
+from ..version import __version__
 
 
 class IntegView(GwMain.GwMain, Widgets.Application):
@@ -39,7 +30,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def __init__(self, logger, preferences,
                  ev_quit, queues, logtype='normal'):
 
-        # Create the top level Gtk3 app
+        # Create the top level app
         Widgets.Application.__init__(self, logger=logger)
         GwMain.GwMain.__init__(self, logger=logger, ev_quit=ev_quit, app=self)
 
@@ -63,13 +54,12 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         self.prefs = preferences
         self.settings = self.prefs.create_category('default')
-        self.settings.set_defaults(
-            audible_errors = True,
-            suppress_confirm_exec = True,
-            embed_dialogs = False,
-            wrap_lines = False,
-            show_line_numbers = False,
-            clear_obs_info = True)
+        self.settings.set_defaults(audible_errors=True,
+                                   suppress_confirm_exec=True,
+                                   embed_dialogs=False,
+                                   wrap_lines=False,
+                                   show_line_numbers=False,
+                                   clear_obs_info=True)
 
         # This is the home directory for loading all kinds of files
         self.procdir = None
@@ -96,30 +86,14 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.w.root = root
         root.add_callback('close', self.confirm_close_cb)
 
-        root.set_title('Gen2 Integrated GUI II')
+        root.set_title(f"Gen2 Integrated GUI II v{__version__}")
         root.set_border_width(2)
-
-        # These are sometimes needed
-        screen = root.get_widget().get_screen()
-        self.display = screen.get_display()
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-
-        with open(css_file, 'r') as css_f:
-            css_data = css_f.read()
-
-        style_provider = Gtk.CssProvider()
-        style_provider.load_from_data(css_data.encode())
-
-        Gtk.StyleContext.add_provider_for_screen(
-            #Gdk.Screen.get_default(), style_provider,
-            screen, style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         # Add menubar and menus
         #self.add_menus()
 
         # Add popup dialogs
-        #self.add_dialogs()
+        self.add_dialogs()
 
         self.w.menubar = Widgets.Menubar()
         hbox = self.w['menu']
@@ -138,7 +112,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # Populate "Observation Journal" ws
         self.add_frameinfo(self.ojws)
         self.add_options(self.ojws)
-        #self.ojws.addpage('statmon', "StatMon", StatMonPage)
         self.ojws.select('frames')
 
         # Populate "Lower Middle" ws
@@ -146,25 +119,32 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                                           WorkspacePage.WorkspacePage)
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
-        self.add_queue(self.queuepage, 'default', create=False)
-        self.add_tagpage(self.lmws)
-        self.dialogs = self.lmws.addpage('dialogs', "Dialogs",
-                                         WorkspacePage.WorkspacePage)
+        if False:
+            self.add_queue(self.queuepage, 'default', create=False)
+            self.add_tagpage(self.lmws)
         self.lmws.select('queues')
 
-        # Populate "Observation Info" ws
+        self.dialogs = self.lmws.addpage('dialogs', "Dialogs",
+                                         WorkspacePage.WorkspacePage)
+
         self.add_obsinfo(self.oiws)
-        self.add_monitor(self.oiws)
+        if False:
+            # Populate "Observation Info" ws
+            self.add_monitor(self.oiws)
+
         self.logpage = self.oiws.addpage('loginfo', "Logs",
                                          WorkspacePage.WorkspacePage)
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
-        # Populate "Command Executors" ws
-        self.add_terminal(self.exws)
         self.new_source('command', self.exws, title='Commands')
 
-        self.add_dialogs()
+        if False:
+            # Populate "Command Executors" ws
+            self.add_terminal(self.exws)
+
+            self.add_dialogs()
+
         self.add_menus(self.w.menubar)
 
         self.w.root.show()
@@ -360,8 +340,137 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         item.add_callback('activated', lambda w: self.gui_create_workspace(ws.journals))
 
     def add_dialogs(self):
-        self.filesel = dialogs.FileSelection(action=Gtk.FileChooserAction.OPEN)
-        self.filesave = dialogs.FileSelection(action=Gtk.FileChooserAction.SAVE)
+        self.filesel = dict()
+
+        # OPE files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load OPE file")
+        f.set_directory(self.procdir)
+        f.clear_filters()
+        f.add_ext_filter("OPE files", ".ope")
+        self.filesel['ope'] = f
+
+        # Observation scripts
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load observation script (.sk file)")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter(".sk files", ".sk")
+        self.filesel['sk'] = f
+
+        # Python tasks
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load Python task (.py file)")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter(".py files", ".py")
+        self.filesel['task'] = f
+
+        # Folders
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load folder")
+        f.set_directory(self.procdir)
+        f.clear_filters()
+        self.filesel['folder'] = f
+
+        # .INF files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load INF file (.inf) for COMICS")
+        initialdir = os.path.join(os.environ['HOME'], 'Procedure',
+                                  'COMICS')
+        if not os.path.isdir(initialdir):
+            initialdir = self.procdir
+        f.set_directory(initialdir)
+        f.clear_filters()
+        f.add_ext_filter(".inf files", ".inf")
+        self.filesel['inf'] = f
+
+        # Ephemeris files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load ephemeris file")
+        f.set_directory(self.procdir)
+        f.clear_filters()
+        #f.add_ext_filter(".eph files", ".eph")
+        self.filesel['eph'] = f
+
+        # TSC non-sidereal tracking files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('files')
+        f.set_title("Load non-sidereal TSC-native tracking file(s)")
+        f.set_directory(self.procdir)
+        f.clear_filters()
+        f.add_ext_filter(".tsc files", ".tsc")
+        self.filesel['tsc'] = f
+
+        # Launcher source files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load launcher source file")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter("YAML files", ".yml")
+        self.filesel['launcher_source'] = f
+
+        # Handset source files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load handset source file")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter("YAML files", ".yml")
+        self.filesel['handset_source'] = f
+
+        # Launcher as non-source
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load launcher")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter("YAML files", ".yml")
+        self.filesel['launcher'] = f
+
+        # Handset as non-source
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Load handset")
+        f.set_directory(os.environ['OBSHOME'])
+        f.clear_filters()
+        f.add_ext_filter("YAML files", ".yml")
+        self.filesel['handset'] = f
+
+        # Log files
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title("Follow log")
+        initialdir = os.path.abspath(os.environ['LOGHOME'])
+        f.set_directory(initialdir)
+        f.clear_filters()
+        f.add_ext_filter("Log files", ".log")
+        self.filesel['log'] = f
+
+    def message_box(self, category, title, message, parent=None):
+        if parent is None:
+            parent = self.w.root
+
+        def callback(w, val):
+            self.remove_window(w)
+            w.delete()
+
+        warn = Widgets.MessageDialog(title=title, modal=False,
+                                     parent=parent,
+                                     buttons=[("Dismiss", 0)],
+                                     autoclose=False)
+        warn.set_message(category, message)
+        warn.add_callback('activated', callback)
+        warn.add_callback('close', lambda w: callback(w, 0))
+        self.add_window(warn)
+        warn.show()
 
     def add_statusbar(self):
         hbox = self.w['status']
@@ -373,7 +482,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         btns = IGWidgets.ButtonBox()
         btns.set_spacing(5)
 
-        self.btn_kill = Widgets.Label("Kill", style='clickable')
+        self.btn_kill = Widgets.Button("Kill")
         self.btn_kill.add_callback('activated', lambda w: self.kill())
         self.btn_kill.set_color(bg=common.launcher_colors['killbtn'])
 
@@ -416,65 +525,84 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         if pos:
             pass
 
-        #self.root.set_gravity(Gdk.GRAVITY_NORTH_WEST)
-        ##width, height = window.get_size()
-        ##window.move(Gdk.screen_width() - width, Gdk.screen_height() - height)
-        # self.root.move(x, y)
-
-
 #     def set_controller(self, controller):
 #         self.controller = controller
 
     def popup_error(self, errstr):
         self.logger.error(errstr)
-        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                              type=Gtk.MessageType.WARNING,
-                              buttons=Gtk.ButtonsType.OK,
-                              message_format=errstr)
-        #w.connect("close", self.close)
-        w.connect("response", lambda w, id: w.destroy())
-        w.set_title('IntegGUI Error')
-        w.show()
-
+        self.message_box('error', "IntegGUI Error", errstr)
 
     def popup_confirm(self, title, qstr, f_res, *args, **kwdargs):
-        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                              type=Gtk.MessageType.QUESTION,
-                              buttons=Gtk.ButtonsType.YES_NO,
-                              message_format=qstr)
-        w.set_title(title)
+        w = Widgets.MessageDialog(title=title, modal=False,
+                                  parent=self.w.root,
+                                  buttons=[("NO", 0), ("YES", 1)],
+                                  autoclose=False)
+        w.set_message('question', qstr)
 
         def f(w, rsp):
-            w.destroy()
-            res = 'no'
-            if rsp == Gtk.ResponseType.YES:
-                res = 'yes'
+            self.remove_window(w)
+            w.delete()
+            res = 'yes' if rsp == 1 else 'no'
             f_res(res, *args, **kwdargs)
 
-        w.connect("response", f)
+        w.add_callback("activated", f)
+        self.add_window(w)
         w.show()
 
     def popup_info(self, title, qstr):
-        w = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                              type=Gtk.MessageType.INFO,
-                              message_format=qstr)
-        w.set_title(title)
+        w = Widgets.MessageDialog(title=title, modal=False,
+                                  parent=self.w.root,
+                                  autoclose=False)
+        w.set_message('info', qstr)
+
+        def f(w, rsp):
+            self.remove_window(w)
+            w.delete()
+
+        w.add_callback('close', lambda w: f(w, 0))
+        w.add_callback('activated', f)
+        self.add_window(w)
         w.show()
-        return w
 
     def readfile(self, filepath):
-        in_f = open(filepath, 'r')
-        buf = in_f.read()
-        in_f.close()
-
+        with open(filepath, 'r') as in_f:
+            buf = in_f.read()
         return buf
 
+    # NOT USED?
     def popup_select(self, title, execfn, filedir):
-        self.filesel.popup(title, execfn, initialdir=filedir)
+        def callback(w, filepaths):
+            self.remove_window(w)
+            w.delete()
+            if len(filepaths) > 0:
+                execfn(filepaths[0])
+
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('file')
+        f.set_title(title)
+        f.set_directory(filedir)
+        f.clear_filters()
+        f.add_callback('activated', callback)
+        self.add_window(f)
+        f.popup()
 
     def popup_save(self, title, execfn, filedir, filename=None):
-        self.filesave.popup(title, execfn, initialdir=filedir,
-                            filename=filename)
+        def callback(w, filepaths):
+            self.remove_window(w)
+            w.delete()
+            if len(filepaths) > 0:
+                execfn(filepaths[0])
+
+        f = Widgets.FileDialog(parent=self.w.root)
+        f.set_mode('save')
+        f.set_title(title)
+        f.set_directory(filedir)
+        f.clear_filters()
+        if filename is not None:
+            f.set_filename(filename)
+        f.add_callback('activated', callback)
+        self.add_window(f)
+        f.popup()
 
     def add_terminal(self, workspace):
         try:
@@ -495,31 +623,31 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def gui_load_monlog(self, workspace):
 
         def pick_log(w, rsp, cbox, names):
-            logName = names[cbox.get_active()].strip()
-            w.hide()
-            if rsp == Gtk.ResponseType.OK:
+            self.remove_window(w)
+            logName = names[cbox.get_text()].strip()
+            w.delete()
+            if rsp == 1:
                 self.load_monlog(workspace, logName)
             return True
 
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   buttons=Gtk.ButtonsType.OK_CANCEL,
-                                   message_format="Select a log to view")
-        dialog.set_title("Choose Log")
-        # Add a combo box to the content area containing the names of the
-        # logs
+        dialog = Widgets.Dialog(title="Choose Log", flags=0,
+                                parent=self.w.root,
+                                buttons=[("Cancel", 0), ("Ok", 1)])
         vbox = dialog.get_content_area()
-        cbox = Gtk.ComboBoxText()
-        index = 0
+        vbox.set_border_width(4)
+        vbox.add_widget(Widgets.Label("Select a log to view"),
+                        stretch=0)
+        # Add a combo box to the content area containing the names of the
+        cbox = Widgets.ComboBox()
         names = list(common.controller.valid_monlogs)
         names.sort()
         for name in names:
-            cbox.insert_text(index, name)
-            index += 1
-        cbox.set_active(0)
-        vbox.add(cbox)
-        cbox.show()
-        dialog.connect("response", pick_log, cbox, names)
+            cbox.append_text(name)
+        cbox.set_index(0)
+        vbox.add_widget(cbox, stretch=0)
+        dialog.add_callback("activated", pick_log, cbox, names)
+        dialog.add_callback("close", 0, pick_log, cbox, names)
+        self.add_window(dialog)
         dialog.show()
         return True
 
@@ -546,11 +674,10 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
 
     def gui_load_log(self, workspace):
-        initialdir = os.path.abspath(os.environ['LOGHOME'])
-
-        self.filesel.popup("Follow log",
-                           lambda filepath: self.load_log(workspace, filepath),
-                           initialdir=initialdir)
+        f = self.filesel['log']
+        f.set_callback('activated',
+                       lambda filepaths: self.load_log(workspace, filepaths[0]))
+        f.popup()
 
     def load_log(self, workspace, filepath):
         try:
@@ -577,97 +704,82 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                     filepath, str(e)))
             return None
 
-
     def gui_load_ope(self, workspace):
-        #initialdir = os.path.join(os.environ['HOME'], 'Procedure')
-        initialdir = self.procdir
-        self.filesel.popup("Load OPE file",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              # ???!!!
-                                                              OpePage.OpePage),
-                           initialdir=initialdir)
+        f = self.filesel['ope']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                              filepaths[0],
+                                                              OpePage.OpePage))
+        f.popup()
 
     def gui_load_sk(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load skeleton file",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              SkPage),
-                           initialdir=initialdir)
+        f = self.filesel['sk']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                              filepaths[0],
+                                                              SkPage))
+        f.popup()
 
     def gui_load_task(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load python task",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              TaskPage),
-                           initialdir=initialdir)
+        f = self.filesel['task']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                              filepaths[0],
+                                                              TaskPage)),
+        f.popup()
 
     def gui_load_folder(self, workspace, pattern):
-        initialdir = self.procdir
-        self.filesel.popup("Load folder",
-                           lambda dirpath: self.load_folder(workspace,
-                                                             dirpath,
-                                                             pattern=pattern),
-                           initialdir=initialdir)
+        f = self.filesel['folder']
+        f.set_callback('activated',
+                       lambda w, dirpaths: self.load_folder(workspace,
+                                                            dirpaths[0],
+                                                            pattern=pattern))
+        f.popup()
 
     def gui_load_inf(self, workspace):
-        initialdir = os.path.join(os.environ['HOME'], 'Procedure',
-                                  'COMICS')
-
-        self.filesel.popup("Load inf file",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              InfPage),
-                           initialdir=initialdir)
+        f = self.filesel['inf']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                          filepaths[0],
+                                                          InfPage))
+        f.popup()
 
     def gui_load_ephem(self, workspace):
-        initialdir = self.procdir
-
-        self.filesel.popup("Load eph file",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
-                                                              EphemPage),
-                           initialdir=initialdir)
+        f = self.filesel['eph']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                          filepaths[0],
+                                                          EphemPage))
+        f.popup()
 
     def gui_load_tscTrack(self, workspace):
-        initialdir = self.procdir
+        f = self.filesel['eph']
         self.tsc_filepath = None
-        def callback(rsp, filepath):
-            if rsp == 1: # COPY button (not currently in use)
-                copyTSCTrackPage = self.add_tscTrackPage('CopyTSCTrackFile', None, filepath, True)
-                common.controller.ctl_do(copyTSCTrackPage.startCopy)
-            elif rsp == 2:
-                for filepath1 in filepath: # OPEN button
-                    self.load_generic(workspace, filepath1, TSCTrackPage)
 
-        dialog = dialogs.MultFileSelection(buttons=((Gtk.STOCK_OPEN, 2), (Gtk.STOCK_CANCEL, 0)))
-        dialog.popup('Select File(s):', callback, initialdir)
-
+        def callback(w, rsp, filepaths):
+            if rsp == 2:
+                for filepath in filepaths: # OPEN button
+                    self.load_generic(workspace, filepath, TSCTrackPage)
+        f.set_callback('activated', callback)
+        f.popup()
 
     def gui_load_launcher_source(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load launcher source",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
+        f = self.filesel['launcher_source']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                             filepaths[0],
                                                               # ???!!!
-                                                              CodePage.CodePage),
-                           initialdir=initialdir)
+                                                              CodePage.CodePage))
+        f.popup()
 
     def gui_load_handset_source(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load handset source",
-                           lambda filepath: self.load_generic(workspace,
-                                                              filepath,
+        f = self.filesel['handset_source']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_generic(workspace,
+                                                              filepaths[0],
                                                               # ???!!!
-                                                              CodePage.CodePage),
-                           initialdir=initialdir)
-
+                                                              CodePage.CodePage))
+        f.popup()
 
     def open_generic(self, workspace, buf, filepath, pageKlass,
                      title=None):
@@ -754,13 +866,11 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
 
     def gui_load_launcher(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load launcher",
-                           lambda filepath: self.load_launcher(workspace,
-                                                               filepath),
-                           initialdir=initialdir)
-
+        f = self.filesel['launcher']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_launcher(workspace,
+                                                               filepaths[0]))
+        f.popup()
 
     def load_launcher(self, workspace, filepath):
         try:
@@ -786,13 +896,11 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
 
     def gui_load_handset(self, workspace):
-        initialdir = os.environ['OBSHOME']
-
-        self.filesel.popup("Load handset",
-                           lambda filepath: self.load_handset(workspace,
-                                                              filepath),
-                           initialdir=initialdir)
-
+        f = self.filesel['handset']
+        f.set_callback('activated',
+                       lambda w, filepaths: self.load_handset(workspace,
+                                                              filepaths[0]))
+        f.popup()
 
     def load_handset(self, workspace, filepath):
         try:
@@ -843,18 +951,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def add_history(self, workspace):
         try:
-            page = workspace.addpage('history', "History", LogPage)
-            # TODO: add toggling of editing
-            page.set_editable(True)
-
-            # mark command errors
-            regexes = [
-                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sCN\s+'),
-                 ['cancel']),
-                (re.compile(r'^[\d:]+\s+[\d:]+\s+[\d\.s]+\sNG\s+'),
-                 ['error']),
-                ]
-            page.add_regexes(regexes)
+            page = workspace.addpage('history', "History", CommandHistoryPage)
 
             # Global side effect--for now we can only have one history page
             self.history = page
@@ -862,32 +959,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             return page
 
         except Exception as e:
-            self.popup_error("Cannot load history page: %s" % (
-                    str(e)))
+            self.popup_error(f"Cannot load history page: {e}")
             return None
-
-
-    ## def add_history(self, workspace):
-    ##     try:
-    ##         page = workspace.addpage('history', "History", TablePage.TablePage)
-    ##         columns = [("Time start", 't_start', 'text'),
-    ##                    ("Time stop", 't_end', 'text'),
-    ##                    ("Elapsed", 't_elapsed', 'text'),
-    ##                    ("TM Queue", 'queue', 'text'),
-    ##                    ("", 'icon', 'icon'),
-    ##                    ("Result", 'result', 'text'),
-    ##                    ("Command", 'cmdstr', 'text'),]
-    ##         page.set_columns(columns)
-
-    ##         # Global side effect--for now we can only have one history page
-    ##         self.history = page
-    ##         workspace.select(page.name)
-    ##         return page
-
-    ##     except Exception, e:
-    ##         self.popup_error("Cannot load history page: %s" % (
-    ##                 str(e)))
-    ##         return None
 
     def add_tagpage(self, workspace):
         try:
@@ -906,8 +979,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def add_frameinfo(self, workspace):
         try:
             page = workspace.addpage('frames', "Frames", FrameInfoPage)
-            # TODO: add toggling of editing
-            #page.set_editable(True)
 
             # Global side effect--for now we can only have one frame info page
             self.framepage = page
@@ -988,7 +1059,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         return res
 
     def get_ope_paths(self):
-        return self.get_file_paths_desktop(self.ds, regex='^.*\.(ope|OPE)$')
+        return self.get_file_paths_desktop(self.ds, regex=r'^.*\.(ope|OPE)$')
 
     def get_target_info(self):
         res_lst = []
@@ -1097,22 +1168,25 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def gui_create_queue(self, workspace):
 
         def create_queue_res(w, rsp, went):
-            queueName = went.get_text()
-            w.destroy()
+            self.remove_window(w)
+            queueName = went.get_text().strip()
+            w.delete()
             if rsp == 1:
                 self.add_queue(workspace, queueName)
             return True
 
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   message_format="Please enter a name for the new queue:")
-        dialog.set_title("Create Queue")
-        dialog.add_buttons("Ok", 1, "Cancel", 0)
+        dialog = Widgets.Dialog(title="Create Queue", flags=0,
+                                parent=self.w.root,
+                                buttons=[("Cancel", 0), ("Ok", 1)])
         vbox = dialog.get_content_area()
-        ent = Gtk.Entry()
-        vbox.add(ent)
-        ent.show()
-        dialog.connect("response", create_queue_res, ent)
+        vbox.set_border_width(4)
+        vbox.add_widget(Widgets.Label("Please enter a name for the new queue:"),
+                        stretch=0)
+        ent = Widgets.TextEntry(editable=True)
+        vbox.add_widget(ent, stretch=0)
+        dialog.add_callback("activated", create_queue_res, ent)
+        dialog.add_callback("close", lambda w: create_queue_res(w, 0, ent))
+        self.add_window(dialog)
         dialog.show()
 
     def add_queue(self, workspace, name, create=True):
@@ -1140,22 +1214,23 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def gui_create_workspace(self, workspace):
 
         def create_workspace_res(w, rsp, went):
+            self.remove_window(w)
             name = went.get_text()
-            w.destroy()
+            w.delete()
             if rsp == 1:
                 self.add_workspace(workspace, name)
             return True
 
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   message_format="Please enter a name for the new workspace:")
-        dialog.set_title("Create Workspace")
-        dialog.add_buttons("Ok", 1, "Cancel", 0)
+        dialog = Widgets.Dialog(title="Create Workspace",
+                                flags=0, buttons=[("Cancel", 0), ("Ok", 1)])
         vbox = dialog.get_content_area()
-        ent = Gtk.Entry()
-        vbox.add(ent)
-        ent.show()
-        dialog.connect("response", create_workspace_res, ent)
+        vbox.set_border_width(4)
+        vbox.add_widget(Widgets.Label("Please enter a name for the new workspace:"),
+                        stretch=0)
+        ent = Widgets.TextEntry(editable=True)
+        vbox.add_widget(ent, stretch=0)
+        dialog.add_callback("activated", create_workspace_res, ent)
+        self.add_window(dialog)
         dialog.show()
 
     def add_workspace(self, workspace, name):
@@ -1188,26 +1263,26 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def delete_event(self, widget, event, data=None):
         self.ev_quit.set()
-        #Gtk.main_quit()
         return False
 
     def confirm_close_cb(self, app):
         # confirm close with a dialog here
-        q_quit = Widgets.Dialog(title="Confirm Quit", modal=False,
-                                buttons=[("Cancel", False), ("Confirm", True)])
+        q_quit = Widgets.MessageDialog(title="Confirm Quit", modal=False,
+                                       buttons=[("Cancel", False), ("Confirm", True)],
+                                       autoclose=False)
         # necessary so it doesn't get garbage collected right away
         self.w.quit_dialog = q_quit
-        vbox = q_quit.get_content_area()
-        vbox.set_margins(4, 4, 4, 4)
-        vbox.add_widget(Widgets.Label("Do you really want to quit?"))
+        q_quit.set_message('question', "Do you really want to quit?")
         q_quit.add_callback('activated', self._confirm_quit_cb)
         q_quit.add_callback('close', lambda w: self._confirm_quit_cb(w, False))
+        self.add_window(q_quit)
         q_quit.show()
 
     def _confirm_quit_cb(self, w, tf):
+        self.remove_window(w)
         self.w.quit_dialog.delete()
         self.w.quit_dialog = None
-        if not isinstance(tf, int) or tf <= 0:
+        if not tf:
             return
 
         self.ev_quit.set()
@@ -1233,8 +1308,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     ############################################################
     # Interface from controller into the view
     #
-    # Due to poor thread-handling in gtk, we are forced to spawn
-    # these calls off to the GUI thread using gui_do()
     ############################################################
 
     def obs_timer(self, tag, title, iconfile, soundfn, time_sec, callfn):
@@ -1270,14 +1343,33 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                     tag=tag)
 
     def obs_fileselection(self, tag, title, callfn, initialdir=None, initialfile=None, multiple=True, button='open'):
-        if button.lower() == 'copy':
-            button = (Gtk.STOCK_COPY, 1)
-        elif button.lower() == 'ok':
-            button = (Gtk.STOCK_OK, 1)
-        else:
-            button = (Gtk.STOCK_OPEN, 1)
-        dialog = dialogs.MultFileSelection(buttons=(button, (Gtk.STOCK_CANCEL, 0)))
-        dialog.popup(title, callfn, initialdir, initialfile, multiple)
+        # if button.lower() == 'copy':
+        #     button = "Copy"
+        # elif button.lower() == 'ok':
+        #     button = "Ok"
+        # else:
+        #     button = "Open"
+        # Handset as non-source
+
+        def callback(w, filepaths):
+            self.remove_window(w)
+            w.delete()
+            if len(filepaths) > 0:
+                if multiple:
+                    callfn(filepaths)
+                else:
+                    callfn(filepaths[0])
+
+        dialog = Widgets.FileDialog(parent=self.w.root, title=title)
+        dialog.set_mode('files' if multiple else 'file')
+        dialog.set_title(title)
+        if initialdir is not None:
+            dialog.set_directory(initialdir)
+        if initialfile is not None:
+            dialog.set_file(initialfile)
+        dialog.add_callback('activated', callback)
+        self.add_window(dialog)
+        dialog.popup()
 
     def add_tscTrackPage(self, title, callfn, fileSelectionPath, checkFormat):
         # See if we already have a page with the specified title. If
@@ -1313,11 +1405,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         if hasattr(self, 'framepage'):
             self.gui_do(self.framepage.update_frames, framelist)
 
-    # TODO: get rid of this
-    def set_format(self, header, format_str):
-        if hasattr(self, 'framepage'):
-            self.gui_do(self.framepage.set_format, header, format_str)
-
     def update_obsinfo(self, infodict):
         self.logger.debug("OBSINFO=%s" % str(infodict))
         if hasattr(self, 'obsinfo'):
@@ -1326,7 +1413,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_history(self, key, info):
         if hasattr(self, 'history'):
             #self.gui_do(self.history.update_table, key, info)
-            #print("INFO IS", info)
             msgstr = fmt_history % info
             self.gui_do(self.history.push, msgstr)
 
@@ -1358,20 +1444,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_statusMsg(self, format, *args):
         self.gui_do(self.statusMsg, format, *args)
 
-    # def gui_do(self, method, *args, **kwdargs):
-    #     """General method for calling into the GUI.
-    #     """
-    #     #gobject.idle_add(method, *args, **kwdargs)
-    #     future = Future.Future()
-    #     future.freeze(method, *args, **kwdargs)
-    #     self.gui_queue.put(future)
-    #     return future
-
-    # def gui_do_future(self, future):
-    #     """General method for calling into the GUI.
-    #     """
-    #     self.gui_queue.put(future)
-
     def gui_do_res(self, method, *args, **kwdargs):
         """General method for calling into the GUI.
         """
@@ -1380,89 +1452,5 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.assert_nongui_thread()
 
         return self.gui_do(method, *args, **kwdargs)
-
-    # def assert_gui_thread(self):
-    #     my_id = threading.get_ident()
-    #     assert my_id == self.gui_thread_id, \
-    #            Exception("Non-GUI thread (%d) is executing GUI code!" % (
-    #         my_id))
-
-    # def assert_nongui_thread(self):
-    #     my_id = threading.get_ident()
-    #     assert my_id != self.gui_thread_id, \
-    #            Exception("GUI thread (%d) is executing non-GUI code!" % (
-    #         my_id))
-
-
-    # def update_pending(self, timeout=0.0):
-
-    #     # Process "out-of-band" GTK events
-    #     #print("PROCESSING OUT-BAND")
-    #     #Gdk.threads_enter()
-    #     try:
-    #         while Gtk.events_pending():
-    #             Gtk.main_iteration()
-    #     finally:
-    #         #Gdk.threads_leave()
-    #         pass
-
-    #     done = False
-    #     while not done:
-    #         #print("PROCESSING IN-BAND")
-    #         # Process "in-band" GTK events
-    #         try:
-    #             future = self.gui_queue.get(block=True,
-    #                                         timeout=timeout)
-
-    #             # Execute the GUI method
-    #             #Gdk.threads_enter()
-    #             try:
-    #                 try:
-    #                     res = future.thaw(suppress_exception=False)
-
-    #                 except Exception as e:
-    #                     future.resolve(e)
-
-    #                     self.logger.error("gui error: %s" % str(e))
-    #                     try:
-    #                         (type, value, tb) = sys.exc_info()
-    #                         tb_str = "".join(traceback.format_tb(tb))
-    #                         self.logger.error("Traceback:\n%s" % (tb_str))
-
-    #                     except Exception as e:
-    #                         self.logger.error("Traceback information unavailable.")
-
-    #             finally:
-    #                 #Gdk.threads_leave()
-    #                 pass
-
-
-    #         except Queue.Empty:
-    #             done = True
-
-    #         except Exception as e:
-    #             self.logger.error("Main GUI loop error: %s" % str(e))
-    #             #pass
-
-    #         # Process "out-of-band" GTK events
-    #         #print("PROCESSING OUT-BAND")
-    #         #Gdk.threads_enter()
-    #         try:
-    #             while Gtk.events_pending():
-    #                 Gtk.main_iteration()
-    #         finally:
-    #             #Gdk.threads_leave()
-    #             pass
-
-
-    # def mainloop(self, timeout=0.001):
-    #     # Mark our thread id
-    #     self.gui_thread_id = threading.get_ident()
-
-    #     while not self.ev_quit.isSet():
-    #         self.update_pending(timeout=timeout)
-
-    #     #Gtk.main_quit()
-
 
 #END
