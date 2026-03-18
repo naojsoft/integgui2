@@ -135,28 +135,10 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def loadbuf(self, buftxt):
 
-        # "cleanse" text--delete invisible chars that are sometimes
-        # mistakenly inserted by users
-        res = []
-        lines = buftxt.split('\n')
-        for line in lines:
-            # Lines beginning with a comment character (#) are left as is
-            if line.strip().startswith('#'):
-                res.append(line)
-                continue
-
-            # Other lines are considered "code": we remove all characters
-            # except ASCII printable ones
-            btxt = line.encode('utf-8')
-            btxt = btxt.translate(self.transtbl, self.deletechars)
-            # translate tabs to 8 spaces
-            btxt = btxt.replace(b'\t', b' ' * 8)
-            line = btxt.decode()
-
-            res.append(line)
-
-        buftxt = '\n'.join(res)
-        res = []
+        if isinstance(buftxt, bytes):
+            buftxt = buftxt.encode('utf-8')
+        # change tabs to spaces
+        buftxt = buftxt.replace('\t', ' ' * 8)
 
         self.buf.begin_not_undoable_action()
 
