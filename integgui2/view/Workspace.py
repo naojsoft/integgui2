@@ -174,6 +174,10 @@ class Workspace(object):
             # select the new page
             self.select(name)
 
+            # let the page object know that everything is set up for it
+            if hasattr(pageobj, 'initialize_page'):
+                pageobj.initialize_page()
+
             return pageobj
 
 

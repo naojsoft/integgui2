@@ -14,6 +14,8 @@ gi.require_version('GtkSource', '3.0')
 from gi.repository import GtkSource
 
 import oscript.parse.ope as ope
+from oscript.parse import sk_lexer
+from oscript.parse.sk_parser import opeParser
 
 from . import common
 from . import Page, CodePage
@@ -209,6 +211,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # option variables
         self.add_frozen = False
 
+
+    def initialize_page(self):
+        # create OPE command parser to check commands
+        # see method getCmd()
+        self.cmd_lexer = sk_lexer.skScanner(logger=self.logger, debug=False,
+                                            lextab='scan_tab')
+        self.cmd_parser = opeParser(self.cmd_lexer, logger=self.logger)
+
+        self.cmd_parser.build()
 
     def toggle_var(self, widget, key):
         if widget.get_active():
@@ -671,7 +682,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         return False
 
-
     def process_cmdstr(self, txtbuf, cmdstr):
         cmdstr = cmdstr.strip()
 
@@ -686,10 +696,20 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             p_cmdstr = ope.getCmd(txtbuf, cmdstr, include_dirs)
             self.logger.debug("Processed command is: %s" % p_cmdstr)
 
+            # parse the command with the OPE command parser
+            # this should catch any non-ASCII characters outside of
+            # comments or strings
+            self.cmd_parser.reset()
+            (errors, ast, errinfo) = self.cmd_parser.parse_opecmd(p_cmdstr)
+            if errors > 0:
+                errmsg = errinfo[0].errstr
+                raise ValueError(errmsg)
+
             return p_cmdstr
 
         except Exception as e:
             errstr = "Error parsing command: %s" % (str(e))
+            self.logger.error(errstr)
             raise Exception(errstr)
 
 
