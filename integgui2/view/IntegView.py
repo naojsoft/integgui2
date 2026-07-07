@@ -348,7 +348,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         f.set_title("Load OPE file")
         f.set_directory(self.procdir)
         f.clear_filters()
-        f.add_ext_filter("OPE files", ".ope")
+        # OPE and CD files are both loaded as OpePage (and colored the same)
+        f.add_ext_filter("OPE/CD files", ".ope")
+        f.add_ext_filter("OPE/CD files", ".cd")
         self.filesel['ope'] = f
 
         # Observation scripts
