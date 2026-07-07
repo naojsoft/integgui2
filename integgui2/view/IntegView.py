@@ -1412,9 +1412,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def update_history(self, key, info):
         if hasattr(self, 'history'):
-            #self.gui_do(self.history.update_table, key, info)
-            msgstr = fmt_history % info
-            self.gui_do(self.history.push, msgstr)
+            self.gui_do(self.history.update_command, info)
 
 
     def update_loginfo(self, logname, infodict):

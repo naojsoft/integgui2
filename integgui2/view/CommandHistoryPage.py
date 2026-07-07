@@ -1,48 +1,70 @@
 #
 # E. Jeschke
 #
+import os, time
 
-from ginga.gw import Widgets
 from ginga.misc import Bunch
 
-from . import Page
+from . import LogPage
+from . import common
 
 
-class CommandHistoryPage(Page.TablePage):
+header = "Start     End       Elapsed   Res  Queue     Command"
+
+# Format string used to render a command-history line.  The info dict comes
+# from controller.log_history (t_start, t_end, t_elapsed, queue, result,
+# cmdstr).
+format_str = "%(t_start)-8.8s  %(t_end)-8.8s  %(t_elapsed)8.8s  %(result)-3.3s  %(queue)-8.8s  %(cmdstr)s"
+
+# result code -> color attributes
+history_tags = [
+    ('OK', Bunch.Bunch(foreground='black')),
+    ('CN', Bunch.Bunch(foreground='orange3')),
+    ('NG', Bunch.Bunch(foreground='red', background='lightyellow')),
+    ]
+
+
+class CommandHistoryPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
 
-        super().__init__(frame, name, title)
+        super(CommandHistoryPage, self).__init__(frame, name, title)
 
-        # columns to be shown in the table
-        column_info = [dict(col_hdr="Start Time", col_key='start_time'),
-                       dict(col_hdr="End Time", col_key='end_time'),
-                       dict(col_hdr="Elapsed", col_key='elapsed'),
-                       dict(col_hdr="Result", col_key='result'),
-                       dict(col_hdr="Source", col_key='source'),
-                       dict(col_hdr="Command", col_key='cmd_str'),
-                       ]
-        self.set_column_info(column_info, sort_idx=0, nesting=1)
+        self.header = header
+        self.format_str = format_str
 
         menu = self.add_pulldownmenu("Page")
+        item = menu.add_name("Save history ...")
+        item.add_callback("activated", lambda w: self.save_history())
 
-        # For line coloring
-        self.colortbl = {
-            'OK': Bunch.Bunch(foreground='black'),
-            'CN': Bunch.Bunch(foreground='darkyellow'),
-            'NG': Bunch.Bunch(foreground='orangered'),
-        }
+        # For line coloring: result code -> tag name (same as the code)
+        self.colortbl = {}
+        for status, bnch in history_tags:
+            self.addtag(status, **dict(bnch))
+            self.colortbl[status] = status
 
-    def update_command(self, cmdinfo):
-        self.logger.debug("update command: %s" % str(cmdinfo))
+        self.clear()
+
+    def update_command(self, info):
+        self.logger.debug("update command: %s" % str(info))
 
         with self.lock:
-            self.update_internal(cmdinfo)
+            text = self.format_str % info
 
-            try:
-                bnch = self.colortbl[cmdinfo.result]
-            except Exception as e:
-                self.logger.warning("Bad result in cmdinfo: %s" % (str(e)))
-                bnch = self.colortbl['A']
+            tag = self.colortbl.get(info.get('result'), 'OK')
+            self.append(text + '\n', [tag])
 
-            # TODO: update bg and or fg of row
+    def clear(self):
+        super(CommandHistoryPage, self).clear()
+
+        # Re-create the header
+        self.append(self.header + '\n', [])
+
+    def save_history(self):
+        homedir = os.path.join(os.environ['HOME'], 'Procedure')
+        filename = time.strftime("%Y%m%d-history") + '.txt'
+
+        common.view.popup_save("Save command history", self._savefile,
+                               homedir, filename=filename)
+
+#END

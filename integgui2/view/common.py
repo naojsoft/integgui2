@@ -214,6 +214,21 @@ def get_end_lineno(tw):
     """Return the line number of the last line in the buffer."""
     return tw.get_end_lineno()
 
+
+def update_line(tw, row, text, tags=None):
+    """Replace the contents of line ``row`` (0-based) with ``text``,
+    optionally applying ``tags``.  If ``row`` is past the last line the
+    buffer is first padded with blank lines.
+    """
+    end_line = tw.get_end_lineno()
+    if row > end_line:
+        end = tw.get_ref_end()
+        tw.insert_text(end, '\n' * (row - end_line))
+    start = tw.get_ref_line_start(row)
+    stop = tw.get_ref_line_end(row)
+    tw.delete_range(start, stop)
+    tw.insert_text(start, text, tags=tags)
+
 def modify_bg(widget, color):
     # NOTE: there is a hard-coded hack here to force the background color
     # under hover status, because it seems to get reset if we just change
