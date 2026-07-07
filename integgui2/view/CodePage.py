@@ -45,7 +45,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #w.set_label_align(0.1, 0.5)
 
         # Create the widgets for the code file text
-        tw = IGWidgets.NumberedTextArea(wrap=False, editable=True)
+        tw = IGWidgets.TextSource(wrap=False, editable=True)
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)
@@ -54,7 +54,9 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         self.tw = tw
 
         self.sr = dialogs.SearchReplace("Find and/or Replace")
-        #self.buf.connect('mark-set', self.place_cursor_cb)
+        # Offset in the buffer from which the next find continues.  Replaces
+        # the old GTK "searchmark".
+        self._search_offset = 0
 
         self.border.set_widget(tw)
 
@@ -228,87 +230,64 @@ class CodePage(Page.ButtonPage, Page.TextPage):
             return True
 
         if response == 'replace':
-            if not self.buf.get_has_selection():
+            if not self.tw.has_selection():
                 # No selection.
                 dialog.set_message("NO SELECTION")
                 return True
 
-            try:
-                start, end = self.buf.get_selection_bounds()
-            except ValueError:
+            bounds = self.tw.get_selection_bounds()
+            if bounds is None:
                 dialog.set_message("ERROR SELECTION?")
                 return True
+            start, end = bounds
 
             # TODO: how to force increments of undoable actions?
-            self.buf.delete(start, end)
-            self.buf.insert(start, dialog.get_replace_text())
+            self.tw.delete_range(start, end)
+            self.tw.insert_text(start, dialog.get_replace_text())
 
             # Clear the selection
             common.clear_selection(self.tw)
 
             return True
 
-        reverse = dialog.is_reverse_search()
-        if dialog.is_case_sensitive():
-            search_flags = Gtk.TextSearchFlags.CASE_INSENSITIVE
-        else:
-            search_flags = 0
+        # response == 'find'
+        query = dialog.get_search_text()
+        if not query:
+            dialog.set_message("PLEASE ENTER SEARCH TEXT")
+            return True
 
-        i = self.buf.get_iter_at_mark(self.searchmark)
-        if i == None:
-            dialog.set_message("PLEASE PLACE CURSOR")
-            return
-        dialog.set_message("Search begins in line %d" % (
-            i.get_line()))
+        reverse = dialog.is_reverse_search()
+        # The "Case sensitive" checkbox drives case sensitivity directly.
+        case_insensitive = not dialog.is_case_sensitive()
+
+        # Collect all matches once; direction and wrap-around are chosen
+        # relative to the running search offset.  (The unified text widget
+        # has no native reverse search, so we drive it from find_all.)
+        matches = self.tw.find_all(query, case_insensitive=case_insensitive)
+        if not matches:
+            dialog.set_message("NO INSTANCES FOUND")
+            return True
+
+        pos = self._search_offset
+        spans = [(s.get_offset(), e.get_offset(), s, e) for (s, e) in matches]
 
         if reverse:
-            searched = i.backward_search(dialog.get_search_text(),
-                                        search_flags, None)
+            # last match ending at or before the current position, else wrap
+            candidates = [t for t in spans if t[1] <= pos]
+            chosen = candidates[-1] if candidates else spans[-1]
         else:
-            searched = i.forward_search(dialog.get_search_text(),
-                                        search_flags, None)
-        if searched:
-            dialog.set_message("Found string")
-            start, end = searched
-            self.buf.select_range(start, end)
-            self.scroll_to_lineno(start.get_line())
-            if reverse:
-                self.buf.move_mark(self.searchmark, start)
-            else:
-                self.buf.move_mark(self.searchmark, end)
+            # first match starting at or after the current position, else wrap
+            candidates = [t for t in spans if t[0] >= pos]
+            chosen = candidates[0] if candidates else spans[0]
 
-        else:
-            end = i
-            if reverse:
-                i = self.buf.get_end_iter()
-                searched = i.backward_search(dialog.get_search_text(),
-                                            search_flags, end)
-            else:
-                i = self.buf.get_start_iter()
-                searched = i.forward_search(dialog.get_search_text(),
-                                            search_flags, end)
-            if searched:
-                dialog.set_message("Found string")
-                start, end = searched
-                self.buf.select_range(start, end)
-                self.scroll_to_lineno(start.get_line())
-                if reverse:
-                    self.buf.move_mark(self.searchmark, start)
-                else:
-                    self.buf.move_mark(self.searchmark, end)
-
-            else:
-                dialog.set_message("NO MORE INSTANCES FOUND")
+        start_off, end_off, start_ref, end_ref = chosen
+        self.tw.set_selection_range(start_ref, end_ref)
+        self.scroll_to_lineno(start_ref.get_line())
+        # Advance the search position so the next find moves on.
+        self._search_offset = start_off if reverse else end_off
+        dialog.set_message("Found in line %d" % (start_ref.get_line() + 1))
+        return True
 
     def find(self):
-        loc = self.buf.get_iter_at_mark(self.buf.get_insert())
-        if not loc:
-            loc = self.buf.get_start_iter()
-        self.buf.move_mark(self.searchmark, loc)
-
+        self._search_offset = self.tw.get_cursor().get_offset()
         self.sr.popup(self._find)
-
-    def place_cursor_cb(self, buf, loc, mark):
-        if mark == buf.get_insert():
-            self.buf.move_mark(self.searchmark, loc)
-        return False

@@ -10,6 +10,7 @@ import os.path
 
 from . import common
 from . import Page
+from . import Widgets as IGWidgets
 
 
 class NotePage(Page.ButtonPage, Page.TextPage):
@@ -27,7 +28,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
         self.lock = threading.RLock()
 
-        tw = Widgets.TextArea()
+        tw = IGWidgets.TextSource()
         self.tw = tw
 
         self.content.add_widget(tw, stretch=1)
@@ -64,44 +65,45 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
     def addtag(self, name, **properties):
         try:
-            self.buf.create_tag(name, **properties)
+            self.tw.create_tag(name, **properties)
         except:
             # tag may already exist--that's ok
             pass
 
     def clear(self):
-        start, end = self.buf.get_bounds()
-        self.buf.delete(start, end)
+        start, end = self.tw.get_ref_bounds()
+        self.tw.delete_range(start, end)
 
     def _cull(self):
         if self.logsize:
-            end = self.buf.get_end_iter()
+            end = self.tw.get_ref_end()
             excess_lines = end.get_line() - self.logsize
             if excess_lines > 0:
-                bitr1 = self.buf.get_start_iter()
+                bitr1 = self.tw.get_ref_start()
                 bitr2 = bitr1.copy()
                 bitr2.set_line(excess_lines)
-                self.buf.delete(bitr1, bitr2)
+                self.tw.delete_range(bitr1, bitr2)
 
     def append(self, data, tags):
-        end = self.buf.get_end_iter()
+        end = self.tw.get_ref_end()
         if not tags:
             tags = ['normal']
 
         try:
-            self.buf.insert_with_tags_by_name(end, data, *tags)
+            self.tw.insert_text(end, data, tags=tags)
 
         except Exception as e:
             tags = ['error']
             data = "--DATA COULD NOT BE INSERTED--: %s" % (str(e))
-            self.buf.insert_with_tags_by_name(end, data, *tags)
+            self.tw.insert_text(end, data, tags=tags)
 
         # Remove some old log lines if necessary
         self._cull()
 
         # Auto scroll to end of buffer
         if self.autoscroll:
-            self.scroll_to_end()
+            end = self.tw.get_ref_end()
+            self.tw.scroll_to_ref(end)
 
     def save_log_as(self):
         homedir = os.path.join(os.environ['HOME'], 'Procedure')
@@ -202,7 +204,7 @@ class LogPage(NotePage):
         except IOError as e:
             pass
 
-        GObject.timeout_add(self.poll_interval, self.poll)
+        #GObject.timeout_add(self.poll_interval, self.poll)
 
 
 class MonLogPage(LogPage):

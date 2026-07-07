@@ -12,7 +12,6 @@ import oscript.parse.ope as ope
 from . import common
 from . import Page, CodePage
 from . import CommandObject
-from .syntax.ope_syntax import OPEHighlighter
 
 thisDir = os.path.split(sys.modules[__name__].__file__)[0]
 icondir = os.path.abspath(os.path.join(thisDir, "..", "icons"))
@@ -86,7 +85,10 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.enable_line_icons(True)
         # TODO
         #self.tw.set_insert_spaces_instead_of_tabs(True)
-        self.tw.set_syntax_highlighter_class(OPEHighlighter)
+        # NOTE: syntax highlighting is done by color(), which applies the
+        # same tag-table tags used for execution marking (see decorative_tags
+        # in common).  This keeps syntax coloring and command tags in one
+        # model so they compose instead of fighting a separate highlighter.
 
         # add marker pixbufs
         # pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
@@ -131,6 +133,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_pause.add_callback("activated", self.toggle_pause)
         self.leftbtns.add_widget(self.btn_pause)
 
+        # Exec/Append/Prepend act on the current selection, so disable them
+        # whenever there is no selection.  Selection changes arrive via the
+        # text widget's 'cursor_moved' callback.
+        self.tw.add_callback('cursor_moved',
+                             lambda w: self._update_button_states())
+        self._update_button_states()
+
         # Add items to the menu
         menu = self.add_pulldownmenu("Buffer")
 
@@ -170,6 +179,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def toggle_var(self, tf, key):
         self.__dict__[key] = tf
 
+    def _update_button_states(self):
+        """Enable Exec/Append/Prepend only when there is a selection."""
+        tf = self.tw.has_selection()
+        self.btn_exec.set_enabled(tf)
+        self.btn_append.set_enabled(tf)
+        self.btn_prepend.set_enabled(tf)
+
     def build_dialog(self, title, text, func):
         dialog = Widgets.MessageDialog(title=title, autoclose=True)
         dialog.add_callback('activated', func)
@@ -183,7 +199,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def _reload(self):
         super(OpePage, self).reload()
         self.cond_color()
-        common.remove_all_marks(self.buf)
+        common.remove_all_marks(self.tw)
 
     def reload(self):
         if not self.reload_check():
@@ -291,10 +307,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         defined in our buffer."""
         # TODO: can we improve the efficiency of this?
         res = []
-        tagtbl = self.buf.get_tag_table()
         num = 0
         for tagname in taglist:
-            if tagtbl.lookup(tagname) != None:
+            if self.tw.has_tag(tagname):
                 res.append(tagname)
         return res
 
@@ -333,8 +348,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # check the file
             self.logger.debug("Parsing OPE file.")
             res = ope.check_ope(buf, include_dirs=include_dirs)
-            hl = self.tw.get_syntax_highlighter()
-            hl.set_defined_vars(res.refset)
 
             if len(res.prm_errmsg_list) > 0:
                 errmsg = '\n'.join(res.prm_errmsg_list)
@@ -347,7 +360,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # store away our variable dictionary for future reference
             self.varDict = res.vardict
 
-            tagtbl = self.buf.get_tag_table()
             tags = common.decorative_tags + common.execution_tags
 
             if eraseall:
@@ -365,10 +377,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             # remove decorative tags
             for tag, bnch in removetags:
-                gtktag = tagtbl.lookup(tag)
                 try:
-                    if gtktag:
-                        self.buf.remove_tag_by_name(tag, start, end)
+                    if self.tw.has_tag(tag):
+                        self.tw.remove_tag_def(tag)
                 except Exception:
                     # tag may not exist--that's ok
                     pass
@@ -378,7 +389,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 properties = {}
                 properties.update(bnch)
                 try:
-                    self.buf.create_tag(tag, **properties)
+                    self.tw.create_tag(tag, **properties)
                 except Exception:
                     # tag may already exist--that's ok
                     pass
@@ -389,19 +400,40 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                     # tag may already exist--that's ok
                     pass
 
-            # Update the tag coloring and the tag list
+            # Update the tag coloring and the tag list.  Syntax highlighting
+            # is done entirely through the tag table (the same mechanism used
+            # for execution marking), driven by the OPE parser results.
             self.logger.debug("Coloring tags.")
+            start, end = self.tw.get_ref_bounds()
+
+            # Line-level tags (comment1/comment2/comment3) applied to the
+            # whole line.
             for bnch in res.taglist:
                 lineno = bnch.lineno - 1
                 # apply desired tags to entire line in main text buffer
                 start.set_line(lineno)
                 end.set_line(lineno)
-                end.forward_to_line_end()
+                end.to_line_end()
 
                 for tag in bnch.tags:
-                    self.buf.apply_tag_by_name(tag, start, end)
+                    self.tw.apply_tag(tag, start, end)
 
                 tagpage.add_mapping(lineno, bnch.text, bnch.tags)
+
+            # Character-level tags for variable references: 'varref' for every
+            # $VAR, plus 'badref' overlaid where the reference is undefined.
+            # bnch.start/bnch.end are column offsets within the line.
+            self.logger.debug("Coloring refs.")
+            for bnch in res.reflist:
+                lineno = bnch.lineno - 1
+                start.set_line(lineno)
+                base = start.get_offset()
+                start.set_offset(base + bnch.start)
+                end.set_offset(base + bnch.end)
+
+                self.tw.apply_tag('varref', start, end)
+                if bnch.varref in res.badset:
+                    self.tw.apply_tag('badref', start, end)
 
             self.logger.debug("Summarizing.")
             common.view.statusMsg('')
@@ -468,31 +500,31 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def focus_out(self, w, evt):
         self.logger.info("lost focus!")
-        try:
-            first, last = self.buf.get_selection_bounds()
-            self.buf.apply_tag_by_name('savedselection', first, last)
-        except ValueError:
-            print("Error getting selection--no selection?")
+        bounds = self.tw.get_selection_bounds()
+        if bounds is not None:
+            self.tw.create_tag('savedselection', background='pink')
+            self.tw.apply_tag('savedselection', *bounds)
         return False
 
     def current(self):
         """Scroll to the current position in the buffer.  The current
-        poistion is determined by the first tag found, otherwise it
-        just scrolls to the mark position.
+        position is determined by the execution mark (if any), otherwise
+        by the first execution-related tag found.
         """
 
-        # Try to find a mark ('executing' or 'error') and scroll to it
-        start, end = self.buf.get_bounds()
-        res = self.buf.forward_iter_to_source_mark(start, None)
-        if res:
-            self.scroll_to_lineno(start.get_line())
-            return
+        # Try to find the execution mark ('executing' or 'error') and
+        # scroll to it.  These are anchored by named refs (see
+        # OpeCommandObject._set_exec_mark).
+        for name in ('executing', 'error'):
+            ref = self.tw.get_named_ref(name)
+            if ref is not None and ref.is_valid():
+                self.scroll_to_lineno(ref.get_line())
+                return
 
         # If we can't find a mark then look for tags
-        # It might be better to scroll to the mark than these tags
         for tag in ('executing', 'queued', 'error', 'done'):
             try:
-                start, end = common.get_region(self.buf, tag)
+                start, end = common.get_region(self.tw, tag)
                 self.scroll_to_lineno(start.get_line())
                 return
 
@@ -500,14 +532,46 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 continue
 
         #common.view.popup_error("Sorry, cannot find any region of interest.")
-        # Scroll to mark, if any
-        res = self.tw.scroll_mark_onscreen(self.mark)
 
 
     def reset(self):
-        common.clear_tags(self.buf, ('executing',))
+        common.clear_tags(self.tw, ('executing',))
+        self._clear_exec_marks()
         # this will reset Pause button, etc.
         super(OpePage, self).reset()
+
+    def _mark_icon(self, name):
+        """Lazily load and cache the gutter icon image for an execution
+        mark name ('executing' or 'error').  Returns a QImage or None."""
+        if not hasattr(self, '_mark_icons'):
+            self._mark_icons = {}
+        if name not in self._mark_icons:
+            from qtpy.QtGui import QImage
+            fname = {'executing': 'apple-green.png',
+                     'error': 'apple-red.png'}.get(name)
+            img = None
+            if fname is not None:
+                img = QImage(os.path.join(icondir, fname))
+                img = None if img.isNull() else img.scaledToHeight(16)
+            self._mark_icons[name] = img
+        return self._mark_icons[name]
+
+    def _set_exec_mark(self, name, ref):
+        """Show the single execution gutter mark ('executing' or 'error')
+        on the line containing ``ref``, replacing any previous mark.  The
+        mark is anchored by a named ref so it follows edits and can be
+        located by current()."""
+        self._clear_exec_marks()
+        marker = self.tw.create_named_ref(name, ref.get_offset())
+        img = self._mark_icon(name)
+        if img is not None:
+            self.tw.set_icon(marker, img)
+
+    def _clear_exec_marks(self):
+        """Remove any execution gutter marks and their anchoring refs."""
+        self.tw.clear_icons()
+        for name in ('executing', 'error'):
+            self.tw.remove_named_ref(name)
 
     def query_vardef(self, widget, res, line_no, pos_in_line, text):
         # parameters are text widget, x and y coords, boolean for keyboard
@@ -559,13 +623,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # with the text
 
         # Get the selection.  If there is none, we're done.
-        tup = self.buf.get_selection_bounds()
-        if not tup:
+        bounds = self.tw.get_selection_bounds()
+        if bounds is None:
             return
 
         # Set the clipboard to the plain ASCII text
-        start, end = tup[:2]
-        text = self.buf.get_text(start, end, True)
+        start, end = bounds
+        text = self.tw.get_text_range(start, end)
         common.view.clipboard.set_text(text, -1)
 
 
@@ -638,16 +702,15 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         """
 
         # Get current value of text buffer
-        start, end = self.buf.get_bounds()
-        txtbuf = self.buf.get_text(start, end, True)
+        txtbuf = self.tw.get_text()
 
         # Get all the commands strings referenced by _tags_ and put
         # them in dict _cmds_
         cmds = {}
         for tag in tags:
             # Now get the command from the text widget
-            start, end = common.get_region_lines(self.buf, tag)
-            cmds[tag] = self.buf.get_text(start, end, True)
+            start, end = common.get_region_lines(self.tw, tag)
+            cmds[tag] = self.tw.get_text_range(start, end)
 
         # Define a mapping
         # NOTE: enclosed function captures values of tags, cmds and
@@ -681,25 +744,25 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             # If copytext==True then we are not storing a reference
             # to the command in the page, but the command string
             # already pre-expanded
-            start, end = self.buf.get_bounds()
-            txtbuf = self.buf.get_text(start, end, True)
+            txtbuf = self.tw.get_text()
 
         # Get the range of text selected
-        try:
-            first, last = self.buf.get_selection_bounds()
-        except ValueError:
+        bounds = self.tw.get_selection_bounds()
+        if bounds is None:
             raise common.SelectionError("Error getting selection--no selection?")
+        first, last = bounds
 
         frow = first.get_line()
         lrow = last.get_line()
-        if last.starts_line():
+        if last.get_line_column()[1] == 0:
             # Hack to fix problem where selection covers the newline
             # but not the first character of the next line
             lrow -= 1
         #print("selection: %d-%d" % (frow, lrow))
 
-        # Clear the selection
+        # Clear the selection (programmatic clears don't fire cursor_moved)
         common.clear_selection(self.tw)
+        self._update_button_states()
 
         # Break selection into individual lines
         cmds = []
@@ -711,13 +774,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
             first.set_line(row)
             last.set_line(row)
-            last.forward_to_line_end()
-            if last.get_line() > row:
-                # forward_to_line_end() seems to go to the next row
-                # if the line consists of simply a newline
-                cmd = ""
-            else:
-                cmd = self.buf.get_text(first, last, True).strip()
+            last.to_line_end()
+            cmd = self.tw.get_text_range(first, last).strip()
             self.logger.debug("cmd=%s" % (cmd))
             if (len(cmd) == 0) or cmd.startswith('#'):
                 # TODO: linked comments
@@ -735,8 +793,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 cmdobj = OpeCommandObject('ope%d', self.queueName,
                                           self.logger, self)
                 tag = cmdobj.guitag
-                self.buf.create_tag(tag)
-                self.buf.apply_tag_by_name(tag, first, last)
+                self.tw.create_tag(tag)
+                self.tw.apply_tag(tag, first, last)
 
             cmds.append(cmdobj)
 
@@ -746,34 +804,26 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         """A hack to work around a bug/feature of the textview where it
         loses the selection when it loses focus.  This method can be used
         to save the focus.  Call _restore_selection() to restore it.
+
+        The selection endpoints are kept as live refs (which follow any
+        edits) and a 'savedselection' tag gives visual feedback.
         """
-        try:
-            first, last = self.buf.get_selection_bounds()
-            self.sel_first = first
-            self.sel_last = last
-
-        except ValueError:
+        bounds = self.tw.get_selection_bounds()
+        if bounds is None:
             raise Exception("Error getting selection--no selection?")
+        first, last = bounds
 
-        first = first.copy()
-        last = last.copy()
+        # Keep our own copies so callers moving the selection don't disturb
+        # what we restore.
+        self.sel_first = first.copy()
+        self.sel_last = last.copy()
 
         tag = 'savedselection'
-        tt = self.buf.get_tag_table()
-
-        # Create it so priority is highest
-        tt_tag = tt.lookup(tag)
-        if tt_tag:
-            tt.remove(tt_tag)
-        self.buf.create_tag(tag, background='lightpink1')
-        # Adjust apparent selection to line start and end
-        if not first.starts_line():
-            first.set_line(first.get_line())
-        if last.starts_line():
-            last.set_line(last.get_line()-1)
-        if not last.ends_line():
-            last.forward_to_line_end()
-        self.buf.apply_tag_by_name(tag, first, last)
+        self.tw.create_tag(tag, background='pink')
+        # Highlight whole lines of the apparent selection.
+        first.to_line_start()
+        last.to_line_end()
+        self.tw.apply_tag(tag, first, last)
 
 
     def _restore_selection(self):
@@ -781,15 +831,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         loses the selection when it loses focus.  This method can be used
         to restore the focus.  Call _save_selection() to save it.
         """
-        tag = 'savedselection'
-        first, last = self.buf.get_bounds()
+        start, end = self.tw.get_ref_bounds()
         try:
-            self.buf.remove_tag_by_name(tag, first, last)
-        except:
+            self.tw.remove_tag('savedselection', start, end)
+        except Exception:
             pass
 
-        self.buf.move_mark_by_name("insert", self.sel_first)
-        self.buf.move_mark_by_name("selection_bound", self.sel_last)
+        self.tw.set_selection_range(self.sel_first, self.sel_last)
 
 
     def execute(self, copytext=None):
@@ -809,7 +857,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         settings = common.view.get_settings()
         suppress_confirm_exec = settings.get('suppress_confirm_exec', True)
 
-        if not self.buf.get_has_selection():
+        if not self.tw.has_selection():
             # No selection.  See if there are previously queued commands
             if num_queued == 0:
                 common.view.popup_error("No mouse selection and no %s queued commands!" % (
@@ -882,7 +930,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
     def insert(self, loc=None, copytext=None):
         """Callback when the APPEND button is pressed.
         """
-        if not self.buf.get_has_selection():
+        if not self.tw.has_selection():
             # No selection.
             common.view.popup_error("No mouse selection!")
             return
@@ -941,12 +989,10 @@ class OpeCommandObject(CommandObject.CommandObject):
         """
         common.view.assert_gui_thread()
 
-        # Get the entire buffer from the page's text widget
-        buf = self.page.buf
-        # Now get the command from the text widget
-        start, end = common.get_region_lines(buf, self.guitag)
-        #start, end = common.get_region(buf, self.guitag)
-        cmdstr = buf.get_text(start, end, True).strip()
+        # Get the command from the page's text widget
+        tw = self.page.tw
+        start, end = common.get_region_lines(tw, self.guitag)
+        cmdstr = tw.get_text_range(start, end).strip()
 
         # remove trailing semicolon, if present
         if cmdstr.endswith(';'):
@@ -961,14 +1007,12 @@ class OpeCommandObject(CommandObject.CommandObject):
         common.view.assert_gui_thread()
 
         # Get the entire buffer from the page's text widget
-        buf = self.page.buf
-        start, end = buf.get_bounds()
-        txtbuf = buf.get_text(start, end, True)
+        tw = self.page.tw
+        txtbuf = tw.get_text()
 
         # Now get the command from the text widget
-        start, end = common.get_region_lines(buf, self.guitag)
-        #start, end = common.get_region(buf, self.guitag)
-        cmdstr = buf.get_text(start, end, True)
+        start, end = common.get_region_lines(tw, self.guitag)
+        cmdstr = tw.get_text_range(start, end)
 
         return (txtbuf, cmdstr)
 
@@ -991,39 +1035,36 @@ class OpeCommandObject(CommandObject.CommandObject):
         """
         common.view.assert_gui_thread()
 
-        # Get the entire OPE buffer
-        buf = self.page.buf
-        start, end = common.get_region_lines(buf, self.guitag)
-        #start, end = common.get_region(buf, self.guitag)
+        # Get the region of the OPE buffer for this command
+        tw = self.page.tw
+        start, end = common.get_region_lines(tw, self.guitag)
 
         if txttag == 'unqueued':
-            common.clear_tags_region(buf, ('queued',),
+            common.clear_tags_region(tw, ('queued',),
                                      start, end)
             return
 
         if txttag == 'normal':
-            common.clear_tags_region(buf, ('done', 'error', 'executing'),
+            common.clear_tags_region(tw, ('done', 'error', 'executing'),
                                      start, end)
             return
 
         if txttag == 'executing':
-            common.clear_tags_region(buf, ('done', 'error'),
+            common.clear_tags_region(tw, ('done', 'error'),
                                      start, end)
-            # annotate line with executing mark
-            common.remove_all_marks(buf)
-            buf.create_source_mark(None, 'executing', start)
+            # annotate line with executing gutter mark
+            self.page._set_exec_mark('executing', start)
 
         elif txttag in ('done',):
-            common.clear_tags_region(buf, ('executing',),
+            common.clear_tags_region(tw, ('executing',),
                                      start, end)
         elif txttag in ('error',):
-            common.clear_tags_region(buf, ('executing',),
+            common.clear_tags_region(tw, ('executing',),
                                      start, end)
-            # annotate line with error mark
-            common.remove_all_marks(buf)
-            buf.create_source_mark(None, 'error', start)
+            # annotate line with error gutter mark
+            self.page._set_exec_mark('error', start)
 
-        buf.apply_tag_by_name(txttag, start, end)
+        tw.apply_tag(txttag, start, end)
 
     def mark_status(self, txttag):
         # This MAY be called from a non-gui thread
@@ -1045,12 +1086,10 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
         """
         common.view.assert_gui_thread()
 
-        # Get the entire buffer from the page's text widget
-        buf = self.page.buf
-        # Now get the command from the text widget
-        start, end = common.get_region_lines(buf, self.guitag)
-        #start, end = common.get_region(buf, self.guitag)
-        comment = buf.get_text(start, end, True).strip()
+        # Get the comment from the page's text widget
+        tw = self.page.tw
+        start, end = common.get_region_lines(tw, self.guitag)
+        comment = tw.get_text_range(start, end).strip()
 
         self.logger.debug("preview is '%s'" % (comment))
         return '>>' + comment

@@ -9,6 +9,7 @@ from ginga.misc import Bunch
 from . import common
 from . import Page
 from . import CommandObject
+from . import Widgets as IGWidgets
 
 class QueuePage(Page.ButtonPage, Page.TextPage):
 
@@ -23,15 +24,12 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.tm_queueName = 'executer'
 
         # Create the widgets for the text
-        tw = Widgets.TextArea(editable=False, wrap=False)
-
-        #tw.set_wrap_mode(Gtk.WrapMode.NONE)
+        tw = IGWidgets.TextSource(editable=False, wrap=False)
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)
 
         self.tw = tw
-        self.buf = tw.tw.get_buffer()
 
         # Stores saved selection
         self.sel_i = None
@@ -42,33 +40,20 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.cursor = 0
         self.moving_cursor = False
 
-        # keyboard shortcuts
-        self.tw.tw.connect("key-press-event", self.keypress)
-        # Can't seem to get focus follows mouse effect
-        #self.tw.tw.connect("enter-notify-event", self.focus_in)
-        self.buf.connect("mark-set", self.show_cursor)
+        # keyboard shortcuts and cursor-line tracking
+        self.tw.add_callback('key-press', self.keypress)
+        self.tw.add_callback('cursor_moved', self.show_cursor)
 
-        tagtbl = self.buf.get_tag_table()
-
-        # remove decorative tags
+        # define the tags used to color queue lines (includes 'selected'
+        # and 'cursor')
         for tag, bnch in common.queue_tags:
-            gtktag = tagtbl.lookup(tag)
-            try:
-                if gtktag:
-                    self.buf.remove_tag_by_name(tag, start, end)
-            except:
-                # tag may not exist--that's ok
-                pass
-
             properties = {}
             properties.update(bnch)
             try:
-                self.buf.create_tag(tag, **properties)
-            except:
+                self.tw.create_tag(tag, **properties)
+            except Exception:
                 # tag may already exist--that's ok
                 pass
-        #self.buf.create_tag('selected', background="pink1")
-        #self.buf.create_tag('cursor', background="skyblue1")
 
         self.content.add_widget(self.tw, stretch=1)
 
@@ -148,107 +133,94 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         common.view.assert_gui_thread()
 
         with self.lock:
-            #self.moving_cursor = True
-            common.clear_tv(self.tw.tw)
+            # suppress cursor-line tracking while we rebuild the buffer
+            self.moving_cursor = True
+            try:
+                self.tw.clear()
 
-            numlines = 0
-            for cmdObj in self.queueObj.peekAll():
-                tag = 'normal'
-                try:
-                    text = cmdObj.get_preview()
-                    if text.startswith('###'):
-                        tag = 'comment3'
-                    elif text.startswith('##'):
-                        tag = 'comment2'
-                    elif text.startswith('#'):
-                        tag = 'comment1'
-                except Exception as e:
-                    text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
-                    tag = 'badref'
+                numlines = 0
+                for cmdObj in self.queueObj.peekAll():
+                    tag = 'normal'
+                    try:
+                        text = cmdObj.get_preview()
+                        if text.startswith('###'):
+                            tag = 'comment3'
+                        elif text.startswith('##'):
+                            tag = 'comment2'
+                        elif text.startswith('#'):
+                            tag = 'comment1'
+                    except Exception as e:
+                        text = "++ THIS COMMAND HAS BEEN DELETED IN THE SOURCE PAGE ++"
+                        tag = 'badref'
 
-                # Insert text icon at end of the
-                loc1 = self.buf.get_end_iter()
-                self.buf.insert_with_tags_by_name(loc1, text, tag)
-                loc2 = self.buf.get_end_iter()
-                self.buf.insert(loc2, '\n')
-                numlines += 1
+                    # Append the colored command line
+                    self.tw.append_text(text, tags=[tag], autoscroll=False)
+                    self.tw.append_text('\n', autoscroll=False)
+                    numlines += 1
 
-            # Apply color to rows and save selection indexes
-            # TODO: make selection a part of the CommandQueue?
-            if self.has_selection():
-                first, last = self.buf.get_bounds()
-                self.sel_i = min(self.sel_i, numlines)
-                first.set_line(self.sel_i)
-                self.sel_j = min(self.sel_j, numlines)
-                last.set_line(self.sel_j)
-                last.forward_to_line_end()
-                self.buf.apply_tag_by_name('selected', first, last)
+                # Restore the selection highlight, if any
+                # TODO: make selection a part of the CommandQueue?
+                if self.has_selection():
+                    self.sel_i = min(self.sel_i, numlines)
+                    self.sel_j = min(self.sel_j, numlines)
+                    first = self.tw.get_ref_line_start(self.sel_i)
+                    last = self.tw.get_ref_line_end(self.sel_j)
+                    self.tw.apply_tag('selected', first, last)
 
-            # restore cursor
-            #self.moving_cursor = False
-            self.cursor = min(self.cursor, numlines)
-            #print("2. cursor is %d numlines is %d" % (self.cursor, numlines))
-            loc = self.buf.get_iter_at_line(self.cursor)
-            self.buf.place_cursor(loc)
+                # restore cursor and highlight its line
+                self.cursor = min(self.cursor, numlines)
+                loc = self.tw.get_ref_line_start(self.cursor)
+                self.tw.set_cursor(loc)
+                self.tw.scroll_to_ref(loc)
+                self._highlight_cursor_line(self.cursor)
+            finally:
+                self.moving_cursor = False
 
-            # Hacky way to get our cursor on screen
-            insmark = self.buf.get_insert()
-            if insmark != None:
-                ## insiter = self.buf.get_iter_at_mark(insmark)
-                ## insline = insiter.get_line()
-                res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
-                #print("2. scrolling res is %s insline=%d" % (res, insline))
+    def _highlight_cursor_line(self, line):
+        """Move the 'cursor' highlight tag to the given line."""
+        common.clear_tags(self.tw, ('cursor',))
+        start = self.tw.get_ref_line_start(line)
+        end = self.tw.get_ref_line_end(line)
+        self.tw.apply_tag('cursor', start, end)
 
 
     def redraw(self):
         common.gui_do(self._redraw)
 
     def set_selection(self):
-        # Clear previous selection, if any
-        first, last = self.buf.get_bounds()
-        self.buf.remove_tag_by_name('selected', first, last)
+        # Clear previous selection highlight, if any
+        common.clear_tags(self.tw, ('selected',))
 
         # Get the range of text selected
-        try:
-            first, last = self.buf.get_selection_bounds()
-
-            # Clear the selection
+        bounds = self.tw.get_selection_bounds()
+        if bounds is not None:
+            first, last = bounds
+            # Clear the text selection
             common.clear_selection(self.tw)
+        else:
+            # If there is no selection, then use the cursor line
+            cur = self.tw.get_cursor()
+            first = cur.copy()
+            last = cur.copy()
 
-        except ValueError:
-            # If there is no selection, then use position of insertion mark
-            insmark = self.buf.get_insert()
-            if insmark == None:
-                common.view.popup_error("Please make selection or set insertion mark first.")
-                return
-
-            first = self.buf.get_iter_at_mark(insmark)
-            last = first.copy()
-            last.forward_to_line_end()
-
-        frow = first.get_line()
         lrow = last.get_line()
 
         # Adjust to beginning and end of lines
-        if not first.starts_line():
-            first.set_line(frow)
-        if last.starts_line():
+        first.to_line_start()
+        if last.get_line_column()[1] == 0:
             # Hack to fix problem where selection covers the newline
             # but not the first character of the next line
             lrow -= 1
             last.set_line(lrow)
-        if not last.ends_line():
-            last.forward_to_line_end()
-        #print("selection: %d-%d" % (frow, lrow))
+        last.to_line_end()
 
         # Apply color to rows and save selection indexes
-        self.buf.apply_tag_by_name('selected', first, last)
+        self.tw.apply_tag('selected', first, last)
         self.sel_i = first.get_line()
         self.sel_j = last.get_line()
 
     def clear_selection(self):
-        first, last = self.buf.get_bounds()
-        self.buf.remove_tag_by_name('selected', first, last)
+        common.clear_tags(self.tw, ('selected',))
 
         common.clear_selection(self.tw)
 
@@ -297,13 +269,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             common.view.popup_error("Please cut/copy the selection first.")
             return
 
-        insmark = self.buf.get_insert()
-        if insmark == None:
-            common.view.popup_error("Please set insertion mark first.")
-            return
-
-        insiter = self.buf.get_iter_at_mark(insmark)
-        k = insiter.get_line()
+        k = self.tw.get_cursor().get_line()
 
         self.queueObj.insert(k, clip)
         #self.clip = []
@@ -313,36 +279,20 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             common.view.popup_error("Please make a selection with 's' first.")
             return
 
-        insmark = self.buf.get_insert()
-        if insmark == None:
-            common.view.popup_error("Please set insertion mark first.")
-            return
-
         (i, j) = (self.sel_i, self.sel_j)
         #print("i=%d j=%d" % (i, j))
         self.clear_selection()
 
         deleted = self.queueObj.delete(i, j+1)
 
-        insmark = self.buf.get_insert()
-        if insmark != None:
-            insiter = self.buf.get_iter_at_mark(insmark)
-        else:
-            insiter = self.buf.get_end_iter()
-
-        k = insiter.get_line()
+        k = self.tw.get_cursor().get_line()
 
         self.queueObj.insert(k, deleted)
 
 
     def insbreak(self, line=None):
         if line == None:
-            insmark = self.buf.get_insert()
-            if insmark != None:
-                insiter = self.buf.get_iter_at_mark(insmark)
-                line = insiter.get_line()
-            else:
-                line = 0
+            line = self.tw.get_cursor().get_line()
 
         try:
             cmdobj = CommandObject.BreakCommandObject('brk%d', self.queueName,
@@ -409,11 +359,10 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
     def step(self):
         return self._resume(w_break=True)
 
-    def keypress(self, w, event):
-        keyname = Gdk.keyval_name(event.keyval)
+    def keypress(self, w, keyname):
         if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
                        'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
-            # navigation and other
+            # navigation and modifiers: let the widget handle them
             return False
         if keyname in ('Left', 'Right'):
             # ignore these
@@ -445,36 +394,20 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             self.insbreak()
             return True
 
-        common.view.statusMsg("I don't understand that key: %s", keyname)
+        common.view.statusMsg("I don't understand that key: %s" % keyname)
         return True
 
-    def show_cursor(self, tbuf, titer, tmark):
+    def show_cursor(self, w):
+        # Called on the widget's 'cursor_moved' callback; highlight the line
+        # the cursor is on.
         if self.moving_cursor:
-            return False
-
-        insmark = tbuf.get_insert()
-        if insmark != tmark:
             return False
 
         self.moving_cursor = True
         try:
-            # Color the new line nwe
-            start, end = tbuf.get_bounds()
-            self.buf.remove_tag_by_name('cursor', start, end)
-
-            line = titer.get_line()
+            line = self.tw.get_cursor().get_line()
             self.cursor = line
-            start = tbuf.get_iter_at_line(line)
-            end = start.copy()
-            end.forward_to_line_end()
-            tbuf.apply_tag_by_name('cursor', start, end)
-
-            selmark = tbuf.get_mark('selection_bound')
-            seliter = tbuf.get_iter_at_mark(selmark)
-            if not seliter.starts_line():
-                tbuf.move_mark_by_name('selection_bound', start)
-            tbuf.move_mark(insmark, start)
-
+            self._highlight_cursor_line(line)
         finally:
             self.moving_cursor = False
         return True

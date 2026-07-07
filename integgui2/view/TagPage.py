@@ -12,7 +12,9 @@ class TagPage(LogPage.NotePage):
     def __init__(self, frame, name, title):
         super(TagPage, self).__init__(frame, name, title)
 
-        self.tw.tw.connect("button-press-event", self.jump_tag)
+        # clicking a line in the tag list jumps to the corresponding line
+        # in the source OPE page
+        self.tw.add_callback('line-clicked', self.jump_tag)
         # currently disable close button
         self.menu_close.set_enabled(False)
 
@@ -26,12 +28,10 @@ class TagPage(LogPage.NotePage):
         self.opepage = opepage
 
     def add_mapping(self, lineno, line, tags):
-        # Add this line and a tag to the tags buffer
-        tend = self.buf.get_end_iter()
-        taglineno = tend.get_line()
-        ## self.tagbuf.insert_with_tags_by_name(tend, line+'\n',
-        ##                                      *(tags + [tag]))
-        self.buf.insert_with_tags_by_name(tend, line+'\n', *tags)
+        # Append this line (with tags) to the tags buffer.  The line it
+        # lands on is the current end line.
+        taglineno = self.tw.get_end_lineno()
+        self.tw.append_text(line + '\n', tags=tags, autoscroll=False)
         # make an entry in the tags index
         self.tagidx[taglineno] = lineno
 
@@ -45,25 +45,13 @@ class TagPage(LogPage.NotePage):
     ##     ## common.view.gui_do(self.tw.scroll_to_iter,
     ##     ##                     loc, 0, True)
 
-    def jump_tag(self, w, evt):
-        widget = self.tw
-        try:
-            x, y = int(evt.x), int(evt.y)
-            tup = widget.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
-                                                 x, y)
-            self.logger.debug("coords are: %s" % (str(tup)))
-            buf_x1, buf_y1 = tup
-        except Exception as e:
-            self.logger.error("Error converting coordinates to line: %s" % (
-                str(e)))
-            return False
-
-        (startiter, coord) = widget.get_line_at_y(buf_y1)
-        taglineno = startiter.get_line()
+    def jump_tag(self, w, taglineno):
+        # Called on the widget's 'line-clicked' callback with the 0-based
+        # line number that was clicked in the tag list.
         try:
             lineno = self.tagidx[taglineno]
         except KeyError:
-            return
+            return False
 
         if not self.opepage:
             return True

@@ -2,13 +2,12 @@
 # E. Jeschke
 #
 
-from gi.repository import Gtk
-
 from ginga.gw import Widgets
 
 from . import common
 from . import Page
 from . import CommandObject
+from . import Widgets as IGWidgets
 
 class DDCommandPage(Page.CommandPage):
 
@@ -19,7 +18,7 @@ class DDCommandPage(Page.CommandPage):
         self.queueName = 'default'
         self.tm_queueName = 'executer'
 
-        tw = Widgets.TextArea(editable=True, wrap=True)
+        tw = IGWidgets.TextSource(editable=True, wrap=True)
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)
@@ -27,7 +26,6 @@ class DDCommandPage(Page.CommandPage):
         self.content.add_widget(tw, stretch=1)
 
         self.tw = tw
-        self.buf = tw.tw.get_buffer()
 
         ## self.add_menu()
         ## self.add_close()
@@ -79,43 +77,35 @@ class DDCommandPage(Page.CommandPage):
         item.add_callback("activated", lambda w: self.attach_queue())
 
     def clear_text(self):
-        start, end = self.buf.get_bounds()
-        self.buf.delete(start, end)
+        self.tw.clear()
 
     def set_text(self, text):
-        self.clear_text()
-        itr = self.buf.get_end_iter()
-        self.buf.insert(itr, text)
-        itr = self.buf.get_end_iter()
-        self.buf.place_cursor(itr)
+        self.tw.set_text(text)
+        # place cursor at end
+        self.tw.set_cursor(self.tw.get_ref_end())
 
     # TODO: this is code share with OpePage.  Should be shared.
     def attach_queue(self):
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   buttons=Gtk.ButtonsType.OK_CANCEL,
-                                   message_format="Pick the destination queue:")
-        dialog.set_title("Connect Queue")
+        dialog = Widgets.MessageDialog(title="Connect Queue",
+                                       buttons=[("Ok", 1), ("Cancel", 0)])
+        dialog.set_message('question', "Pick the destination queue:")
         # Add a combo box to the content area containing the names of the
         # current queues
         vbox = dialog.get_content_area()
-        cbox = Gtk.ComboBoxText()
-        index = 0
+        cbox = Widgets.ComboBox()
         names = []
         for name in common.controller.queue.keys():
-            cbox.insert_text(index, name.capitalize())
+            cbox.append_text(name.capitalize())
             names.append(name)
-            index += 1
-        cbox.set_active(0)
-        vbox.add(cbox)
-        cbox.show()
-        dialog.connect("response", self.attach_queue_res, cbox, names)
+        cbox.set_index(0)
+        vbox.add_widget(cbox, stretch=0)
+        dialog.add_callback('activated', self.attach_queue_res, cbox, names)
         dialog.show()
 
     def attach_queue_res(self, w, rsp, cbox, names):
-        queueName = names[cbox.get_active()].strip().lower()
+        queueName = names[cbox.get_index()].strip().lower()
         w.destroy()
-        if rsp == Gtk.ResponseType.OK:
+        if rsp == 1:
             if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
                 return True
@@ -123,13 +113,11 @@ class DDCommandPage(Page.CommandPage):
         return True
 
     def get_dd_command(self):
-        # Clear the selection
-        itr = self.buf.get_end_iter()
-        self.buf.place_cursor(itr)
+        # Clear the selection: place cursor at end
+        self.tw.set_cursor(self.tw.get_ref_end())
 
         # Get the entire buffer from the page's text widget
-        start, end = self.buf.get_bounds()
-        txtbuf = self.buf.get_text(start, end, True).strip()
+        txtbuf = self.tw.get_text().strip()
 
         # remove trailing semicolon, if present
         cmdstr = txtbuf

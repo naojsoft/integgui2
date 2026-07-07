@@ -1,6 +1,12 @@
 from qtpy.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
 from qtpy import QtCore
 
+from ginga.qtw import QtHelp
+if QtHelp.have_pyqt5 or QtHelp.have_pyside2:
+    RegExp = QtCore.QRegExp
+if QtHelp.have_pyqt6 or QtHelp.have_pyside6:
+    RegExp = QtCore.QRegularExpression
+
 from ginga import colors
 
 from ..Widgets import mkformat
@@ -53,30 +59,50 @@ class OPEHighlighter (QSyntaxHighlighter):
             (r'###[^\n]*', 0, 'comment3'),
         ]
 
-        # Build a QRegExp for each pattern
-        self.rules = [(QtCore.QRegExp(pat), index, OPE_STYLES[kwd], kwd)
+        # Build a RegExp for each pattern
+        self.rules = [(RegExp(pat), index, OPE_STYLES[kwd], kwd)
                       for (pat, index, kwd) in rules]
 
     def highlightBlock(self, text):
         """Apply syntax highlighting to the given block of text.
         """
-        # Do other syntax formatting
-        for expression, nth, format, keyword in self.rules:
-            index = expression.indexIn(text, 0)
-            while index >= 0:
-                # We actually want the index of the nth match
-                index = expression.pos(nth)
-                length = len(expression.cap(nth))
-                if keyword == 'varref':
-                    # get variable name
-                    refname = text[index:index + length][1:]
-                    if refname not in self.defined_vars:
-                        format = OPE_STYLES['badref']
+        if QtHelp.have_pyqt5 or QtHelp.have_pyside2:
+            # Do other syntax formatting
+            for expression, nth, format, keyword in self.rules:
+                index = expression.indexIn(text, 0)
+                while index >= 0:
+                    # We actually want the index of the nth match
+                    index = expression.pos(nth)
+                    length = len(expression.cap(nth))
+                    if keyword == 'varref':
+                        # get variable name
+                        refname = text[index:index + length][1:]
+                        if refname not in self.defined_vars:
+                            format = OPE_STYLES['badref']
 
-                self.setFormat(index, length, format)
-                index = expression.indexIn(text, index + length)
+                    self.setFormat(index, length, format)
+                    index = expression.indexIn(text, index + length)
 
-        self.setCurrentBlockState(0)
+            self.setCurrentBlockState(0)
+
+        elif QtHelp.have_pyqt6 or QtHelp.have_pyside6:
+            # Do other syntax formatting
+            for expression, nth, format, keyword in self.rules:
+                match = expression.match(text, 0)
+                while match.hasMatch():
+                    # We actually want the index of the nth match
+                    index = match.capturedStart(nth)
+                    length = match.capturedLength(nth)
+                    if keyword == 'varref':
+                        # get variable name
+                        refname = text[index:index + length][1:]
+                        if refname not in self.defined_vars:
+                            format = OPE_STYLES['badref']
+
+                    self.setFormat(index, length, format)
+                    match = expression.match(text, index + length)
+
+            self.setCurrentBlockState(0)
 
     def set_defined_vars(self, varset):
         """Call this with the set of defined references after the OPE

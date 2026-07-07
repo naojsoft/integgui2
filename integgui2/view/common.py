@@ -36,11 +36,13 @@ launcher_colors = Bunch.Bunch(error = 'salmon',
 # Colors for embedded terminals
 terminal_colors = Bunch.Bunch(fg='black', bg='white')
 
-# Colors used in the OpePage
+# Colors used in the OpePage.  These are the syntax-highlighting tags applied
+# by OpePage.color(); comments are italicized to match the look the old Qt
+# syntax highlighter produced.
 decorative_tags = [
-    ('comment3', Bunch.Bunch(foreground='indian red')),
-    ('comment2', Bunch.Bunch(foreground='saddle brown')),
-    ('comment1', Bunch.Bunch(foreground='dark green')),
+    ('comment3', Bunch.Bunch(foreground='indianred', italic=True)),
+    ('comment2', Bunch.Bunch(foreground='saddlebrown', italic=True)),
+    ('comment1', Bunch.Bunch(foreground='darkgreen', italic=True)),
     ('varref', Bunch.Bunch(foreground='royalblue')),
     ('badref', Bunch.Bunch(foreground='darkorange')),
     ]
@@ -48,9 +50,9 @@ decorative_tags = [
 # Colors used in the QueuePage
 queue_tags = [
     ('normal', Bunch.Bunch(foreground='black')),
-    ('comment3', Bunch.Bunch(foreground='indian red')),
-    ('comment2', Bunch.Bunch(foreground='saddle brown')),
-    ('comment1', Bunch.Bunch(foreground='dark green')),
+    ('comment3', Bunch.Bunch(foreground='indianred')),
+    ('comment2', Bunch.Bunch(foreground='saddlebrown')),
+    ('comment1', Bunch.Bunch(foreground='darkgreen')),
     ('badref', Bunch.Bunch(foreground='red1')),
     ('selected', Bunch.Bunch(background='pink1')),
     ('cursor', Bunch.Bunch(background='#bf94e3')),
@@ -81,9 +83,9 @@ error_regexes = [
 # Colors used in the DirectoryPage
 directory_tags = [
     ('normal', Bunch.Bunch(foreground='black')),
-    ('executable', Bunch.Bunch(foreground='dark green')),
+    ('executable', Bunch.Bunch(foreground='darkgreen')),
     ('directory',  Bunch.Bunch(foreground='blue2')),
-    ('cursor',  Bunch.Bunch(foreground='yellow', background='dark green')),
+    ('cursor',  Bunch.Bunch(foreground='yellow', background='darkgreen')),
     ]
 
 # colors used in the SkMonitorPage
@@ -139,6 +141,78 @@ class TagError(Exception):
 
 class SelectionError(Exception):
     pass
+
+
+# ------------------------------------------------------------------------
+# Text-widget region / selection / scroll helpers.
+#
+# These are the module-level shims used by page code, expressed in terms of
+# the unified TextSource widget API (refs + tag intervals + gutter icons),
+# replacing the old GtkTextBuffer iter/mark/tag-table helpers.  The first
+# argument is always a TextSource (ginga wrapper) widget.
+# ------------------------------------------------------------------------
+
+def get_region(tw, tagname):
+    """Return a ``(start_ref, end_ref)`` pair spanning the named tag.
+
+    Mirrors the old GTK ``get_region``: the span runs from the first
+    occurrence of the tag to the last.  Raises ``TagError`` if the tag is
+    not applied anywhere in the buffer.
+    """
+    region = tw.get_tag_region(tagname)
+    if region is None:
+        raise TagError("Tag not found: '%s'" % (tagname,))
+    return region
+
+
+def get_region_lines(tw, tagname):
+    """Like ``get_region`` but expanded to whole lines: the start ref is
+    moved to the beginning of its line and the end ref to the end of its
+    line."""
+    start, end = get_region(tw, tagname)
+    start.to_line_start()
+    end.to_line_end()
+    return (start, end)
+
+
+def clear_tags_region(tw, tags, start_ref, end_ref):
+    """Remove each named tag in ``tags`` from the range
+    ``[start_ref, end_ref)``."""
+    for tag in tags:
+        tw.remove_tag(tag, start_ref, end_ref)
+
+
+def clear_tags(tw, tags):
+    """Remove each named tag in ``tags`` from the entire buffer."""
+    start, end = tw.get_ref_bounds()
+    clear_tags_region(tw, tags, start, end)
+
+
+def remove_all_marks(tw):
+    """Remove all gutter marks/icons (the source-mark replacement)."""
+    tw.clear_icons()
+
+
+def clear_selection(tw):
+    """Collapse any selection, leaving the cursor where it is."""
+    if tw.has_selection():
+        tw.set_cursor(tw.get_cursor())
+
+
+def select_all(tw):
+    """Select the entire buffer."""
+    start, end = tw.get_ref_bounds()
+    tw.set_selection_range(start, end)
+
+
+def scroll_to_lineno(tw, lineno):
+    """Scroll the widget so that ``lineno`` is visible."""
+    return tw.scroll_to_lineno(lineno)
+
+
+def get_end_lineno(tw):
+    """Return the line number of the last line in the buffer."""
+    return tw.get_end_lineno()
 
 def modify_bg(widget, color):
     # NOTE: there is a hard-coded hack here to force the background color

@@ -229,6 +229,7 @@ def main(options, args):
         ro_server_started = True
 
         try:
+            print("STARTING MAINLOOP")
             gui.mainloop(timeout=0.001)
 
         except KeyboardInterrupt:

@@ -119,9 +119,10 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                                           WorkspacePage.WorkspacePage)
         self.queuepage = self.lmws.addpage('queues', "Queues",
                                            WorkspacePage.WorkspacePage)
-        if False:
-            self.add_queue(self.queuepage, 'default', create=False)
-            self.add_tagpage(self.lmws)
+        # QueuePage and TagPage are ported to the TextSource widget; the
+        # Tags page is required for OpePage.color().
+        self.add_queue(self.queuepage, 'default', create=False)
+        self.add_tagpage(self.lmws)
         self.lmws.select('queues')
 
         self.dialogs = self.lmws.addpage('dialogs', "Dialogs",
