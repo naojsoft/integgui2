@@ -236,7 +236,11 @@ class QEnhancedTextEdit(QtGui.QTextEdit):
         QtGui.QTextEdit.__init__(self, *args, **kwargs)
 
         self.syntax_hl = None
-        self.growing = True
+        # When growing is True the widget caps its max height to the document
+        # height (auto-sizing to content).  Default off so the editor instead
+        # fills the space it is given, with text anchored at the top rather
+        # than floating in the vertical center of an oversized cell.
+        self.growing = False
         self.document().documentLayout().documentSizeChanged.connect(
             self.sizeChange_cb)
         self.heightMin = 0
