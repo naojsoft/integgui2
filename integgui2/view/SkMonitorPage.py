@@ -28,8 +28,8 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         # TODO: this dict is growing indefinitely
         self.track = {}
 
-        # Don't allow DND to this workspace
-        self.nb.get_widget().set_group_name('2')
+        # TODO: restrict tab drag-and-drop for this workspace (the GTK
+        # set_group_name mechanism has no direct Qt equivalent).
         self.nb.set_tab_position('right')
 
         ## menu = self.add_pulldownmenu("Page")
@@ -70,25 +70,24 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
 
 
     def insert_ast(self, tw, text):
-
-        buf = tw.get_buffer()
+        # tw is a TextSource widget.  Text is inserted at the end and tagged
+        # with the current tag stack; each AST node gets its own tag (its
+        # serial number) so its whole subtree can be recolored later.
         all_tags = set([])
 
         def insert(text, tags):
-
-            loc = buf.get_end_iter()
-            #linenum = loc.get_line()
             try:
                 idx_div = text.index("<div ")
 
             except ValueError:
-                buf.insert_with_tags_by_name(loc, text, *tags)
+                tw.append_text(text, tags=list(tags), autoscroll=False)
                 return
 
             match = re.match(r'^\<div\sclass=([^\>]+)\>', text[idx_div:],
                              re.MULTILINE | re.DOTALL)
             if not match:
-                buf.insert_with_tags_by_name(loc, 'ERROR 1: %s' % text, *tags)
+                tw.append_text('ERROR 1: %s' % text, tags=list(tags),
+                               autoscroll=False)
                 return
 
             num = int(match.group(1))
@@ -97,25 +96,24 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             #print(regex)
             match = re.match(regex, text, re.MULTILINE | re.DOTALL)
             if not match:
-                buf.insert_with_tags_by_name(loc, 'ERROR 2: %s' % text, *tags)
+                tw.append_text('ERROR 2: %s' % text, tags=list(tags),
+                               autoscroll=False)
                 return
 
-            buf.insert_with_tags_by_name(loc, match.group(1), *tags)
+            tw.append_text(match.group(1), tags=list(tags), autoscroll=False)
 
             serial_num = '%d' % num
-            buf.create_tag(serial_num, foreground="black")
-            newtags = [serial_num]
+            tw.create_tag(serial_num, foreground="black")
             all_tags.add(serial_num)
-            newtags.extend(tags)
+            newtags = [serial_num] + list(tags)
             insert(match.group(2), newtags)
 
             insert(match.group(3), tags)
 
         # Create tags that will be used
-        buf.create_tag('code', foreground="black")
+        tw.create_tag('code', foreground="black")
 
         insert(text, ['code'])
-        #tw.tag_raise('code')
         #print("all tags=%s" % str(all_tags))
 
     def delpage(self, name):
@@ -152,66 +150,61 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             #self.nb.set_tab_detachable(page.frame, False)
 
             self.insert_ast(page.tw, text)
-            page.tagtbl = page.buf.get_tag_table()
 
             #self.select(name)
             return page
 
     def change_text(self, page, tagname, key):
         tagname = str(tagname)
-        tag = page.tagtbl.lookup(tagname)
-        if not tag:
-            raise TagError("Tag not found: '%s'" % tagname)
+        tw = page.tw
+        if not tw.has_tag(tagname):
+            raise common.TagError("Tag not found: '%s'" % (tagname,))
 
-        bnch = common.monitor_tags[key]
+        # Recolor the node's tag by redefining it with the status colors.
+        attrs = dict(common.monitor_tags[key])
+        tw.create_tag(tagname, **attrs)
 
-        for key, val in bnch.items():
-            tag.set_property(key, val)
-
-        #page.tw.tag_raise(ast_num)
-        # Scroll the view to this area
-        start, end = common.get_region(page.buf, tagname)
-        page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
+        # Scroll the view to this region
+        region = tw.get_tag_region(tagname)
+        if region is not None:
+            tw.scroll_to_ref(region[0])
 
 
     def replace_text(self, page, tagname, textstr,
                      start_offset=0):
         #print("replacing '%s' on %s" % (textstr, tagname))
         tagname = str(tagname)
-        txtbuf = page.buf
-        #print("getting region")
-        start, end = common.get_region(txtbuf, tagname)
-        start.forward_chars(start_offset)
-        text = txtbuf.get_text(start, end, True)
-        #print("deleting %s" % (text))
-        txtbuf.delete(start, end)
-        #print("inserting %s" % (textstr))
-        txtbuf.insert_with_tags_by_name(start, textstr, tagname)
+        tw = page.tw
+        start, end = common.get_region(tw, tagname)
+        if start_offset:
+            start.set_offset(start.get_offset() + start_offset)
+        tw.delete_range(start, end)
+        tw.insert_text(start, textstr, tags=[tagname])
 
         # Scroll the view to this area
-        page.tw.scroll_to_iter(start, 0.1, False, 0.0, 0.0)
+        tw.scroll_to_ref(start)
 
 
     def insert_line(self, page, tagname, newtag, level, textstr):
         tagname = str(tagname)
-        txtbuf = page.buf
-        start, end = common.get_region(txtbuf, tagname)
+        tw = page.tw
+        start, end = common.get_region(tw, tagname)
         end2 = end.copy()
-        end2.forward_to_line_end()
+        end2.to_line_end()
         if end.get_line() != end2.get_line():
             end2 = end.copy()
-        txtbuf.create_tag(newtag, foreground="black")
+        tw.create_tag(newtag, foreground="black")
         prefix = '\n' + ('  ' * level) + ' '
-        txtbuf.insert_with_tags_by_name(end2, prefix, 'code')
-        txtbuf.insert_with_tags_by_name(end2, textstr, newtag)
-        txtbuf.insert_with_tags_by_name(end2, ' ', 'code')
+        tw.insert_text(end2, prefix, tags=['code'])
+        tw.insert_text(end2, textstr, tags=[newtag])
+        tw.insert_text(end2, ' ', tags=['code'])
 
 
     def append_error(self, page, tagname, textstr):
         tagname = str(tagname)
-        txtbuf = page.buf
-        start, end = common.get_region(txtbuf, tagname)
-        txtbuf.insert_with_tags_by_name(end, textstr, tagname)
+        tw = page.tw
+        start, end = common.get_region(tw, tagname)
+        tw.insert_text(end, textstr, tags=[tagname])
 
         self.change_text(page, tagname, 'error')
 
@@ -222,17 +215,17 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
             return
 
         tagname = str(tagname)
-        txtbuf = page.buf
-        start, end = common.get_region(txtbuf, tagname)
+        tw = page.tw
+        start, end = common.get_region(tw, tagname)
 
         if 'time_added' in vals:
             length = vals['time_added']
-            end = start.copy()
-            end.forward_chars(length)
-            txtbuf.delete(start, end)
+            end2 = start.copy()
+            end2.set_offset(start.get_offset() + length)
+            tw.delete_range(start, end2)
 
         vals['time_added'] = len(time_s)
-        txtbuf.insert_with_tags_by_name(start, time_s, tagname)
+        tw.insert_text(start, time_s, tags=[tagname])
 
 
     def update_page(self, bnch):

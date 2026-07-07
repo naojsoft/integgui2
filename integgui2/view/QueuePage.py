@@ -359,12 +359,13 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
     def step(self):
         return self._resume(w_break=True)
 
-    def keypress(self, w, keyname):
-        if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
-                       'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
+    def keypress(self, w, event):
+        keyname = event.key
+        if keyname in ('up', 'down', 'shift_l', 'shift_r',
+                       'alt_l', 'alt_r', 'control_l', 'control_r'):
             # navigation and modifiers: let the widget handle them
             return False
-        if keyname in ('Left', 'Right'):
+        if keyname in ('left', 'right'):
             # ignore these
             return True
         #print("key pressed --> %s" % keyname)
@@ -412,17 +413,5 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             self.moving_cursor = False
         return True
 
-    def grabdata(self, tw, context, selection, info, tstamp):
-        #print("grabbing!")
-        return True
-
-    def rearrange(self, tw, context, x, y, tstamp):
-        #print("rearrange!")
-        buf_x1, buf_y1 = tw.window_to_buffer_coords(Gtk.TextWindowType.TEXT,
-                                                    x, y)
-        txtiter = tw.get_iter_at_location(buf_x1, buf_y1)
-
-        #print("Drop!")
-        #print('\n'.join([str(t) for t in context.targets]))
-        context.finish(True, False, tstamp)
-        return True
+    # TODO: drag-and-drop reordering (was GTK-based; not yet reimplemented
+    # for the Qt/ginga backend).

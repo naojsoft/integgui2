@@ -129,9 +129,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                                          WorkspacePage.WorkspacePage)
 
         self.add_obsinfo(self.oiws)
-        if False:
-            # Populate "Observation Info" ws
-            self.add_monitor(self.oiws)
+        # Populate "Observation Info" ws (SkMonitorPage ported to TextSource)
+        self.add_monitor(self.oiws)
 
         self.logpage = self.oiws.addpage('loginfo', "Logs",
                                          WorkspacePage.WorkspacePage)

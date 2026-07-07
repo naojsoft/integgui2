@@ -22,19 +22,16 @@ class DirectoryPage(LogPage.NotePage):
         self.moving_cursor = False
 
         self.tw.set_editable(False)
-        #self.tw.connect("button-press-event", self.jump_tag)
 
-        self.buf.connect("mark-set", self.show_cursor)
+        # cursor-line tracking and keyboard shortcuts
+        self.tw.add_callback('cursor_moved', self.show_cursor)
+        self.tw.add_callback('key-press', self.keypress)
 
         # add standard decorative tags
         for tag, bnch in common.directory_tags:
             properties = {}
             properties.update(bnch)
             self.addtag(tag, **properties)
-
-        # keyboard shortcuts
-        self.tw.tw.connect("key-press-event", self.keypress)
-        self.tw.tw.connect("enter-notify-event", self.focus_in)
 
     def regist_clickfn(fn):
         """Register a function to be called on the files when you click them."""
@@ -75,49 +72,38 @@ class DirectoryPage(LogPage.NotePage):
 
 
     def _redraw(self):
-        # restore cursor
-        end = self.buf.get_end_iter()
-        #self.moving_cursor = False
-        self.cursor = min(self.cursor, end.get_line())
-        loc = self.buf.get_iter_at_line(self.cursor)
-        self.buf.place_cursor(loc)
-
-        # Hacky way to get our cursor on screen
-        insmark = self.buf.get_insert()
-        if insmark != None:
-            res = self.tw.scroll_to_mark(insmark, 0, True, 0.0, 0.0)
+        # restore cursor and highlight its line
+        self.cursor = min(self.cursor, self.tw.get_end_lineno())
+        loc = self.tw.get_ref_line_start(self.cursor)
+        self.moving_cursor = True
+        try:
+            self.tw.set_cursor(loc)
+            self.tw.scroll_to_ref(loc)
+            self._highlight_cursor_line(self.cursor)
+        finally:
+            self.moving_cursor = False
 
     def redraw(self):
         common.gui_do(self._redraw)
 
-    def show_cursor(self, tbuf, titer, tmark):
-        if self.moving_cursor:
-            return False
+    def _highlight_cursor_line(self, line):
+        """Move the 'cursor' highlight tag to the given line."""
+        common.clear_tags(self.tw, ('cursor',))
+        start = self.tw.get_ref_line_start(line)
+        end = self.tw.get_ref_line_end(line)
+        self.tw.apply_tag('cursor', start, end)
 
-        insmark = tbuf.get_insert()
-        if insmark != tmark:
+    def show_cursor(self, w):
+        # Called on the widget's 'cursor_moved' callback; highlight the line
+        # the cursor is on and remember it.
+        if self.moving_cursor:
             return False
 
         self.moving_cursor = True
         try:
-            # Color the new line nwe
-            start, end = tbuf.get_bounds()
-            self.buf.remove_tag_by_name('cursor', start, end)
-
-            line = titer.get_line()
+            line = self.tw.get_cursor().get_line()
             self.cursor = line
-            start = tbuf.get_iter_at_line(line)
-            end = start.copy()
-            end.forward_to_line_end()
-            ## end.forward_char()
-            tbuf.apply_tag_by_name('cursor', start, end)
-
-            selmark = tbuf.get_mark('selection_bound')
-            seliter = tbuf.get_iter_at_mark(selmark)
-            if not seliter.starts_line():
-                tbuf.move_mark_by_name('selection_bound', start)
-            tbuf.move_mark(insmark, start)
-
+            self._highlight_cursor_line(line)
         finally:
             self.moving_cursor = False
         return True
@@ -144,7 +130,7 @@ class DirectoryPage(LogPage.NotePage):
             common.view.gui_do(common.view.load_tscTrack, path)
             return True
 
-        if keyname == 'Return':
+        if keyname == 'return':
             if os.path.isdir(path):
                 self.load(path, self.pattern)
             else:
@@ -157,17 +143,17 @@ class DirectoryPage(LogPage.NotePage):
 
 
     def keypress(self, w, event):
-        keyname = Gdk.keyval_name(event.keyval)
-        if keyname in ('Up', 'Down', 'Shift_L', 'Shift_R',
-                       'Alt_L', 'Alt_R', 'Control_L', 'Control_R'):
-            # navigation and other
+        keyname = event.key
+        if keyname in ('up', 'down', 'shift_l', 'shift_r',
+                       'alt_l', 'alt_r', 'control_l', 'control_r'):
+            # navigation and modifiers: let the widget handle them
             return False
-        if keyname in ('Left', 'Right'):
+        if keyname in ('left', 'right'):
             # ignore these
             return True
         #print("key pressed --> %s" % keyname)
 
-        if event.state & Gdk.ModifierType.CONTROL_MASK:
+        if 'ctrl' in event.modifiers:
             if keyname == 'r':
                 self.reload()
                 return True

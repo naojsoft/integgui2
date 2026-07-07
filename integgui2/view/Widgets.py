@@ -10,6 +10,7 @@ from qtpy.QtGui import QTextCharFormat, QTextOption
 from ginga import colors
 from ginga.gw import Widgets
 from ginga.misc import Callback
+from ginga.events import KeyEvent
 
 
 class ButtonBox(Widgets.HBox):
@@ -363,11 +364,11 @@ class QTextSource(QtGui.QFrame, Callback.Callbacks):
         if obj in (self.tw, self.tw.viewport()):
             etype = event.type()
             if etype == QEvent.KeyPress:
-                keyname = _key_name(event)
-                if keyname is not None:
+                kev = _make_key_event(event)
+                if kev is not None:
                     # A truthy return from a 'key-press' callback means the
                     # key was handled, so we consume the event.
-                    if self.make_callback('key-press', keyname):
+                    if self.make_callback('key-press', kev):
                         return True
             elif (etype == QEvent.MouseButtonPress and
                   obj is self.tw.viewport()):
@@ -494,7 +495,11 @@ class QTextSource(QtGui.QFrame, Callback.Callbacks):
         attrs = {} if attrs is None else dict(attrs)
         attrs.update(kwdargs)
         self._tag_defs[name] = attrs
-        self._apply_all_formats()
+        # A tag definition only affects rendering where the tag is applied.
+        # Defining a brand-new (unapplied) tag needs no reformat, which keeps
+        # bulk tag creation (e.g. one tag per AST node) cheap.
+        if self.has_tag(name):
+            self._apply_all_formats()
 
     def remove_tag_def(self, name):
         if name in self._tag_defs:
@@ -1215,10 +1220,12 @@ class TextSource(Widgets.WidgetBase):
             'line-clicked',
             lambda w, lineno: self.make_callback('line-clicked', lineno))
 
-    def _key_pressed(self, w, keyname):
-        # Return value propagates back to QTextSource.eventFilter: truthy
-        # means a page handler consumed the key.
-        return self.make_callback('key-press', keyname)
+    def _key_pressed(self, w, event):
+        # Point the event at this (ginga) widget and relay it.  The return
+        # value propagates back to QTextSource.eventFilter: truthy means a
+        # page handler consumed the key.
+        event.viewer = self
+        return self.make_callback('key-press', event)
 
     def append_text(self, text, autoscroll=True, tags=None):
         end = self.widget.get_ref_end()
@@ -1447,41 +1454,87 @@ class FixedLayout(Widgets.ContainerBase):
         self.make_callback('widget-removed', child)
 
 
-def _resolve_qt_key(attr):
-    """Resolve a ``Qt.Key_*`` enum member across PyQt5/6 and PySide2/6."""
-    key_enum = getattr(QtCore.Qt, 'Key', None)
-    if key_enum is not None and hasattr(key_enum, attr):
-        return getattr(key_enum, attr)
+def _resolve_qt_enum(enum_name, attr):
+    """Resolve a scoped Qt enum member across PyQt5/6 and PySide2/6.
+
+    In Qt6 members live under a nested enum (e.g. ``Qt.Key.Key_Up``); in
+    Qt5 they are attributes of ``Qt`` directly.
+    """
+    enum = getattr(QtCore.Qt, enum_name, None)
+    if enum is not None and hasattr(enum, attr):
+        return getattr(enum, attr)
     return getattr(QtCore.Qt, attr, None)
 
 
-# Map Qt key codes to ginga-style key names for the keys that page code
+def _resolve_qt_key(attr):
+    return _resolve_qt_enum('Key', attr)
+
+
+def _enum_int(val):
+    """Return the integer value of a Qt enum/flags member.
+
+    PyQt6 scoped enums/flags are not always directly ``int()``-convertible,
+    but expose a ``.value``; PyQt5/PySide return plain ints.
+    """
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return int(val.value)
+
+
+# Map Qt key codes to ginga-style (lowercase) key names for keys page code
 # cares about.  Printable keys fall through to the event's text().
 _KEY_NAMES = {}
 for _attr, _name in [
-        ('Key_Up', 'Up'), ('Key_Down', 'Down'),
-        ('Key_Left', 'Left'), ('Key_Right', 'Right'),
-        ('Key_Shift', 'Shift_L'), ('Key_Control', 'Control_L'),
-        ('Key_Alt', 'Alt_L'), ('Key_Meta', 'Meta_L'),
-        ('Key_Return', 'Return'), ('Key_Enter', 'Return'),
-        ('Key_Escape', 'Escape'), ('Key_Tab', 'Tab'),
-        ('Key_Backspace', 'BackSpace'), ('Key_Delete', 'Delete'),
-        ('Key_Home', 'Home'), ('Key_End', 'End'),
-        ('Key_PageUp', 'Page_Up'), ('Key_PageDown', 'Page_Down'),
+        ('Key_Up', 'up'), ('Key_Down', 'down'),
+        ('Key_Left', 'left'), ('Key_Right', 'right'),
+        ('Key_Shift', 'shift_l'), ('Key_Control', 'control_l'),
+        ('Key_Alt', 'alt_l'), ('Key_Meta', 'meta_l'),
+        ('Key_Return', 'return'), ('Key_Enter', 'return'),
+        ('Key_Escape', 'escape'), ('Key_Tab', 'tab'),
+        ('Key_Backspace', 'backspace'), ('Key_Delete', 'delete'),
+        ('Key_Home', 'home'), ('Key_End', 'end'),
+        ('Key_PageUp', 'page_up'), ('Key_PageDown', 'page_down'),
         ('Key_Space', 'space')]:
     _code = _resolve_qt_key(_attr)
     if _code is not None:
-        _KEY_NAMES[int(_code)] = _name
+        _KEY_NAMES[_enum_int(_code)] = _name
 del _attr, _name, _code
 
+# Qt keyboard-modifier flags -> ginga modifier names (matches Bindings.py).
+_MODIFIERS = []
+for _attr, _name in [('ControlModifier', 'ctrl'), ('ShiftModifier', 'shift'),
+                     ('AltModifier', 'alt'), ('MetaModifier', 'win')]:
+    _flag = _resolve_qt_enum('KeyboardModifier', _attr)
+    if _flag is not None:
+        _MODIFIERS.append((_enum_int(_flag), _name))
+del _attr, _name, _flag
 
-def _key_name(event):
-    """Return a ginga-style key name for a Qt key event, or None."""
-    name = _KEY_NAMES.get(int(event.key()))
-    if name is not None:
-        return name
-    text = event.text()
-    return text if text else None
+
+def _make_key_event(qt_event, viewer=None):
+    """Build a ginga ``KeyEvent`` from a Qt key event, or return None.
+
+    Key names follow ginga's lowercase convention and modifiers are reported
+    as a set (``ctrl``/``shift``/``alt``/``win``), so page handlers can read
+    ``event.key`` and ``event.modifiers`` the same way ginga viewers do.
+    """
+    key = _enum_int(qt_event.key())
+    mods = _enum_int(qt_event.modifiers())
+    modset = set(name for flag, name in _MODIFIERS if mods & flag)
+
+    name = _KEY_NAMES.get(key)
+    if name is None:
+        if modset & {'ctrl', 'alt', 'win'}:
+            # text() is a control character under these modifiers, so derive
+            # the base key from the key code instead.
+            name = chr(key).lower() if 0x20 <= key <= 0x7e else None
+        else:
+            text = qt_event.text()
+            name = text.lower() if text and text.isprintable() else None
+    if name is None:
+        return None
+    return KeyEvent(key=name, state='down', modifiers=frozenset(modset),
+                    viewer=viewer)
 
 
 def mkformat(fgcolor=None, bgcolor=None, style=None, baseformat=None):

@@ -79,6 +79,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # this is for variable definition popups
         self.tw.enable_tooltips(True)
         self.tw.add_callback('tooltip', self.query_vardef)
+        # keyboard shortcuts (Ctrl-modified)
+        self.tw.add_callback('key-press', self.keypress)
         #self.tw.connect("focus-out-event", self.focus_out)
         #self.tw.connect("focus-in-event", self.focus_in)
 
@@ -634,10 +636,10 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
 
     def keypress(self, w, event):
-        keyname = Gdk.keyval_name(event.keyval)
+        keyname = event.key
         #print("key pressed --> %s" % keyname)
 
-        if event.state & Gdk.ModifierType.CONTROL_MASK:
+        if 'ctrl' in event.modifiers:
             if keyname == 't':
                 common.view.raise_page('tags')
                 return True
