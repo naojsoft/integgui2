@@ -80,8 +80,8 @@ class FileSelection:
         self.filew = Widgets.FileDialog(title="Select a file",
                                         parent=common.view.w.root)
         self.filew.set_mode(action)
-        self.filew.connect("close", self.close)
-        self.filew.connect("activated", self.file_ok_sel)
+        self.filew.add_callback("close", self.close)
+        self.filew.add_callback("activated", self.file_ok_sel)
 
     def popup(self, title, callfn, initialdir=None,
               filename=None):
@@ -101,7 +101,7 @@ class FileSelection:
     def close(self, widget):
         #self.filew.hide()
         w, self.filew = self.filew, None
-        w.destroy()
+        w.delete()
 
 
 class MyDialog(Widgets.Dialog):
@@ -109,9 +109,8 @@ class MyDialog(Widgets.Dialog):
                  callback=None):
 
         super().__init__(title=title, flags=flags, buttons=buttons)
-        #self.w.connect("close", self.close)
         if callback:
-            self.connect("activated", callback)
+            self.add_callback("activated", callback)
 
 
 class SearchReplace(object):
@@ -146,26 +145,24 @@ class SearchReplace(object):
 
         lbl = Widgets.Label('Search string:')
         self.cvbox.add_widget(lbl, stretch=0)
-        self._search_widget = Widgets.Entry()
+        self._search_widget = Widgets.TextEntry()
         if self.what:
             self._search_widget.set_text(self.what)
-        #self._search_widget.set_activates_default(True)
         self.cvbox.add_widget(self._search_widget, stretch=0)
 
         lbl = Widgets.Label('Replacement string:')
         self.cvbox.add_widget(lbl, stretch=0)
-        self._replace_widget = Widgets.Entry()
+        self._replace_widget = Widgets.TextEntry()
         if self.replacement:
             self._replace_widget.set_text(self.replacement)
-        #self._replace_widget.set_activates_default(True)
         self.cvbox.add_widget(self._replace_widget, stretch=0)
 
-        self._case_sensitive = Widgets.CheckButton("Case sensitive")
+        self._case_sensitive = Widgets.CheckBox("Case sensitive")
         self._case_sensitive.set_state(True)
-        self._case_sensitive.set_sensitive(False)
+        self._case_sensitive.set_enabled(False)
         self.cvbox.add_widget(self._case_sensitive, stretch=0)
 
-        self._reverse = Widgets.CheckButton("Reverse")
+        self._reverse = Widgets.CheckBox("Reverse")
         self.cvbox.add_widget(self._reverse, stretch=0)
 
         self._message = Widgets.Label('')
@@ -209,7 +206,7 @@ class SearchReplace(object):
 
     def close(self, widget):
         #self.w.hide()
-        widget.destroy()
+        widget.delete()
         self.w = None
 
 
@@ -221,8 +218,9 @@ class Confirmation(object):
         self.logger = logger
 
         self.soundfn = soundfn
-        self.timertask = None
-        self.interval = timefreq * 1000
+        # repeating sound timer (a ginga timer); interval is in seconds
+        self.timer = None
+        self.interval = timefreq
 
     def _create_widget(self, title, iconfile, buttons, callback):
         global dialog_count
@@ -231,11 +229,6 @@ class Confirmation(object):
         embed_dialogs = settings.get('embed_dialogs', False)
 
         if not embed_dialogs:
-            ## self.w = Gtk.Dialog(title=self.title,
-            ##                     flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            ##                     buttons=buttons)
-            ## #self.w.connect("close", self.close)
-            ## self.w.connect("response", callback)
             self.w = MyDialog(title=self.title,
                               flags=0,
                               buttons=buttons,
@@ -246,33 +239,35 @@ class Confirmation(object):
             self.w = common.view.create_dialog(name, name,
                                                buttons=buttons,
                                                callback=callback)
-            self.w.add_hook('close', lambda w: common.view.lower_page_transient('dialogs'))
+            self.w.add_callback('close', lambda w: common.view.lower_page_transient('dialogs'))
             common.view.raise_page_transient('dialogs')
             common.view.dialogs.select(name)
 
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
-        tw = Widgets.TextView(editable=False)
-        tw.set_font("Sans Bold", 14)
-        #tw.set_cursor_visible(False)
-        #tw.resize(425, -1)
-        tw.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        tw.set_left_margin(4)
-        tw.set_right_margin(4)
-        txtbuf = tw.get_buffer()
-        enditer = txtbuf.get_end_iter()
-        txtbuf.insert(enditer, title)
-        self.tw = tw
-        tw.show()
+        cvbox.set_spacing(4)
 
-        self.icon = Gtk.Image()
-        self.icon.set_from_file(iconfile)
-        cvbox.pack_start(self.icon, False, False, 2)
-        cvbox.pack_start(tw, False, False, 5)
+        # Optional attention icon; degrade gracefully if it can't be loaded.
+        self.icon = None
+        if iconfile:
+            try:
+                icon = Widgets.Image()
+                icon.load_file(iconfile)
+                cvbox.add_widget(icon, stretch=0)
+                self.icon = icon
+            except Exception as e:
+                if self.logger is not None:
+                    self.logger.warning("Could not load icon '%s': %s" % (
+                        iconfile, str(e)))
 
-        self.anim = GdkPixbuf.PixbufAnimation.new_from_file(iconfile)
-        self.icon.set_from_animation(self.anim)
-        self.icon.show_all()
+        # Message text
+        lbl = Widgets.Label(title)
+        try:
+            lbl.set_font('sans bold', 14)
+        except Exception:
+            pass
+        cvbox.add_widget(lbl, stretch=0)
+        self.tw = lbl
 
     def popup(self, title, iconfile, soundfn, buttons, callfn, tag=None):
         button_list = []
@@ -299,34 +294,34 @@ class Confirmation(object):
         register_dialog(tag, self)
 
         self.w.show()
-        #self.timeraction(soundfn)
-        self.timertask = GObject.timeout_add(self.interval,
-                                             self.timeraction,
-                                             soundfn)
+        self._start_repeating_sound(soundfn)
+
+    def _start_repeating_sound(self, soundfn):
+        self.soundfn = soundfn
+        if soundfn is None:
+            return
+        self.timer = common.view.make_timer()
+        self.timer.add_callback('expired', self._sound_tick)
+        self.timer.start(self.interval)
+
+    def _sound_tick(self, timer):
+        if self.w is not None and self.soundfn is not None:
+            # play sound and re-arm
+            self.soundfn()
+            timer.start(self.interval)
 
     def close(self, widget):
         #self.w.hide()
-        widget.destroy()
+        if widget is not None:
+            widget.delete()
         self.w = None
-        if self.timertask:
+        if self.timer is not None:
             try:
-                GObject.source_remove(self.timertask)
+                self.timer.stop()
             except Exception:
                 pass
-        self.timertask = None
+            self.timer = None
 
-    def timeraction(self, soundfn):
-        if self.w:
-            if soundfn != None:
-                # play sound
-                soundfn()
-
-                # Schedule next sound event
-                self.timertask = GObject.timeout_add(self.interval,
-                                                     self.timeraction,
-                                                     soundfn)
-        else:
-            self.timertask = None
 
 class UserInput(Confirmation):
 
@@ -350,8 +345,7 @@ class UserInput(Confirmation):
             # Read out the entry widgets before we close the dialog
             d = {}
             for key, ent in resDict.items():
-                s = ent.get_text()
-                d[key] = s
+                d[key] = ent.get_text()
 
             unregister_dialog(self.tag)
             self.close(w)
@@ -360,35 +354,30 @@ class UserInput(Confirmation):
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
-        tbl = Gtk.Table(rows=len(itemlist), columns=2)
-        tbl.set_row_spacings(2)
-        tbl.set_col_spacings(2)
+        grid = Widgets.GridBox()
+        grid.set_row_spacing(2)
+        grid.set_column_spacing(2)
 
-        row = 0
-        for name, val in itemlist:
-            lbl = Gtk.Label(name)
-            lbl.set_alignment(1.0, 0.5)
-            ent = Gtk.Entry()
-            val_s = str(val)
-            ent.set_text(val_s)
+        for row, (name, val) in enumerate(itemlist):
+            lbl = Widgets.Label(name)
+            try:
+                lbl.set_halign('right')
+            except Exception:
+                pass
+            ent = Widgets.TextEntry()
+            ent.set_text(str(val))
             resDict[name] = ent
 
-            tbl.attach(lbl, 0, 1, row, row+1, xoptions=Gtk.AttachOptions.FILL)
-            tbl.attach(ent, 1, 2, row, row+1,
-                       xoptions=Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL)
-            row += 1
+            grid.add_widget(lbl, row, 0, stretch=0)
+            grid.add_widget(ent, row, 1, stretch=1)
 
-        tbl.show_all()
-        self.cvbox.pack_start(tbl, False, True, 2)
+        self.cvbox.add_widget(grid, stretch=0)
 
         self.tag = tag
         register_dialog(tag, self)
 
         self.w.show()
-        #self.timeraction(soundfn)
-        self.timertask = GObject.timeout_add(self.interval,
-                                             self.timeraction,
-                                             soundfn)
+        self._start_repeating_sound(soundfn)
 
 
 class Timer(Confirmation):
@@ -397,20 +386,14 @@ class Timer(Confirmation):
         super(Timer, self).__init__(title=title, logger=logger,
                                     soundfn=soundfn)
         # override time interval to 1 sec
-        self.interval = 1000
+        self.interval = 1
         self.soundfn = soundfn
+        # ginga timer used for the per-second display tick
         self.timer = None
-        self.timertask = None
-
-        self.fmtstr = '<span foreground="#008800" background="#F7F7F7" font="Sans Bold 120">%s</span>'
-
-        # rgb triplets we use
-        ## self.green = Gdk.Color(0.0, 0.5, 0.0)
-        ## self.white = Gdk.Color(1.0, 1.0, 1.0)
 
     def redraw(self):
-        s = self.timestr.rjust(5)
-        self.area.set_markup(self.fmtstr % (s))
+        if self.w is not None:
+            self.area.set_text(self.timestr.rjust(5))
 
     def popup(self, title, iconfile, soundfn, timer, callfn, tag=None):
         time_sec = timer.duration
@@ -437,24 +420,23 @@ class Timer(Confirmation):
         self.timestr = str(int(val)).rjust(5)
         timer.data.dialog = self
 
-        self.area = Gtk.Label()
-        #self.area.modify_bg(Gtk.StateType.NORMAL, self.white)
-        #self.area.modify_fg(Gtk.StateType.NORMAL, self.green)
-        self.cvbox.pack_start(self.area, True, True, 2)
-        self.area.show()
+        self.area = Widgets.Label(self.timestr)
+        try:
+            self.area.set_font('sans bold', 48)
+        except Exception:
+            pass
+        self.cvbox.add_widget(self.area, stretch=1)
 
-        self.pbar = Gtk.ProgressBar()
-        self.pbar.set_fraction(0.0)
-        self.pbar.set_text("0%")
-        self.cvbox.pack_start(self.pbar, False, True, 2)
-        self.pbar.show()
+        self.pbar = Widgets.ProgressBar()
+        self.pbar.set_value(0.0)
+        self.cvbox.add_widget(self.pbar, stretch=0)
 
         self.tag = tag
         register_dialog(tag, self)
 
         self.w.show()
-        # start a second-by-second timer to update the GUIs with the
-        # associated timer's value
+        # start a second-by-second timer to update the GUI with the
+        # associated countdown timer's value
         self._timer_tick(timer)
         self.redraw()
 
@@ -465,18 +447,16 @@ class Timer(Confirmation):
         if self.w:
             self.redraw()
         if diff > 0:
-            frac = 1.0 - diff/self.duration
-            self.pbar.set_fraction(frac)
-            self.pbar.set_text("%d%%" % int(frac*100))
+            frac = 1.0 - diff / self.duration
+            self.pbar.set_value(frac)
         else:
-            self.timertask = None
-            self.pbar.set_fraction(1.0)
-            self.pbar.set_text("100%")
-            self.timerstr = '0'
+            self.pbar.set_value(1.0)
+            self.timestr = '0'
             self.redraw()
 
             # Play sound
-            self.soundfn()
+            if self.soundfn is not None:
+                self.soundfn()
 
             self.close(self.w)
 
@@ -484,15 +464,19 @@ class Timer(Confirmation):
         secs = timer.time_left()
         try:
             timer.data.obsinfo.update_timer(secs)
-        except Exception as e:
+        except Exception:
             pass
         try:
             timer.data.dialog.update_timer(secs)
         except Exception:
             pass
 
-        if secs > 0:
-            GObject.timeout_add(1000, self._timer_tick, timer)
+        if secs > 0 and self.w is not None:
+            if self.timer is None:
+                self.timer = common.view.make_timer()
+                self.timer.add_callback('expired',
+                                        lambda t: self._timer_tick(timer))
+            self.timer.start(1.0)
 
 
 class ComboBox(Confirmation):
@@ -501,6 +485,7 @@ class ComboBox(Confirmation):
         super(ComboBox, self).__init__(title=title, logger=logger,
                                         soundfn=soundfn)
         self.selectedValue = None
+        self.itemlist = []
 
     def popup(self, title, iconfile, soundfn, itemlist, callfn, tag=None):
         button_vals = [1, 0]
@@ -522,33 +507,24 @@ class ComboBox(Confirmation):
         self._create_widget(title, iconfile, tuple(button_list),
                             callback)
 
-        combobox = Gtk.ComboBoxText()
-
+        self.itemlist = list(itemlist)
+        combobox = Widgets.ComboBox()
         for item in itemlist:
             combobox.append_text(item)
-        combobox.connect('changed', self.changed_cb)
-        combobox.set_active(0)
+        combobox.add_callback('activated', self.changed_cb)
+        combobox.set_index(0)
         self.selectedValue = itemlist[0]
-        if len(itemlist) > 20:
-            combobox.set_wrap_width(int(len(itemlist)/20))
 
-        combobox.show()
-        self.cvbox.pack_start(combobox, False, True, 2)
+        self.cvbox.add_widget(combobox, stretch=0)
 
         self.tag = tag
         register_dialog(tag, self)
 
         self.w.show()
-        #self.timeraction(soundfn)
-        self.timertask = GObject.timeout_add(self.interval,
-                                             self.timeraction,
-                                             soundfn)
+        self._start_repeating_sound(soundfn)
 
-    def changed_cb(self, combobox):
-        model = combobox.get_model()
-        index = combobox.get_active()
-        if index:
-            self.selectedValue = model[index][0]
-        return
+    def changed_cb(self, widget, index):
+        if 0 <= index < len(self.itemlist):
+            self.selectedValue = self.itemlist[index]
 
 #END
