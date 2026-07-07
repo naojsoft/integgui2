@@ -2,7 +2,7 @@
 # E. Jeschke
 #
 # Standard library imports
-import sys
+import sys, os
 import re, time
 import threading
 
@@ -12,15 +12,36 @@ from g2base.remoteObjects import remoteObjects as ro
 from ginga.misc import Bunch
 
 from . import common
+from . import Page
+from . import Workspace
 from . import WorkspacePage
-from .LogPage import NotePage
+from . import Widgets as IGWidgets
 
 
-class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
+class MonitorPage(Page.Page):
+    """A lightweight, view-only page holding just a TextSource -- no menubar
+    or button frame.  Used for the Monitor's command AST sub-pages."""
+
+    def __init__(self, frame, name, title):
+        super(MonitorPage, self).__init__(frame, name, title)
+
+        self.tw = IGWidgets.TextSource(editable=False, wrap=False)
+        frame.add_widget(self.tw, stretch=1)
+
+
+class SkMonitorPage(WorkspacePage.WorkspacePage):
 
     def __init__(self, frame, name, title):
 
-        WorkspacePage.ButtonWorkspacePage.__init__(self, frame, name, title)
+        # Build the base page, pack a singleton menubar above the
+        # sub-notebook, then let Workspace add the notebook below it.
+        Page.Page.__init__(self, frame, name, title)
+
+        self.menubar = Widgets.Menubar()
+        self._menus = {}
+        frame.add_widget(self.menubar, stretch=0)
+
+        Workspace.Workspace.__init__(self, frame, name, title)
 
         self.pagelist = []
         self.pagelimit = 100
@@ -32,22 +53,23 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         # set_group_name mechanism has no direct Qt equivalent).
         self.nb.set_tab_position('right')
 
-        ## menu = self.add_pulldownmenu("Page")
-
-        ## item = menu.add_name("Close")
-        ## # currently disabled
-        ## item.set_enabled(False)
-        ## item.add_callback("activated", lambda w: self.close())
-
-        # Options menu
-        ## menu = self.add_pulldownmenu("Option")
-        menu = self.wsmenu.add_menu("Option")
-
         # Option variables
         self.save_decode_result = False
         self.show_times = False
         self.track_elapsed = False
         self.track_subcommands = True
+
+        # Page menu: actions on the currently selected command page
+        menu = self.add_pulldownmenu("Page")
+
+        item = menu.add_name("Save current as ...")
+        item.add_callback("activated", lambda w: self.save_current())
+
+        item = menu.add_name("Close current")
+        item.add_callback("activated", lambda w: self.close_current())
+
+        # Options menu
+        menu = self.add_pulldownmenu("Option")
 
         w = menu.add_name("Track Subcommands", checkable=True)
         w.set_state(self.track_subcommands)
@@ -63,6 +85,48 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
         w = menu.add_name("Track Elapsed", checkable=True)
         w.set_state(self.track_elapsed)
         w.add_callback("activated", lambda w, tf: self.toggle_var(tf, 'track_elapsed'))
+
+    def add_pulldownmenu(self, name):
+        try:
+            return self._menus[name]
+        except KeyError:
+            pass
+        menu = self.menubar.add_name(name)
+        self._menus[name] = menu
+        return menu
+
+    def get_current_page(self):
+        idx = self.nb.get_index()
+        if idx < 0:
+            return None
+        child = self.nb.index_to_widget(idx)
+        return getattr(child, 'ig_page', None)
+
+    def save_current(self):
+        page = self.get_current_page()
+        if page is None:
+            common.view.popup_error("No monitor page is selected.")
+            return
+
+        homedir = os.path.join(os.environ['HOME'], 'Procedure')
+        filename = time.strftime("%Y%m%d-%H%M%S") + '-monitor.txt'
+        text = page.tw.get_text()
+
+        def _save(filepath):
+            try:
+                with open(filepath, 'w') as out_f:
+                    out_f.write(text)
+            except Exception as e:
+                common.view.popup_error("Cannot write '%s': %s" % (
+                    filepath, str(e)))
+
+        common.view.popup_save("Save monitor page", _save,
+                               homedir, filename=filename)
+
+    def close_current(self):
+        page = self.get_current_page()
+        if page is not None:
+            self.delpage(page.name)
 
 
     def toggle_var(self, tf, key):
@@ -142,7 +206,7 @@ class SkMonitorPage(WorkspacePage.ButtonWorkspacePage):
                 oldname = self.pagelist.pop(0)
                 self.delpage(oldname)
 
-            page = super(SkMonitorPage, self).addpage(name, title, NotePage)
+            page = super(SkMonitorPage, self).addpage(name, title, MonitorPage)
 
             self.pagelist.append(name)
 
