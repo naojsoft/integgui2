@@ -148,8 +148,11 @@ class Workspace(object):
                     title = newname
                 name = newname
 
-            # Make a frame for the notebook tab content
+            # Make a frame for the notebook tab content.  No inter-widget
+            # spacing so the menubar sits flush against the page content
+            # (pages that want an inset add their own).
             child = Widgets.VBox()
+            child.set_spacing(0)
 
             # Create the new object in the frame
             try:

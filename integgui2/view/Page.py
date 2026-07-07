@@ -65,9 +65,10 @@ class ButtonPage(Page):
 
         self.add_menubar()
 
-        # content area
+        # content area (no margin -- content sits flush to the frame; pages
+        # that want an inset add their own)
         self.content = Widgets.VBox()
-        self.content.set_border_width(2)
+        self.content.set_border_width(0)
         self.content.set_spacing(0)
         frame.add_widget(self.content, stretch=1)
 
