@@ -16,6 +16,41 @@ from . import CommandObject
 # Default width of the main launcher buttons
 default_width = 150
 
+
+def _make_hline():
+    """Return a thin horizontal-rule widget (like an HTML <hr>).
+
+    ginga has no separator widget, so we style a Label's underlying QLabel
+    (a QFrame) as a sunken horizontal line.
+    """
+    from qtpy.QtWidgets import QFrame
+    line = Widgets.Label("")
+    w = line.get_widget()
+    w.setFrameShape(QFrame.HLine)
+    w.setFrameShadow(QFrame.Sunken)
+    w.setContentsMargins(0, 0, 0, 0)
+
+    # Centered rule spanning ~90% of the width: put it between two stretch
+    # spacers (5% : 90% : 5%).  The row is clamped to the rule's height so the
+    # empty spacer labels don't re-inflate it to a full font line-height.
+    row = Widgets.HBox()
+    row.set_spacing(0)
+    row.set_border_width(0)
+    row.add_widget(Widgets.Label(''), stretch=5)
+    row.add_widget(line, stretch=90)
+    row.add_widget(Widgets.Label(''), stretch=5)
+    row.get_widget().setFixedHeight(2)
+
+    # A little space *above* the rule and none below (the following launcher's
+    # top margin -- 0 right after a separator -- supplies the space after).
+    # set_margins args are (left, top, right, bottom).
+    box = Widgets.VBox()
+    box.set_spacing(0)
+    box.set_margins(0, 4, 0, 0)
+    box.add_widget(row, stretch=0)
+    return box
+
+
 class LauncherError(Exception):
     pass
 
@@ -27,11 +62,42 @@ class Launcher(object):
         self.paramList = []
         self.execfn = execfn
 
+        # Each command (launcher) gets its own grid, so a command's controls
+        # are laid out independently of the others.
+        self.table = Widgets.GridBox(rows=2, columns=2)
+        self.table.set_column_spacing(4)
+        self.table.set_row_spacing(2)
+        # drop the default container margins to minimize vertical space
+        # between launchers, but keep a little space at the top of each --
+        # except right after a separator, whose own spacing sits above the
+        # rule (so the launcher below the rule stays tight to it).
+        # NOTE: ginga's set_margins passes straight to Qt setContentsMargins,
+        # so the args are (left, top, right, bottom).
+        top_margin = 0 if self.llist.prev_was_sep else 2
+        self.table.set_margins(0, top_margin, 0, 0)
+
+        # layout cursor within this command's grid
+        self.row = 1
+        self.col = 1
+        self.max_col = self.col
+
         self.btn_exec = Widgets.Button(title)
-        self.btn_exec.get_widget().resize(default_width, 20)
+        # give every launcher's leftmost button roughly the same width so they
+        # line up as a column (longer labels may still be wider); height is
+        # left unconstrained.  set_min_size is backend-neutral.
+        self.btn_exec.set_min_size(default_width, None)
         self.btn_exec.add_callback("activated", lambda w: self.execute())
 
-        self.llist.table.add_widget(self.btn_exec, self.llist.row, 0)
+        self.table.add_widget(self.btn_exec, self.row, 0)
+
+        # Wrap the command's grid in an HBox with a trailing stretch spacer so
+        # the grid keeps its natural width instead of stretching across the
+        # page's cross axis.  (Backend-neutral: no Qt-specific size policy.)
+        hbox = Widgets.HBox()
+        hbox.set_border_width(0)
+        hbox.add_widget(self.table, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        self.llist.frame.add_widget(hbox, stretch=0)
 
 
     def addParam(self, name):
@@ -44,24 +110,24 @@ class Launcher(object):
         self.cmdstr = cmdstr
 
     def add_break(self):
-        self.llist.row += 2
-        self.llist.col = 1
-        self.llist.table.resize_grid(self.llist.row+1, self.llist.max_col+1)
+        self.row += 2
+        self.col = 1
+        self.table.resize_grid(self.row+1, self.max_col+1)
 
     def bump_col(self):
-        self.llist.col += 1
-        self.llist.max_col = max(self.llist.col, self.llist.max_col)
-        self.llist.table.resize_grid(self.llist.row+1, self.llist.max_col+1)
+        self.col += 1
+        self.max_col = max(self.col, self.max_col)
+        self.table.resize_grid(self.row+1, self.max_col+1)
 
     def add_input(self, name, width, defVal, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
         field = Widgets.TextEntry()
         #field.set_length(width)
         field.resize(120, 20)
         field.set_text(str(defVal))
-        self.llist.table.add_widget(field, self.llist.row, self.llist.col)
+        self.table.add_widget(field, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -73,12 +139,12 @@ class Launcher(object):
                      label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         checkbox = Widgets.CheckBox(checkbox_label)
         checkbox.resize(width, height)
 
-        self.llist.table.add_widget(checkbox, self.llist.row, self.llist.col)
+        self.table.add_widget(checkbox, self.row, self.col)
 
         self.bump_col()
 
@@ -91,12 +157,12 @@ class Launcher(object):
     def add_toggle(self, name, toggle_label, toggle_dict, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         toggle = Widgets.ToggleButton(toggle_label)
         toggle.resize(width, height)
 
-        self.llist.table.add_widget(toggle, self.llist.row, self.llist.col)
+        self.table.add_widget(toggle, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -108,14 +174,14 @@ class Launcher(object):
     def add_switch(self, name, switch_dict, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         #switch = Gtk.Switch()
         switch = Widgets.ToggleButton("[---]")
         switch.set_state(False)
         switch.resize(width, height)
 
-        self.llist.table.add_widget(switch, self.llist.row, self.llist.col)
+        self.table.add_widget(switch, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -128,14 +194,14 @@ class Launcher(object):
     def add_scale(self, name, value, lower, upper, step, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         scale = Widgets.Slider(orientation='horizontal', dtype=type(value))
         scale.set_limits(lower, upper, incr_value=step)
         scale.set_value(value)
         scale.resize(width, height)
 
-        self.llist.table.add_widget(scale, self.llist.row, self.llist.col)
+        self.table.add_widget(scale, self.row, self.col)
 
         self.bump_col()
 
@@ -147,7 +213,7 @@ class Launcher(object):
     def add_spin(self, name, value, lower, upper, step, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         d = decimal.Decimal(str(step))
         d = d.as_tuple().exponent * -1
@@ -158,7 +224,7 @@ class Launcher(object):
         spinbutton.set_decimals(d)
         spinbutton.resize(width, height)
 
-        self.llist.table.add_widget(spinbutton, self.llist.row, self.llist.col)
+        self.table.add_widget(spinbutton, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -169,14 +235,14 @@ class Launcher(object):
     def add_combobox(self, name, combobox_list,  width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         combobox = Widgets.ComboBox(editable=True)
         for cl in combobox_list:
             combobox.append_text(str(cl))
         combobox.resize(width, height)
 
-        self.llist.table.add_widget(combobox, self.llist.row, self.llist.col)
+        self.table.add_widget(combobox, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -187,7 +253,7 @@ class Launcher(object):
     def add_list(self, name, optionList, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         combobox = Widgets.ComboBox()
         options = []
@@ -195,7 +261,7 @@ class Launcher(object):
             options.append(val)
             combobox.append_text(opt)
         combobox.set_index(0)
-        self.llist.table.add_widget(combobox, self.llist.row, self.llist.col)
+        self.table.add_widget(combobox, self.row, self.col)
         self.bump_col()
 
         name = name.lower()
@@ -207,7 +273,7 @@ class Launcher(object):
     def add_radio(self, name, optionList, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         group = None
         options = []
@@ -215,7 +281,7 @@ class Launcher(object):
             btn = Widgets.RadioButton(opt, group=group)
             if group is None:
                 group = btn
-            self.llist.table.add_widget(btn, self.llist.row, self.llist.col)
+            self.table.add_widget(btn, self.row, self.col)
             options.append((btn, val))
             self.bump_col()
 
@@ -227,11 +293,11 @@ class Launcher(object):
     def add_dial_select(self, name, optionList, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         dial = Widgets.Dial()
         dial.resize(width, height)
-        self.llist.table.add_widget(dial, self.llist.row, self.llist.col)
+        self.table.add_widget(dial, self.row, self.col)
         self.bump_col()
         dial.show()
 
@@ -256,11 +322,11 @@ class Launcher(object):
                        label):
 
         lbl = Widgets.Label(label)
-        self.llist.table.add_widget(lbl, self.llist.row-1, self.llist.col)
+        self.table.add_widget(lbl, self.row-1, self.col)
 
         dial = Widgets.Dial(dtype=type(value))
         dial.resize(width, height)
-        self.llist.table.add_widget(dial, self.llist.row, self.llist.col)
+        self.table.add_widget(dial, self.row, self.col)
         self.bump_col()
         dial.set_limits(lower, upper, incr_valuestep)
         dial.set_value(value)
@@ -348,34 +414,25 @@ class LauncherList(object):
         self.llist = []
         self.ldict = {}
         self.count = 0
+        # container (a VBox) that holds each command's grid and the separators
         self.frame = frame
         self.execfn = execfn
-
-        self.row = 1
-        self.col = 1
-        self.max_col = self.col
         self.btn_width = 20
-
-        self.table = Widgets.GridBox(rows=2, columns=2)
-        self.table.set_column_spacing(2)
-        self.table.set_row_spacing(2)
-        #self.table.set_name('launcher')
-
-        frame.add_widget(self.table, stretch=0)
+        # True right after a separator, so the following launcher can drop its
+        # top margin (the separator already supplies the spacing)
+        self.prev_was_sep = False
 
     def addSeparator(self):
-        #separator = Gtk.HSeparator()
-        separator = Widgets.Label("--------------------")
-        self.table.add_widget(separator, self.row-1, 0)
-        self.row += 1
-        self.col = 1
-        self.table.resize_grid(self.row+1, self.max_col+1)
+        # A thin horizontal rule (like an HTML <hr>) between commands.
+        self.frame.add_widget(_make_hline(), stretch=0)
+        self.prev_was_sep = True
         self.count += 1
 
     def addLauncher(self, name, title):
         self.count += 1
 
         launcher = Launcher(self, name, title, self.execfn)
+        self.prev_was_sep = False
 
         self.llist.append(launcher)
         self.ldict[name.lower()] = launcher
@@ -455,8 +512,6 @@ class LauncherList(object):
 
             else:
                 pass
-
-        launcher.add_break()
 
     def addFromDefs(self, ast):
         assert ast.tag == 'launchers'
@@ -647,8 +702,6 @@ class LauncherList(object):
                     # don't know what we are looking at
                     continue
 
-        launcher.add_break()
-
     def loadLauncher(self, d):
         for d in d['launchers']:
             if d == 'sep':
@@ -671,6 +724,10 @@ class LauncherPage(Page.CommandPage):
         self.content.add_widget(scrolled_window, stretch=1)
 
         self.fw = Widgets.VBox()
+        # minimize the vertical gap between launchers, with a small inset
+        # around the whole set of grids
+        self.fw.set_spacing(0)
+        self.fw.set_border_width(2)
         scrolled_window.set_widget(self.fw)
 
         self.llist = LauncherList(self.fw, name, title,
