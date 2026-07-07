@@ -1220,6 +1220,11 @@ class TextSource(Widgets.WidgetBase):
             'line-clicked',
             lambda w, lineno: self.make_callback('line-clicked', lineno))
 
+        # Default to a fixed-width font (resolved via ginga's font assistant,
+        # e.g. Roboto Mono), matching the pg TextSource default.  Code,
+        # tabular, and log content all rely on monospaced alignment.
+        self.set_font('monospace', 10)
+
     def _key_pressed(self, w, event):
         # Point the event at this (ginga) widget and relay it.  The return
         # value propagates back to QTextSource.eventFilter: truthy means a

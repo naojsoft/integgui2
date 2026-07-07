@@ -50,7 +50,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)
 
-        tw.set_font('DejaVuSans', 10)
+        tw.set_font('monospace', 10)
         self.tw = tw
 
         self.sr = dialogs.SearchReplace("Find and/or Replace")
