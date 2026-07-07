@@ -50,12 +50,9 @@ class Workspace(object):
         frame.add_widget(self.nb, stretch=1)
 
 
-    def popup_menu(self, w, event, menu):
-        if (event.type == Gdk.EventType.BUTTON_PRESS) and \
-               (event.button == 3):
-            menu.popup(None, None, None, event.button, event.time)
-            return True
-        return False
+    # TODO: a right-click context menu (self.wsmenu) for the workspace tab
+    # bar.  The GTK button-press handler was removed in the ginga port; this
+    # needs ginga tab-widget event wiring to re-enable.
 
     def build_menu(self):
         wsmenu = Widgets.Menu()

@@ -192,33 +192,29 @@ class Desktop(object):
 
     def gui_moveto_workspace(self, src_ws, page):
 
-        def move_page(w, rsp, went):
-            name = went.get_text()
-            w.destroy()
+        def move_page(w, rsp, cbox, names):
+            idx = cbox.get_index()
+            w.delete()
             if rsp == 1:
-                dst_ws = self.getWorkspace(name)
+                dst_ws = self.getWorkspace(names[idx])
                 self.move_page(src_ws, page, dst_ws)
             return True
 
-        dialog = Gtk.MessageDialog(flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                   type=Gtk.MessageType.QUESTION,
-                                   buttons=Gtk.ButtonsType.OK_CANCEL,
-                                   message_format="To workspace:")
-        dialog.set_title("Move page")
+        dialog = Widgets.Dialog(title="Move page", flags=0,
+                                buttons=[("Cancel", 0), ("Ok", 1)])
         # Add a combo box to the content area containing the names of the
         # current workspaces
         vbox = dialog.get_content_area()
-        cbox = Gtk.ComboBoxText()
-        index = 0
+        vbox.add_widget(Widgets.Label("To workspace:"), stretch=0)
+        cbox = Widgets.ComboBox()
         names = []
         for name in self.getNames():
-            cbox.insert_text(index, name)
+            cbox.append_text(name)
             names.append(name)
-            index += 1
-        cbox.set_active(0)
-        vbox.add(cbox)
-        cbox.show()
-        dialog.connect("response", move_page, cbox, names)
+        cbox.set_index(0)
+        vbox.add_widget(cbox, stretch=0)
+        dialog.add_callback("activated", move_page, cbox, names)
+        common.view.add_window(dialog)
         dialog.show()
 
 
