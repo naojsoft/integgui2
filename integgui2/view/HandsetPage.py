@@ -73,7 +73,7 @@ class HandsetPage(Page.CommandPage):
     def _make_compass(self, n, s, e, w):
         txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
         lbl = Widgets.Label(txt)
-        lbl.set_font('Monospace', 11)
+        lbl.set_font('DejaVu Sans Mono', 11)
         return lbl
 
     def _make_button(self, name):

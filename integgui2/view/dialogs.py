@@ -278,7 +278,7 @@ class Confirmation(object):
         # Message text
         lbl = Widgets.Label(title)
         try:
-            lbl.set_font('sans bold', 14)
+            lbl.set_font('DejaVu Sans;normal;bold', 14)
         except Exception:
             pass
         cvbox.add_widget(lbl, stretch=0)
@@ -437,7 +437,7 @@ class Timer(Confirmation):
 
         self.area = Widgets.Label(self.timestr)
         try:
-            self.area.set_font('sans bold', 48)
+            self.area.set_font('DejaVu Sans;normal;bold', 48)
         except Exception:
             pass
         self.cvbox.add_widget(self.area, stretch=1)

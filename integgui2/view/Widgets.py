@@ -1224,10 +1224,10 @@ class TextSource(Widgets.WidgetBase):
             'line-clicked',
             lambda w, lineno: self.make_callback('line-clicked', lineno))
 
-        # Default to a fixed-width font (resolved via ginga's font assistant,
-        # e.g. Roboto Mono), matching the pg TextSource default.  Code,
-        # tabular, and log content all rely on monospaced alignment.
-        self.set_font('monospace', 10)
+        # Default to a fixed-width font.  Code, tabular, and log content all
+        # rely on monospaced alignment.  DejaVu Sans Mono matches the font
+        # the GTK version used (via the system default monospace).
+        self.set_font('DejaVu Sans Mono', 10)
 
     def _key_pressed(self, w, event):
         # Point the event at this (ginga) widget and relay it.  The return
