@@ -215,12 +215,10 @@ class Workspace(object):
     def getCurrentPage(self):
         with self.lock:
             i = self.nb.get_index()
-            for page in self.getPages():
-                if self.nb.page_num(page.frame) == i:
-                    return page
-
-            # ???
-            return None
+            if i < 0:
+                return None
+            child = self.nb.index_to_widget(i)
+            return getattr(child, 'ig_page', None)
 
     def getIndexByName(self, name):
         with self.lock:

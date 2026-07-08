@@ -273,7 +273,12 @@ class Confirmation(object):
         # gracefully if it can't be loaded.
         self.icon = _make_icon(iconfile, logger=self.logger) if iconfile else None
         if self.icon is not None:
-            cvbox.add_widget(self.icon, stretch=0)
+            # center the icon horizontally (spacer HBox works on all backends)
+            hbox = Widgets.HBox()
+            hbox.add_widget(Widgets.Label(''), stretch=1)
+            hbox.add_widget(self.icon, stretch=0)
+            hbox.add_widget(Widgets.Label(''), stretch=1)
+            cvbox.add_widget(hbox, stretch=0)
 
         # Message text
         lbl = Widgets.Label(title)
@@ -450,9 +455,9 @@ class Timer(Confirmation):
         register_dialog(tag, self)
 
         self.w.show()
-        # start a second-by-second timer to update the GUI with the
-        # associated countdown timer's value
-        self._timer_tick(timer)
+        # The per-second countdown is driven by the view (IntegView) via the
+        # shared timer, so it keeps updating the ObsInfoPage even after this
+        # dialog is closed.
         self.redraw()
 
     def update_timer(self, secs):
@@ -474,24 +479,6 @@ class Timer(Confirmation):
                 self.soundfn()
 
             self.close(self.w)
-
-    def _timer_tick(self, timer):
-        secs = timer.time_left()
-        try:
-            timer.data.obsinfo.update_timer(secs)
-        except Exception:
-            pass
-        try:
-            timer.data.dialog.update_timer(secs)
-        except Exception:
-            pass
-
-        if secs > 0 and self.w is not None:
-            if self.timer is None:
-                self.timer = common.view.make_timer()
-                self.timer.add_callback('expired',
-                                        lambda t: self._timer_tick(timer))
-            self.timer.start(1.0)
 
 
 class ComboBox(Confirmation):

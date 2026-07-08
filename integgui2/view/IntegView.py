@@ -1071,7 +1071,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                     res_lst.append(tgt_info)
         return res_lst
 
-    def create_dialog(self, name, title):
+    def create_dialog(self, name, title, buttons=None, callback=None):
         try:
             try:
                 page = self.dialogs.getPage(name)
@@ -1079,6 +1079,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             except KeyError:
                 pass
             page = self.dialogs.addpage(name, title, DialogPage)
+
+            if buttons is not None and callback is not None:
+                page.add_buttons(list(buttons), callback)
 
             # Bring tab to front
             self.dialogs.select(page.name)
@@ -1302,9 +1305,63 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def _rm_timer(self, timer):
         with self.lock:
-            self.obs_timers.remove(timer)
+            try:
+                self.obs_timers.remove(timer)
+            except ValueError:
+                pass
             if self._obs_timer is timer:
                 self._obs_timer = None
+        # The countdown has reached zero (the timer expired): drive a final
+        # update to 0 so the display shows 0 and the dialog dismisses itself.
+        # The per-second tick can't be relied on for this last step, since it
+        # races with this expiry callback.
+        obsinfo = timer.data.obsinfo
+        if obsinfo is not None:
+            try:
+                obsinfo.update_timer(0)
+            except Exception as e:
+                self.logger.error("error finalizing obsinfo timer: %s" % str(e))
+        dialog = timer.data.dialog
+        if dialog is not None and getattr(dialog, 'w', None) is not None:
+            try:
+                dialog.update_timer(0)
+            except Exception as e:
+                self.logger.error("error finalizing timer dialog: %s" % str(e))
+        # stop the per-second display tick, if any
+        try:
+            if timer.data.tick_timer is not None:
+                timer.data.tick_timer.stop()
+        except Exception:
+            pass
+
+    def _obs_timer_tick(self, timer):
+        # Drive the per-second countdown display.  This is owned by the view
+        # (not the dialog) so the ObsInfoPage keeps counting down even after
+        # the Timer dialog is closed.
+        secs = timer.time_left()
+
+        obsinfo = timer.data.obsinfo
+        if obsinfo is not None:
+            try:
+                obsinfo.update_timer(secs)
+            except Exception as e:
+                self.logger.error("error updating obsinfo timer: %s" % str(e))
+
+        dialog = timer.data.dialog
+        if dialog is not None and getattr(dialog, 'w', None) is not None:
+            try:
+                dialog.update_timer(secs)
+            except Exception as e:
+                self.logger.error("error updating timer dialog: %s" % str(e))
+
+        # keep ticking every second while the timer is still running
+        if secs > 0.0 and timer in self.obs_timers:
+            if timer.data.tick_timer is None:
+                tick = self.make_timer()
+                tick.add_callback('expired',
+                                  lambda t: self._obs_timer_tick(timer))
+                timer.data.tick_timer = tick
+            timer.data.tick_timer.start(1.0)
 
     ############################################################
     # Interface from controller into the view
@@ -1312,8 +1369,14 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     ############################################################
 
     def obs_timer(self, tag, title, iconfile, soundfn, time_sec, callfn):
-        timer = self.make_timer()
+        # obs_timer is invoked from a remoteObjects worker thread; the
+        # backend timer wraps a QTimer that must be created on the GUI
+        # thread, so build it there (gui_call blocks for the result).
+        timer = self.gui_call(self.make_timer)
         timer.duration = time_sec
+        timer.data.obsinfo = None
+        timer.data.dialog = None
+        timer.data.tick_timer = None
         timer.add_callback('expired', self._rm_timer)
         with self.lock:
             self.obs_timers.append(timer)
@@ -1327,6 +1390,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         dialog = dialogs.Timer(logger=self.logger)
         self.gui_do(dialog.popup, title, iconfile, soundfn, timer, callfn,
                     tag=tag)
+        # per-second display tick, tied to the timer itself (not the dialog)
+        self.gui_do(self._obs_timer_tick, timer)
 
     def obs_confirmation(self, tag, title, iconfile, soundfn, btnlist, callfn):
         dialog = dialogs.Confirmation(logger=self.logger)

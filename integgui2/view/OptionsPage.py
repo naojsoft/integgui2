@@ -65,12 +65,10 @@ class OptionsPage(Page.ButtonPage):
 
         self.content.add_widget(scrolled_window, stretch=1)
 
-    def toggle_setting(self, widget, key):
+    def toggle_setting(self, tf, key):
+        # the checkbox 'activated' callback passes the new boolean state
         settings = common.view.get_settings()
-        if widget.get_active():
-            settings[key] = True
-        else:
-            settings[key] = False
+        settings.set(**{key: bool(tf)})
 
     def load_settings(self):
         # turn name into something reasonable without spaces

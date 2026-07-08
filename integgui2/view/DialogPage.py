@@ -38,7 +38,7 @@ class DialogPage(Page.Page):
         btns.set_spacing(5)
         self.leftbtns = btns
 
-        vbox.add_callback(self.leftbtns, stretch=0)
+        vbox.add_widget(self.leftbtns, stretch=0)
 
     def get_content_area(self):
         return self.cvbox
@@ -56,6 +56,11 @@ class DialogPage(Page.Page):
 
     def destroy(self):
         # this method is here to make it similar to a widget based class
+        return self.close()
+
+    def delete(self):
+        # the dialog code closes via widget.delete(); for an embedded page
+        # that means removing the tab (a fresh page is built each time)
         return self.close()
 
     def show(self):
