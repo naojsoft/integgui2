@@ -10,6 +10,26 @@ from . import common
 
 dialog_count = 0
 
+
+def _make_icon(iconfile, logger=None):
+    """Return an Image widget showing ``iconfile``, or None if it can't be
+    loaded.  ginga's Widgets.Image animates multi-frame images (e.g. animated
+    GIFs) on backends that support it.
+    """
+    import os
+    if not os.path.exists(iconfile):
+        if logger is not None:
+            logger.warning("icon file not found: '%s'" % (iconfile,))
+        return None
+    try:
+        icon = Widgets.Image()
+        icon.load_file(iconfile)
+        return icon
+    except Exception as e:
+        if logger is not None:
+            logger.warning("Could not load icon '%s': %s" % (iconfile, str(e)))
+    return None
+
 # This is a table of dialogs that have been opened by a remote task.
 dialog_table = {}
 # A lock to protect the table
@@ -246,19 +266,14 @@ class Confirmation(object):
         cvbox = self.w.get_content_area()
         self.cvbox = cvbox
         cvbox.set_spacing(4)
+        # a little padding all around the dialog content
+        cvbox.set_border_width(4)
 
-        # Optional attention icon; degrade gracefully if it can't be loaded.
-        self.icon = None
-        if iconfile:
-            try:
-                icon = Widgets.Image()
-                icon.load_file(iconfile)
-                cvbox.add_widget(icon, stretch=0)
-                self.icon = icon
-            except Exception as e:
-                if self.logger is not None:
-                    self.logger.warning("Could not load icon '%s': %s" % (
-                        iconfile, str(e)))
+        # Optional attention icon (may be an animated GIF); degrade
+        # gracefully if it can't be loaded.
+        self.icon = _make_icon(iconfile, logger=self.logger) if iconfile else None
+        if self.icon is not None:
+            cvbox.add_widget(self.icon, stretch=0)
 
         # Message text
         lbl = Widgets.Label(title)
