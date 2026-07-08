@@ -81,36 +81,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.tw.add_callback('tooltip', self.query_vardef)
         # keyboard shortcuts (Ctrl-modified)
         self.tw.add_callback('key-press', self.keypress)
-        #self.tw.connect("focus-out-event", self.focus_out)
+        # TODO?
         #self.tw.connect("focus-in-event", self.focus_in)
 
         self.tw.enable_line_icons(True)
         # TODO
         #self.tw.set_insert_spaces_instead_of_tabs(True)
-        # NOTE: syntax highlighting is done by color(), which applies the
-        # same tag-table tags used for execution marking (see decorative_tags
-        # in common).  This keeps syntax coloring and command tags in one
-        # model so they compose instead of fighting a separate highlighter.
-
-        # add marker pixbufs
-        # pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
-        #                                                       'apple-green.png'))
-        # if pixbuf:
-        #     #self.tw.set_mark_category_pixbuf('executing', pixbuf)
-        #     attrs = GtkSource.MarkAttributes()
-        #     attrs.set_pixbuf(pixbuf)
-        #     self.tw.set_mark_attributes('executing', attrs, 0)
-
-        # pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(icondir,
-        #                                                    'apple-red.png'))
-        # if pixbuf:
-        #     #self.tw.set_mark_category_pixbuf('error', pixbuf)
-        #     attrs = GtkSource.MarkAttributes()
-        #     attrs.set_pixbuf(pixbuf)
-        #     self.tw.set_mark_attributes('error', attrs, 0)
-
-        # # keyboard shortcuts
-        # self.tw.connect("key-press-event", self.keypress)
 
         # add some bottom buttons
         self.btn_exec = Widgets.Button("Exec")
@@ -483,14 +459,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.color(reporterror=False)
         return False
 
-    def focus_out(self, w, evt):
-        self.logger.info("lost focus!")
-        bounds = self.tw.get_selection_bounds()
-        if bounds is not None:
-            self.tw.create_tag('savedselection', background='pink')
-            self.tw.apply_tag('savedselection', *bounds)
-        return False
-
     def current(self):
         """Scroll to the current position in the buffer.  The current
         position is determined by the execution mark (if any), otherwise
@@ -620,7 +588,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def keypress(self, w, event):
         keyname = event.key
-        #print("key pressed --> %s" % keyname)
 
         if 'ctrl' in event.modifiers:
             if keyname == 't':
@@ -785,45 +752,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         return cmds
 
-    def _save_selection(self):
-        """A hack to work around a bug/feature of the textview where it
-        loses the selection when it loses focus.  This method can be used
-        to save the focus.  Call _restore_selection() to restore it.
-
-        The selection endpoints are kept as live refs (which follow any
-        edits) and a 'savedselection' tag gives visual feedback.
-        """
-        bounds = self.tw.get_selection_bounds()
-        if bounds is None:
-            raise Exception("Error getting selection--no selection?")
-        first, last = bounds
-
-        # Keep our own copies so callers moving the selection don't disturb
-        # what we restore.
-        self.sel_first = first.copy()
-        self.sel_last = last.copy()
-
-        tag = 'savedselection'
-        self.tw.create_tag(tag, background='pink')
-        # Highlight whole lines of the apparent selection.
-        first.to_line_start()
-        last.to_line_end()
-        self.tw.apply_tag(tag, first, last)
-
-
-    def _restore_selection(self):
-        """A hack to work around a bug/feature of the textview where it
-        loses the selection when it loses focus.  This method can be used
-        to restore the focus.  Call _save_selection() to save it.
-        """
-        start, end = self.tw.get_ref_bounds()
-        try:
-            self.tw.remove_tag('savedselection', start, end)
-        except Exception:
-            pass
-
-        self.tw.set_selection_range(self.sel_first, self.sel_last)
-
 
     def execute(self, copytext=None):
         """Callback when the EXEC button is pressed.
@@ -869,9 +797,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         #------------------
         # Code to do if we have a selection
         def _execute_2(w, rsp):
-            if w:
-                self._restore_selection()
-
             try:
                 cmds = self._get_commands_from_selection(copytext=copytext)
 
@@ -904,7 +829,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 #_execute_2(None, 1)
                 _execute_2(None, 4)
             else:
-                self._save_selection()
                 self.queued_check(_execute_2)
 
         else:
