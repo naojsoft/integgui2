@@ -1013,6 +1013,12 @@ class QTextSource(QtGui.QFrame, Callback.Callbacks):
         if self._applying_formats:
             return
         self._applying_formats = True
+        # Applying tag colors via setCharFormat dirties the document's
+        # modified flag, but coloring (syntax/execution highlighting) is not a
+        # user edit -- preserve the modified state across the operation so a
+        # freshly loaded/colored buffer is not treated as modified.
+        doc = self.tw.document()
+        was_modified = doc.isModified()
         try:
             if region is None:
                 r_start, r_end = 0, len(self._text)
@@ -1032,6 +1038,7 @@ class QTextSource(QtGui.QFrame, Callback.Callbacks):
                 cursor.setCharFormat(self._merged_format(tag_names))
         finally:
             self._applying_formats = False
+            doc.setModified(was_modified)
 
     def _reset_document_format(self, start=None, end=None):
         """Restore a range (default: whole document) to the base text format."""

@@ -171,32 +171,41 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                                   'Really save "%s"?' % filename,
                                   _save)
 
-    def build_dialog(self, title, text, buttons=[("Dismiss", 0)]):
-        dialog = Widgets.Dialog(title=title,
-                                buttons=buttons)
-        vbox = warn.get_content_area()
-        vbox.set_margins(4, 4, 4, 4)
-        lbl = Widgets.Label(text)
-        vbox.add_widget(lbl, stretch=1)
+    def build_dialog(self, title, text, buttons, callback):
+        """Build a standard warning MessageDialog with the given
+        ``(name, value)`` buttons.  ``callback(dialog, value)`` is invoked on
+        a button press (or window close); the dialog is dismissed first.
+        """
+        dialog = Widgets.MessageDialog(title=title, modal=False,
+                                       parent=common.view.w.root,
+                                       buttons=buttons, autoclose=False)
+        dialog.set_message('warning', text)
+
+        def _dismiss(w):
+            common.view.remove_window(w)
+            w.delete()
+
+        def _activated(w, val):
+            _dismiss(w)
+            return callback(w, val)
+
+        dialog.add_callback('activated', _activated)
+        dialog.add_callback('close', _dismiss)
+        common.view.add_window(dialog)
         return dialog
 
     def close(self):
         if self.tw.get_modified():
-            w = self.build_dialog("Close file", warning_close,
-                                  buttons=[("Cancel", 1), ("Close", 2),
-                                           ("Save and Close", 3)])
-            w.add_callback('activated', _close_check_res)
-            w.add_callback('close', _close_check_res, 1)
-            self.add_window(w)
-            w.show()
+            self.build_dialog("Close file", warning_close,
+                              [("Cancel", 1), ("Close", 2),
+                               ("Save and Close", 3)],
+                              self._close_check_res).show()
             return False
 
         super(CodePage, self).close()
         return True
 
     def _close_check_res(self, w, rsp):
-        self.remove_window(w)
-        w.destroy()
         if rsp == 2:
             super(CodePage, self).close()
 

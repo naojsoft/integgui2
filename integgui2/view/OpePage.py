@@ -188,12 +188,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_append.set_enabled(tf)
         self.btn_prepend.set_enabled(tf)
 
-    def build_dialog(self, title, text, func):
-        dialog = Widgets.MessageDialog(title=title, autoclose=True)
-        dialog.add_callback('activated', func)
-        dialog.set_message('warning', text)
-        return dialog
-
     def load(self, filepath, buf):
         super(OpePage, self).load(filepath, buf)
         self.cond_color()
@@ -213,17 +207,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if num == 0:
             return True
         #common.view.popup_error("%d commands are still queued!" % num)
-        w = self.build_dialog("%d commands are queued" % num,
-                              warning_reload, self.reload_check_res)
-        w.add_button("Cancel", 1)
-        w.add_button("Unlink", 2)
-        w.add_button("Remove", 3)
-        w.add_button("New Page", 4)
-        w.show()
+        self.build_dialog("%d commands are queued" % num, warning_reload,
+                          [("Cancel", 1), ("Unlink", 2), ("Remove", 3),
+                           ("New Page", 4)],
+                          self.reload_check_res).show()
         return False
 
     def reload_check_res(self, w, rsp):
-        w.destroy()
         if rsp == 2:
             self.unlink_my_commands()
             self._reload()
@@ -241,14 +231,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         num = len(self.my_queued_commands())
         if num == 0:
             return True
-        w = self.build_dialog("%d commands are queued" % num,
-                              warning_queued, fn_res)
-        w.add_button("Prepend w/Break and Exec", 1)
-        w.add_button("Prepend", 2)
-        w.add_button("Append", 3)
-        w.add_button("Replace and Exec", 4)
-        w.add_button("Cancel", 5)
-        w.show()
+        self.build_dialog("%d commands are queued" % num, warning_queued,
+                          [("Prepend w/Break and Exec", 1), ("Prepend", 2),
+                           ("Append", 3), ("Replace and Exec", 4),
+                           ("Cancel", 5)],
+                          fn_res).show()
         return False
 
     def close_check(self):
@@ -256,16 +243,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         if num == 0:
             return True
         #common.view.popup_error("%d commands are still queued!" % num)
-        w = self.build_dialog("%d commands are queued" % num,
-                              warning_close, self.close_check_res)
-        w.add_button("Cancel", 1)
-        w.add_button("Unlink", 2)
-        w.add_button("Remove", 3)
-        w.show()
+        self.build_dialog("%d commands are queued" % num, warning_close,
+                          [("Cancel", 1), ("Unlink", 2), ("Remove", 3)],
+                          self.close_check_res).show()
         return False
 
     def close_check_res(self, w, rsp):
-        w.destroy()
         if rsp == 2:
             self.unlink_my_commands()
             self._close()
@@ -887,7 +870,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Code to do if we have a selection
         def _execute_2(w, rsp):
             if w:
-                w.destroy()
                 self._restore_selection()
 
             try:
@@ -964,11 +946,13 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         cbox.set_index(0)
         vbox.add_widget(cbox, stretch=0)
         dialog.add_callback('activated', self.attach_queue_res, cbox, names)
+        common.view.add_window(dialog)
         dialog.show()
 
     def attach_queue_res(self, w, rsp, cbox, names):
         queueName = names[cbox.get_index()].strip().lower()
-        w.destroy()
+        common.view.remove_window(w)
+        w.delete()
         if rsp == 1:
             if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")

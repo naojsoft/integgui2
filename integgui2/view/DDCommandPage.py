@@ -101,11 +101,13 @@ class DDCommandPage(Page.CommandPage):
         cbox.set_index(0)
         vbox.add_widget(cbox, stretch=0)
         dialog.add_callback('activated', self.attach_queue_res, cbox, names)
+        common.view.add_window(dialog)
         dialog.show()
 
     def attach_queue_res(self, w, rsp, cbox, names):
         queueName = names[cbox.get_index()].strip().lower()
-        w.destroy()
+        common.view.remove_window(w)
+        w.delete()
         if rsp == 1:
             if queueName not in common.view.queue:
                 common.view.popup_error("No queue with that name exists!")
