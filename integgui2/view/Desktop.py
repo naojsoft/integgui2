@@ -34,12 +34,10 @@ class Desktop(object):
 
         self.pane = Bunch.Bunch()
         for name in self.w.keys():
-            #print('pane name is', name)
             sizes = list(self.w[name].get_sizes())
             bnch = Bunch.Bunch(name=name, sizes=sizes, time=None,
                                widget=self.w[name])
             self.pane[name] = bnch
-            #self.w[name].connect('notify', self._get_resize_fn(bnch))
 
         self.ws_fr = {
             'll': Bunch.Bunch(frame=ll,
@@ -220,23 +218,5 @@ class Desktop(object):
 
     def move_page(self, src_ws, page, dst_ws):
         src_ws.move_page(page, dst_ws)
-
-    ## def _get_resize_fn(self, bnch):
-    ##     #def _pane_resized(pane_w, event):
-    ##     def _pane_resized(*args):
-    ##         print('resize', *args)
-    ##         # Callback function when pane is resized
-    ##         pos = pane_w.get_position()
-    ##         # Try to determine (via very ugly code) whether resize was
-    ##         # a result of programmatic or manual resize by a human
-    ##         if bnch.time and (time.time() - bnch.time < 0.5):
-    ##             pass
-    ##         else:
-    ##             # If manually resized, record the new size so we don't
-    ##             # undo a resize that was intentional
-    ##             self.logger.debug("Pane manually resized to %d" % (pos))
-    ##             bnch.pos = pos
-
-    ##     return _pane_resized
 
 #END

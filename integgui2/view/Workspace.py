@@ -33,51 +33,12 @@ class Workspace(object):
         self.lock = threading.RLock()
 
         nb = Widgets.TabWidget(tabpos='top', reorderable=True,
-                               # Allows drag-and-drop between notebooks
                                detachable=False, group=1)
         nb.add_callback("page-move", self._page_added)
         nb.add_callback("page-detach", self._page_removed)
         nb.add_callback("page-switch", self._page_switched)
-        # Allows dragging pages to create top-level detached workspaces
-        #nb.connect("create-window", self._detach_page)
-
-        # workspace context menu
-        #nb.popup_enable()
-        self.wsmenu = self.build_menu()
-        #nb.connect("event", self.popup_menu, self.wsmenu)
-
         self.nb = nb
         frame.add_widget(self.nb, stretch=1)
-
-
-    # TODO: a right-click context menu (self.wsmenu) for the workspace tab
-    # bar.  The GTK button-press handler was removed in the ginga port; this
-    # needs ginga tab-widget event wiring to re-enable.
-
-    def build_menu(self):
-        wsmenu = Widgets.Menu()
-
-        tpmenu = wsmenu.add_menu("Tab position")
-
-        item = tpmenu.add_name("Top")
-        item.add_callback("activated", lambda w: self.set_tab_pos('top'))
-
-        item = tpmenu.add_name("Left")
-        item.add_callback("activated", lambda w: self.set_tab_pos('left'))
-
-        item = tpmenu.add_name("Bottom")
-        item.add_callback("activated", lambda w: self.set_tab_pos('bottom'))
-
-        item = tpmenu.add_name("Right")
-        item.add_callback("activated", lambda w: self.set_tab_pos('right'))
-
-        item = wsmenu.add_name("Close")
-        item.add_callback("activated", lambda w: self.close())
-        # currently disabled
-        item.set_enabled(False)
-        self.menu_close = item
-
-        return wsmenu
 
 
     def build_tabmenu(self):
@@ -317,16 +278,16 @@ class Workspace(object):
                 self.logger.error('Error removing page: %s' % str(e))
             return True
 
-    def _detach_page(self, source, widget, x, y):
-        # Detach page to new top-level workspace
-        page = self.widgetToPage(widget)
-        if not page:
-            return None
-        while page.name in self.transients:
-            self.transients.remove(page.name)
-        if self.lastPage == page:
-            self.lastPage = None
+    # def _detach_page(self, source, widget, x, y):
+    #     # Detach page to new top-level workspace
+    #     page = self.widgetToPage(widget)
+    #     if not page:
+    #         return None
+    #     while page.name in self.transients:
+    #         self.transients.remove(page.name)
+    #     if self.lastPage == page:
+    #         self.lastPage = None
 
-        self.logger.info("detaching page %s" % (page.name))
-        ws = self.parent.add_detached_noname(x=x, y=y)
-        return ws.widget
+    #     self.logger.info("detaching page %s" % (page.name))
+    #     ws = self.parent.add_detached_noname(x=x, y=y)
+    #     return ws.widget

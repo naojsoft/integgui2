@@ -61,13 +61,6 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         ## self.add_menu()
         ## self.add_close()
 
-        # self.tw.drag_source_set(Gdk.BUTTON1_MASK,
-        #                       [('text/cmdtag', 0, 555)], Gdk.ACTION_MOVE)
-        # self.tw.drag_dest_set(Gtk.DestDefaults.ALL,
-        #                       [('text/cmdtag', 0, 555)], Gdk.ACTION_MOVE)
-        #self.tw.connect("drag-data-get", self.grabdata)
-        #self.tw.connect("drag-drop", self.rearrange)
-
         # add some bottom buttons
         self.btn_exec = Widgets.Button("Resume")
         self.btn_exec.add_callback("activated", lambda w: self.resume())

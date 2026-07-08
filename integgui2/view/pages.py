@@ -18,7 +18,6 @@ from .EphemPage import *
 from .TSCTrackPage import *
 from .CopyTSCTrackPage import *
 from .HandsetPage import *
-from .TerminalPage import *
 from .FrameInfoPage import *
 from .CommandHistoryPage import *
 from .LauncherPage import *

@@ -23,13 +23,12 @@ class InfPage(CodePage.CodePage):
         self.leftbtns.add_widget(self.btn_makeope)
 
         self.btn_makedarks = Widgets.Button("Make Darks")
-        self.btn_makedarks.connect("activated", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/mkDARKope.pl -'))
+        self.btn_makedarks.add_callback("activated", lambda w: self.makeope('/gen2/share/Procedure.d/COMICS/mkDARKope.pl -'))
         self.leftbtns.add_widget(self.btn_makedarks)
 
     def makeope(self, cmdstr):
         # get text to process
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end, True)
+        buf = self.tw.get_text()
 
         try:
             proc = myproc.myproc(cmdstr)

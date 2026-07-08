@@ -39,8 +39,7 @@ class OptionsPage(Page.ButtonPage):
             vbox.add_widget(w, stretch=0)
 
         # spacer
-        lbl = Widgets.Label('')
-        vbox.add_widget(lbl, stretch=1)
+        vbox.add_widget(Widgets.Label(''), stretch=1)
 
         lbl = Widgets.Label('Settings:')
         ent = Widgets.TextEntry()

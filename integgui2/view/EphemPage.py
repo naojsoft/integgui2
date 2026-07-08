@@ -35,8 +35,7 @@ class EphemPage(CodePage.CodePage):
     def convertToTSC(self):
         # get text to process from the buffer, which should be
         # ephemeris data output from JPL Horizons
-        start, end = self.buf.get_bounds()
-        buf = self.buf.get_text(start, end, True)
+        buf = self.tw.get_text()
 
         # Parse the input buffer to create the JPLHorizonsEphem
         # object.

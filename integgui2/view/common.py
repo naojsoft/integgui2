@@ -6,7 +6,7 @@
 import os.path
 import re
 
-from g2base import Bunch
+from ginga.misc import Bunch
 
 # Top directory to look for stuff
 topprocdir = os.path.join(os.environ['HOME'], 'Procedure')
@@ -32,9 +32,6 @@ launcher_colors = Bunch.Bunch(error = 'salmon',
                               killbtn = 'salmon',
 
                               badtags = 'red1')
-
-# Colors for embedded terminals
-terminal_colors = Bunch.Bunch(fg='black', bg='white')
 
 # Colors used in the OpePage.  These are the syntax-highlighting tags applied
 # by OpePage.color(); comments are italicized to match the look the old Qt

@@ -88,12 +88,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         root.set_title(f"Gen2 Integrated GUI II v{__version__}")
         root.set_border_width(2)
 
-        # Add menubar and menus
-        #self.add_menus()
-
-        # Add popup dialogs
-        self.add_dialogs()
-
         self.w.menubar = Widgets.Menubar()
         hbox = self.w['menu']
         hbox.add_widget(self.w.menubar, stretch=1)
@@ -138,13 +132,11 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         self.new_source('command', self.exws, title='Commands')
 
-        if False:
-            # Populate "Command Executors" ws
-            self.add_terminal(self.exws)
-
-            self.add_dialogs()
-
+        # Add menubar and menus
         self.add_menus(self.w.menubar)
+
+        # Add popup dialogs
+        self.add_dialogs()
 
         self.w.root.show()
 
@@ -324,9 +316,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                                                                    ws.executers))
 
         # end of New->Source
-
-        # item = newmenu.add_name("Terminal page")
-        # item.add_callback('activated', lambda w: self.add_terminal(ws.executers))
 
         _get_ws(ws, 'queues', where)
 
@@ -604,22 +593,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         f.add_callback('activated', callback)
         self.add_window(f)
         f.popup()
-
-    # def add_terminal(self, workspace):
-    #     try:
-    #         os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
-    #         #os.chdir(os.environ['HOME'])
-
-    #         name = 'Terminal'
-    #         page = workspace.addpage(name, name, TerminalPage)
-
-    #         # Bring shell tab to front
-    #         workspace.select(page.name)
-    #         return page
-
-    #     except Exception as e:
-    #         self.popup_error("Cannot start terminal: %s" % (str(e)))
-    #         return None
 
     def gui_load_monlog(self, workspace):
 
