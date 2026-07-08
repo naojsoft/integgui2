@@ -10,7 +10,7 @@ import os.path
 
 from . import common
 from . import Page
-from . import Widgets as IGWidgets
+from .TextSource import TextSource
 
 
 class NotePage(Page.ButtonPage, Page.TextPage):
@@ -28,7 +28,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 
         self.lock = threading.RLock()
 
-        tw = IGWidgets.TextSource()
+        tw = TextSource()
         self.tw = tw
 
         self.content.add_widget(tw, stretch=1)

@@ -21,7 +21,6 @@ from .pages import *
 from . import Page as PG
 from . import Workspace as WS
 from . import dialogs
-from . import Widgets as IGWidgets
 from ..version import __version__
 
 
@@ -326,8 +325,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         # end of New->Source
 
-        item = newmenu.add_name("Terminal page")
-        item.add_callback('activated', lambda w: self.add_terminal(ws.executers))
+        # item = newmenu.add_name("Terminal page")
+        # item.add_callback('activated', lambda w: self.add_terminal(ws.executers))
 
         _get_ws(ws, 'queues', where)
 
@@ -481,7 +480,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.w.status = Widgets.Label("")
         hbox.add_widget(self.w.status, stretch=1)
 
-        btns = IGWidgets.ButtonBox()
+        btns = Widgets.ButtonBox()
         btns.set_spacing(5)
 
         self.btn_kill = Widgets.Button("Kill")
@@ -606,21 +605,21 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.add_window(f)
         f.popup()
 
-    def add_terminal(self, workspace):
-        try:
-            os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
-            #os.chdir(os.environ['HOME'])
+    # def add_terminal(self, workspace):
+    #     try:
+    #         os.chdir(os.path.join(os.environ['HOME'], 'Procedure'))
+    #         #os.chdir(os.environ['HOME'])
 
-            name = 'Terminal'
-            page = workspace.addpage(name, name, TerminalPage)
+    #         name = 'Terminal'
+    #         page = workspace.addpage(name, name, TerminalPage)
 
-            # Bring shell tab to front
-            workspace.select(page.name)
-            return page
+    #         # Bring shell tab to front
+    #         workspace.select(page.name)
+    #         return page
 
-        except Exception as e:
-            self.popup_error("Cannot start terminal: %s" % (str(e)))
-            return None
+    #     except Exception as e:
+    #         self.popup_error("Cannot start terminal: %s" % (str(e)))
+    #         return None
 
     def gui_load_monlog(self, workspace):
 

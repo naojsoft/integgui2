@@ -8,7 +8,6 @@ from ginga.gw import Widgets, Viewers
 
 from . import common
 from . import Page
-from . import Widgets as IGWidgets
 
 
 class ObsInfoPage(Page.ButtonPage):

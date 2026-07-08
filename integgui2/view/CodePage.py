@@ -9,7 +9,7 @@ from ginga.gw import Widgets
 from . import common
 from . import Page
 from . import dialogs
-from . import Widgets as IGWidgets
+from .TextSource import TextSource
 
 warning_close = """
 WARNING: Buffer is modified
@@ -45,7 +45,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #w.set_label_align(0.1, 0.5)
 
         # Create the widgets for the code file text
-        tw = IGWidgets.TextSource(wrap=False, editable=True)
+        tw = TextSource(wrap=False, editable=True)
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)

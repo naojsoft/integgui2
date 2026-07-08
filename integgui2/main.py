@@ -8,7 +8,6 @@ import threading
 
 from ginga.misc import Bunch, ModuleManager, Datasrc, Settings
 import ginga.toolkit as ginga_toolkit
-ginga_toolkit.use('qt')
 
 # SSD/Gen2 imports
 from g2base.remoteObjects import remoteObjects as ro
@@ -21,8 +20,6 @@ import g2client.soundsink as SoundSink
 import integgui2
 from integgui2 import fits
 from integgui2 import controller as igctrl
-from integgui2.view import IntegView as igview
-from integgui2.view import common
 from integgui2 import CommandQueue
 
 # our ginga toolkit layout
@@ -100,6 +97,12 @@ def main(options, args):
         logtype = 'monlog'
     else:
         logtype = 'normal'
+
+    # choose toolkit backend
+    ginga_toolkit.use(options.toolkit)
+    # now we can import our GUI files
+    from integgui2.view import IntegView as igview
+    from integgui2.view import common
 
     # Create view
     gui = igview.IntegView(logger, prefs, ev_quit, queues,

@@ -6,7 +6,6 @@
 
 from . import common
 from . import Page
-from . import Widgets as IGWidgets
 
 from ginga.gw import Widgets
 from ginga.misc import Bunch
@@ -35,7 +34,7 @@ class DialogPage(Page.Page):
         #vbox.pack_start(separator, False, True, 0)
 
         # bottom buttons
-        btns = IGWidgets.ButtonBox()
+        btns = Widgets.ButtonBox()
         btns.set_spacing(5)
         self.leftbtns = btns
 

@@ -1,32 +1,16 @@
 import weakref
 
+from ginga import colors
+from ginga.gw import Widgets
+from ginga.misc import Callback
+from ginga.events import KeyEvent
+
 from ginga.qtw.QtHelp import (QtCore, QtGui, QWidget, QTextCursor, QFont,
                               QPainter, QColor)
 
 from qtpy.QtCore import QEvent
 from qtpy.QtWidgets import QToolTip
 from qtpy.QtGui import QTextCharFormat, QTextOption
-
-from ginga import colors
-from ginga.gw import Widgets
-from ginga.misc import Callback
-from ginga.events import KeyEvent
-
-
-class ButtonBox(Widgets.HBox):
-    def __init__(self):
-        super().__init__()
-
-        # TODO: automatically recalculate and resize as needed
-        self.btn_width = 30
-        self.set_border_width(4)
-
-    def add_widget(self, child):
-        wd, ht = child.get_size()
-        child.resize(self.btn_width, ht)
-        child.cfg_expand(horizontal='minimum')
-
-        super().add_widget(child, stretch=0)
 
 
 class TextBufferRef(object):
@@ -1431,36 +1415,6 @@ class TextSource(Widgets.WidgetBase):
 
     def scroll_to_ref(self, ref):
         return self.widget.scroll_to_ref(ref)
-
-
-class FixedLayout(Widgets.ContainerBase):
-    """A container widget in which children can be placed at fixed
-    positions.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        self.widget = QWidget()
-
-    def add_widget(self, child, x_px, y_px):
-        child_w = child.get_widget()
-        child_w.setParent(self.widget)
-
-        child_w.move(x_px, y_px)
-        self.add_ref(child)
-
-    def remove(self, child, delete=False):
-        if child not in self.children:
-            raise ValueError("Widget is not a child of this container")
-        self.children.remove(child)
-
-        child_w = child.get_widget()
-        child_w.unParent()
-        if delete:
-            child_w.deleteLater()
-
-        self.make_callback('widget-removed', child)
 
 
 def _resolve_qt_enum(enum_name, attr):

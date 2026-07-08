@@ -9,7 +9,6 @@ from ginga.misc import Bunch, Callback
 from ginga.gw import Widgets
 
 from . import common
-from . import Widgets as IGWidgets
 
 # constants
 LEFT  = 'left'
@@ -75,7 +74,7 @@ class ButtonPage(Page):
         # bottom buttons
         self.btnframe = Widgets.HBox()
 
-        btns = IGWidgets.ButtonBox()
+        btns = Widgets.ButtonBox()
         btns.set_spacing(5)
         self.leftbtns = btns
 
@@ -84,7 +83,7 @@ class ButtonPage(Page):
         # stretcher
         self.btnframe.add_widget(Widgets.Label(''), stretch=1)
 
-        btns = IGWidgets.ButtonBox()
+        btns = Widgets.ButtonBox()
         btns.set_spacing(5)
         self.rightbtns = btns
 

@@ -7,7 +7,8 @@ from ginga.gw import Widgets
 from . import common
 from . import Page
 from . import CommandObject
-from . import Widgets as IGWidgets
+from .TextSource import TextSource
+
 
 class DDCommandPage(Page.CommandPage):
 
@@ -18,7 +19,7 @@ class DDCommandPage(Page.CommandPage):
         self.queueName = 'default'
         self.tm_queueName = 'executer'
 
-        tw = IGWidgets.TextSource(editable=True, wrap=True)
+        tw = TextSource(editable=True, wrap=True)
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)
