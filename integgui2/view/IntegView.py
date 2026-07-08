@@ -130,7 +130,10 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.add_history(self.oiws)
         self.oiws.select('obsinfo')
 
-        self.new_source('command', self.exws, title='Commands')
+        # The scratch page used by "Pop and edit command".  Its tab title is
+        # "Commands" but its page name is a generated filename, so keep a
+        # direct handle rather than looking it up by title.
+        self.cmd_page = self.new_source('command', self.exws, title='Commands')
 
         # Add menubar and menus
         self.add_menus(self.w.menubar)
@@ -1229,11 +1232,19 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def edit_command(self, cmdstr):
         try:
-            page = self.exws.getPage('Commands')
-            page.set_text(cmdstr)
+            page = getattr(self, 'cmd_page', None)
+            if page is None or getattr(page, 'closed', False):
+                # scratch page was closed (or never created) -- remake it
+                page = self.cmd_page = self.new_source('command', self.exws,
+                                                       title='Commands')
+            # accumulate popped commands (append) rather than replacing;
+            # make sure each lands on its own line
+            if not cmdstr.endswith('\n'):
+                cmdstr = cmdstr + '\n'
+            page.tw.append_text(cmdstr)
 
-            # Bring Commands tab to front
-            self.exws.select('Commands')
+            # Bring the Commands tab to front (select by page name, not title)
+            self.exws.select(page.name)
         except Exception as e:
             self.popup_error("Cannot edit command: %s" % (
                     str(e)))

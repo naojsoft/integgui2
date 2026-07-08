@@ -116,12 +116,12 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         try:
             cmdObj = self.queueObj.peek()
             self.queueObj.remove(cmdObj)
+            # only hand it off to be edited if the pop actually succeeded --
+            # otherwise cmdObj may be unbound (e.g. empty queue)
+            common.controller.editOne(cmdObj)
 
         except Exception as e:
-            # TODO: popup error here?
             common.view.gui_do(common.view.popup_error, str(e))
-
-        common.controller.editOne(cmdObj)
 
     def _redraw(self):
         common.view.assert_gui_thread()
