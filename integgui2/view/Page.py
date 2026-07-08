@@ -275,7 +275,7 @@ class TextPage(Page):
         def _save(filepath):
             if hasattr(self, 'filepath') and self.filepath is None:
                 self.filepath = filepath
-            return self._savefile(filepath)
+            return self._savefile(filepath, self.tw.get_text())
 
         if dirpath is None:
             dirpath = self._get_save_directory()
@@ -284,13 +284,14 @@ class TextPage(Page):
                                dirpath, filename=filename)
 
     def save_selection_as(self, dirpath=None, filename=None):
-        try:
-            first, last = self.buf.get_selection_bounds()
-        except ValueError:
+        bounds = self.tw.get_selection_bounds()
+        if bounds is None:
             return common.view.popup_error("Please make a selection first!")
+        first, last = bounds
+        text = self.tw.get_text_range(first, last)
 
         def _save(filepath):
-            return self._savefile(filepath, (first, last))
+            return self._savefile(filepath, text)
 
         if dirpath is None:
             dirpath = self._get_save_directory()
