@@ -8,6 +8,7 @@ from ginga.gw import Widgets
 from . import common
 from . import Page
 
+
 class OptionsPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):

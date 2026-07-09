@@ -153,7 +153,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # option variables
         self.add_frozen = False
 
-
     def toggle_var(self, tf, key):
         self.__dict__[key] = tf
 
@@ -445,14 +444,12 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 #tagpage.tablbl.set_markup('<span>Tags</span>')
                 pass
 
-
         except Exception as e:
             errmsg = "Error coloring buffer: %s" % (str(e))
             self.logger.error(errmsg)
             common.view.statusMsg(errmsg)
             if reporterror:
                 common.view.popup_error(errmsg)
-
 
     def focus_in(self, w, evt):
         self.logger.debug("got focus!")
@@ -485,7 +482,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 continue
 
         #common.view.popup_error("Sorry, cannot find any region of interest.")
-
 
     def reset(self):
         common.clear_tags(self.tw, ('executing',))
@@ -585,7 +581,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         text = self.tw.get_text_range(start, end)
         common.view.clipboard.set_text(text, -1)
 
-
     def keypress(self, w, event):
         keyname = event.key
 
@@ -624,7 +619,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         return False
 
-
     def process_cmdstr(self, txtbuf, cmdstr):
         cmdstr = cmdstr.strip()
 
@@ -644,7 +638,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         except Exception as e:
             errstr = "Error parsing command: %s" % (str(e))
             raise Exception(errstr)
-
 
     def _convert_linked_commands(self, tags):
         """Takes a set of command tags, as may be found in our text buffer,
@@ -686,10 +679,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Execute this as a thread in the controller
         common.controller.ctl_do(g)
 
-
     def _get_commands_from_selection(self, copytext=None):
 
-        if copytext == None:
+        if copytext is None:
             copytext = self.add_frozen
 
         if copytext:
@@ -719,9 +711,9 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         # Break selection into individual lines
         cmds = []
 
-        for i in range(int(lrow)+1-frow):
+        for i in range(int(lrow) + 1 - frow):
 
-            row = frow+i
+            row = frow + i
             #print("row: %d" % (row))
 
             first.set_line(row)
@@ -751,7 +743,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             cmds.append(cmdobj)
 
         return cmds
-
 
     def execute(self, copytext=None):
         """Callback when the EXEC button is pressed.
@@ -789,7 +780,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 else:
                     common.view.popup_confirm("Confirm execute",
                                               "No selection--resume execution of %s queued commands?" % (
-                        self.queueName),
+                                                  self.queueName),
                                               _execute_1)
 
             return
@@ -834,7 +825,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         else:
             _execute_2(None, 4)
 
-
     def insert(self, loc=None, copytext=None):
         """Callback when the APPEND button is pressed.
         """
@@ -848,7 +838,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             #print(len(cmds), "selected!")
 
             queue = common.controller.queue[self.queueName]
-            if loc == None:
+            if loc is None:
                 queue.extend(cmds)
             else:
                 queue.insert(loc, cmds)
@@ -891,7 +881,6 @@ class OpeCommandObject(CommandObject.CommandObject):
         self.page = opepage
 
         super().__init__(format, queueName, logger)
-
 
     def get_preview(self):
         """This is called to get a preview of the command string that
@@ -937,7 +926,6 @@ class OpeCommandObject(CommandObject.CommandObject):
 
         cmdstr = self.page.process_cmdstr(txtbuf, cmdstr)
         return cmdstr
-
 
     def _mark_status(self, txttag):
         """This is called when our command changes status.  _txttag_ should
@@ -987,8 +975,7 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
         self.page = opepage
 
         super().__init__(format,
-                                                      queueName, logger)
-
+                         queueName, logger)
 
     def get_preview(self):
         """This is called to get a preview of the command string that

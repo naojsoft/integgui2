@@ -11,6 +11,7 @@ from . import CodePage
 
 import Gen2.astro.TSCTrackFile as TSCTrackFile
 
+
 class TSCTrackPage(CodePage.CodePage):
 
     def __init__(self, frame, name, title):

@@ -23,8 +23,10 @@ compass_template = """
   %(s)s
 """
 
+
 class HandsetError(Exception):
     pass
+
 
 class HandsetPage(Page.CommandPage):
 
@@ -68,9 +70,8 @@ class HandsetPage(Page.CommandPage):
 
         self.build_handset()
 
-
     def _make_compass(self, n, s, e, w):
-        txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
+        txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w}
         lbl = Widgets.Label(txt)
         lbl.set_font('DejaVu Sans Mono', 11)
         return lbl
@@ -95,19 +96,19 @@ class HandsetPage(Page.CommandPage):
         off_yh = 150
 
         btns = widgets.setdefault('buttons', {})
-        for x, y, name, axis, mult in ((off_xv, off_yh-140, 'up3', 0, 10),
-                                       (off_xv, off_yh-100, 'up2', 0, 3),
-                                       (off_xv, off_yh-60, 'up1', 0, 1),
-                                       (off_xv-170, off_yh, 'left3', 1, 10),
-                                       (off_xv-130, off_yh, 'left2', 1, 3),
-                                       (off_xv-90, off_yh, 'left1', 1, 1),
-                                       (off_xv+80, off_yh, 'right1', 1, -1),
-                                       (off_xv+120, off_yh, 'right2', 1, -3),
-                                       (off_xv+160, off_yh, 'right3', 1, -10),
-                                       (off_xv, off_yh+60, 'down1', 0, -1),
-                                       (off_xv, off_yh+100, 'down2', 0, -3),
-                                       (off_xv, off_yh+140, 'down3', 0, -10),
-                                 ):
+        for x, y, name, axis, mult in ((off_xv, off_yh - 140, 'up3', 0, 10),
+                                       (off_xv, off_yh - 100, 'up2', 0, 3),
+                                       (off_xv, off_yh - 60, 'up1', 0, 1),
+                                       (off_xv - 170, off_yh, 'left3', 1, 10),
+                                       (off_xv - 130, off_yh, 'left2', 1, 3),
+                                       (off_xv - 90, off_yh, 'left1', 1, 1),
+                                       (off_xv + 80, off_yh, 'right1', 1, -1),
+                                       (off_xv + 120, off_yh, 'right2', 1, -3),
+                                       (off_xv + 160, off_yh, 'right3', 1, -10),
+                                       (off_xv, off_yh + 60, 'down1', 0, -1),
+                                       (off_xv, off_yh + 100, 'down2', 0, -3),
+                                       (off_xv, off_yh + 140, 'down3', 0, -10),
+                                       ):
             btn = self._make_button(name)
             btn.add_callback('activated', self.arrowMove, axis, mult)
             btns[name] = btn
@@ -115,7 +116,7 @@ class HandsetPage(Page.CommandPage):
 
         # Place entries
         ents = widgets.setdefault('entries', {})
-        for x, y, width, name in ((off_xv-35, off_yh+5, 10, 'mainstep'),):
+        for x, y, width, name in ((off_xv - 35, off_yh + 5, 10, 'mainstep'),):
             ent = Widgets.TextEntry()
             #ent.set_alignment(1.0)
             ent.set_text("0")
@@ -134,10 +135,10 @@ class HandsetPage(Page.CommandPage):
 
         # Place labels
         lbls = widgets.setdefault('labels', {})
-        for x, y, txt, name in ((off_xv+45, 210+5, 'x1', 'x1'), (off_xv+45, 250+5, 'x3', 'x3'),
-                                (off_xv+45, 290+5, 'x10', 'x10'),
-                                (off_xv, off_yh-18, 'Step', 'mainstep'),
-                                (off_xv-5, off_yh+35, 'arcsec', 'mainunit'),
+        for x, y, txt, name in ((off_xv + 45, 210 + 5, 'x1', 'x1'), (off_xv + 45, 250 + 5, 'x3', 'x3'),
+                                (off_xv + 45, 290 + 5, 'x10', 'x10'),
+                                (off_xv, off_yh - 18, 'Step', 'mainstep'),
+                                (off_xv - 5, off_yh + 35, 'arcsec', 'mainunit'),
                                 (20, 30, 'Mode', 'mode'),
                                 (20, 232, '+N/-S', 'lstep'),
                                 (120, 232, '+E/-W', 'rstep'),
@@ -150,7 +151,7 @@ class HandsetPage(Page.CommandPage):
         # Compass
         lbl = self._make_compass('N', 'S', 'E', 'W')
         lbls['compass'] = lbl
-        self.lw.add_widget(lbl, off_xv+80, off_yh-120)
+        self.lw.add_widget(lbl, off_xv + 80, off_yh - 120)
 
         # Place buttons
         btns = widgets['buttons']
@@ -186,8 +187,8 @@ class HandsetPage(Page.CommandPage):
         self.modes = []
         for d in modes:
             assert isinstance(d, dict) and 'label' in d, \
-                   HandsetError("Malformed handset mode: expected key 'modes': %s" % (
-                str(d)))
+                HandsetError("Malformed handset mode: expected key 'modes': %s" % (
+                    str(d)))
             name = d['label']
             cbox.append_text(name)
             self.modes.append(d)
@@ -220,21 +221,21 @@ class HandsetPage(Page.CommandPage):
         try:
             for key in ('arrows', 'button'):
                 assert key in d, \
-                       HandsetError("Malformed handset mode: expected key '%s': %s" % (
-                    key, str(d)))
+                    HandsetError("Malformed handset mode: expected key '%s': %s" % (
+                        key, str(d)))
 
             # Process arrow info
             info = d['arrows']
             for key in ('cmd', 'dec', 'ra', 'unit', 'step'):
                 assert key in info, \
-                       HandsetError("Malformed handset mode: expected key '%s': %s" % (
-                    key, str(info)))
+                    HandsetError("Malformed handset mode: expected key '%s': %s" % (
+                        key, str(info)))
 
             for key in ('dec', 'ra'):
                 tup = info[key]
                 assert isinstance(tup, list) and (len(tup) == 3), \
-                       HandsetError("Malformed handset mode: key '%s': %s" % (
-                    key, str(tup)))
+                    HandsetError("Malformed handset mode: key '%s': %s" % (
+                        key, str(tup)))
 
             self.stepval = info['step']
 
@@ -244,7 +245,7 @@ class HandsetPage(Page.CommandPage):
 
             # Get number of decimal places in step value
             s = str(self.stepval)
-            if not '.' in s:
+            if '.' not in s:
                 numdigits = 0
             else:
                 xx, dec = s.split('.')
@@ -259,7 +260,7 @@ class HandsetPage(Page.CommandPage):
             #rspin.set_limits(self.stepval, self.stepval*3)
 
             (decvar, n, s) = info['dec']
-            (ravar,  e, w) = info['ra']
+            (ravar, e, w) = info['ra']
 
             # save variable info for later use by command
             self.arrow_info = Bunch.Bunch(cmd=info['cmd'],
@@ -268,23 +269,23 @@ class HandsetPage(Page.CommandPage):
             # set main units label
             self.widgets['labels']['mainunit'].set_text(info['unit'])
             # set compass label
-            txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w }
+            txt = compass_template % {'n': n, 's': s, 'e': e, 'w': w}
             self.widgets['labels']['compass'].set_text(txt)
 
             info = d['button']
             for key in ('cmd', 'dec', 'ra'):
                 assert key in info, \
-                       HandsetError("Malformed handset mode: expected key '%s': %s" % (
-                    key, str(info)))
+                    HandsetError("Malformed handset mode: expected key '%s': %s" % (
+                        key, str(info)))
 
             for key in ('dec', 'ra'):
                 tup = info[key]
                 assert isinstance(tup, list) and (len(tup) == 5), \
-                       HandsetError("Malformed handset mode: key '%s': %s" % (
-                    key, str(tup)))
+                    HandsetError("Malformed handset mode: key '%s': %s" % (
+                        key, str(tup)))
 
             (decvar, decunit, n, s, decval) = info['dec']
-            (ravar,  raunit, e, w, raval) = info['ra']
+            (ravar, raunit, e, w, raval) = info['ra']
 
             self.widgets['labels']['lstep'].set_text('%s/%s' % (n, s))
             self.widgets['labels']['rstep'].set_text('%s/%s' % (e, w))
@@ -305,14 +306,13 @@ class HandsetPage(Page.CommandPage):
         d = yaml.safe_load(buf)
 
         assert isinstance(d, dict) and 'modes' in d, \
-               HandsetError("Malformed handset def: expected key 'modes': %s" % (
-            str(d)))
+            HandsetError("Malformed handset def: expected key 'modes': %s" % (
+                str(d)))
 
         self.addModes(d['modes'])
 
         if 'tabname' in d:
             self.setLabel(d['tabname'])
-
 
     def arrowMove(self, w, axis, mult):
         """Callback when an arrow button is pressed.
@@ -323,7 +323,7 @@ class HandsetPage(Page.CommandPage):
             stepval = float(stepval)
         except Exception as e:
             common.view.popup_error("Bad step value '%s': %s" % (
-                    stepval, str(e)))
+                stepval, str(e)))
             return
 
         self.logger.debug("Move by arrow: axis=%d mult=%f" % (axis, mult))
@@ -339,12 +339,11 @@ class HandsetPage(Page.CommandPage):
         try:
             # tag the text so we can manipulate it later
             cmdObj = HandsetCommandObject('hs%d', self.queueName,
-                                      self.logger, w, cmdstr)
+                                          self.logger, w, cmdstr)
 
             common.controller.execOne(cmdObj, 'launcher')
         except Exception as e:
             common.view.popup_error(str(e))
-
 
     def execute(self, w):
         """Callback when the 'Move' button is pressed.
@@ -363,7 +362,7 @@ class HandsetPage(Page.CommandPage):
         try:
             # tag the text so we can manipulate it later
             cmdObj = HandsetCommandObject('hs%d', self.queueName,
-                                      self.logger, w, cmdstr)
+                                          self.logger, w, cmdstr)
 
             common.controller.execOne(cmdObj, 'launcher')
         except Exception as e:

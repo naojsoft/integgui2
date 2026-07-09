@@ -14,6 +14,7 @@ class WorkspacePage(Workspace.Workspace, Page.Page):
 
         #self.nb.set_tab_pos(Gtk.PositionType.LEFT)
 
+
 class ButtonWorkspacePage(Workspace.Workspace, Page.ButtonPage):
 
     def __init__(self, frame, name, title):

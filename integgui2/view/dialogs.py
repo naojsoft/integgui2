@@ -30,10 +30,12 @@ def _make_icon(iconfile, logger=None):
             logger.warning("Could not load icon '%s': %s" % (iconfile, str(e)))
     return None
 
+
 # This is a table of dialogs that have been opened by a remote task.
 dialog_table = {}
 # A lock to protect the table
 dialog_table_lock = threading.RLock()
+
 
 def register_dialog(tag, dialog):
     """Register a dialog in the dialog table."""
@@ -43,6 +45,7 @@ def register_dialog(tag, dialog):
     with dialog_table_lock:
         #print("Registering dialog %s" % tag)
         dialog_table[tag] = dialog
+
 
 def unregister_dialog(tag):
     """Unregister a dialog from the dialog table."""
@@ -55,6 +58,7 @@ def unregister_dialog(tag):
         except KeyError:
             # if already deleted no big deal
             pass
+
 
 def cancel_dialog(tag):
     """Cancel any dialogs associated with a remote task.

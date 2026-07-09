@@ -23,7 +23,7 @@ frame_tags = [
     ('RT', 'starstrans', Bunch.Bunch(foreground='darkgreen', background='white')),
     ('RE', 'starserror', Bunch.Bunch(foreground='orange', background='white')),
     ('E', 'error', Bunch.Bunch(foreground='red', background='lightyellow')),
-    ]
+]
 
 
 class FrameInfoPage(LogPage.NotePage):

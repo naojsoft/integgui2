@@ -127,10 +127,8 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
         if page is not None:
             self.delpage(page.name)
 
-
     def toggle_var(self, tf, key):
         self.__dict__[key] = tf
-
 
     def insert_ast(self, tw, text):
         # tw is a TextSource widget.  Text is inserted at the end and tagged
@@ -232,7 +230,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
         if region is not None:
             tw.scroll_to_ref(region[0])
 
-
     def replace_text(self, page, tagname, textstr,
                      start_offset=0):
         #print("replacing '%s' on %s" % (textstr, tagname))
@@ -246,7 +243,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
 
         # Scroll the view to this area
         tw.scroll_to_ref(start)
-
 
     def insert_line(self, page, tagname, newtag, level, textstr):
         tagname = str(tagname)
@@ -262,7 +258,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
         tw.insert_text(end2, textstr, tags=[newtag])
         tw.insert_text(end2, ' ', tags=['code'])
 
-
     def append_error(self, page, tagname, textstr):
         tagname = str(tagname)
         tw = page.tw
@@ -270,7 +265,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
         tw.insert_text(end, textstr, tags=[tagname])
 
         self.change_text(page, tagname, 'error')
-
 
     def update_time(self, page, tagname, vals, time_s):
 
@@ -289,7 +283,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
 
         vals['time_added'] = len(time_s)
         tw.insert_text(start, time_s, tags=[tagname])
-
 
     def update_page(self, bnch):
 
@@ -329,36 +322,35 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
                 else:
                     elapsed = vals['task_end'] - vals['task_start']
                 self.update_time(page, tagname, vals, '[ F %9.3f s ]: ' % (
-                        elapsed))
+                    elapsed))
             else:
                 self.update_time(page, tagname, vals, '[TE %s]: ' % (
-                        self.time2str(vals['task_end'])))
+                    self.time2str(vals['task_end'])))
             self.change_text(page, tagname, 'task_end')
 
         elif 'end_time' in vals:
             self.update_time(page, tagname, vals, '[EN %s]: ' % (
-                    self.time2str(vals['end_time'])))
+                self.time2str(vals['end_time'])))
             self.change_text(page, tagname, 'end_time')
 
         elif 'ack_time' in vals:
             self.update_time(page, tagname, vals, '[AB %s]: ' % (
-                    self.time2str(vals['ack_time'])))
+                self.time2str(vals['ack_time'])))
             self.change_text(page, tagname, 'ack_time')
 
         elif 'cmd_time' in vals:
             self.update_time(page, tagname, vals, '[CD %s]: ' % (
-                    self.time2str(vals['cmd_time'])))
+                self.time2str(vals['cmd_time'])))
             self.change_text(page, tagname, 'cmd_time')
 
         elif 'task_start' in vals:
             self.update_time(page, tagname, vals, '[TS %s]: ' % (
-                    self.time2str(vals['task_start'])))
+                self.time2str(vals['task_start'])))
             self.change_text(page, tagname, 'task_start')
 
         else:
             #self.change_text(page, tagname, 'code')
             pass
-
 
     def time2str(self, time_cmd):
         time_int = int(time_cmd)
@@ -366,7 +358,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
         time_sfx = ('%.3f' % (time_cmd - time_int)).split('.')[1]
         title = time_str + ',' + time_sfx
         return title
-
 
     def process_ast(self, ast_id, vals):
         #print(ast_id, vals)
@@ -438,7 +429,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
 
                 self.update_page(bnch)
 
-
     def process_subcommand(self, parent_path, subpath, vals):
 
         with self.lock:
@@ -489,7 +479,6 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
             self.track.setdefault(subpath, bnch)
 
             self.update_page(bnch)
-
 
     def process_task(self, path, vals):
         #print("process_task: ", path, vals)

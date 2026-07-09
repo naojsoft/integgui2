@@ -5,6 +5,7 @@
 #
 import threading
 
+
 class CommandObject:
 
     # static class vars
@@ -21,7 +22,6 @@ class CommandObject:
             cls.cmdcount += 1
             return tag
 
-
     def __init__(self, format, queueName, logger):
         """Constructor.  Takes a format string (should contain '%d') and
         a queue name.  Normally this class should be subclassed to provide
@@ -32,7 +32,6 @@ class CommandObject:
         self.guitag = CommandObject.get_tag(format)
         self.queueName = queueName
         self.logger = logger
-
 
     def get_preview(self):
         """This is called to get a preview of the command string that
@@ -65,6 +64,7 @@ class SimpleCommandObject(CommandObject):
     def mark_status(self, txttag):
         pass
 
+
 class BreakCommandObject(CommandObject):
 
     def __init__(self, format, queueName, logger, page):
@@ -80,6 +80,7 @@ class BreakCommandObject(CommandObject):
 
     def mark_status(self, txttag):
         pass
+
 
 class CommentCommandObject(CommandObject):
 

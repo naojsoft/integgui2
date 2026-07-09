@@ -52,7 +52,7 @@ class Desktop:
                               pane=self.pane.llh, idx=2),
             'ur': Bunch.Bunch(frame=ur,
                               pane=self.pane.ulh, idx=1),
-            }
+        }
 
         self.ws = {}
         self.lock = threading.RLock()
@@ -90,7 +90,7 @@ class Desktop:
                 self.logger.debug("Restoring pane to size %d" % (old_size))
                 pane_w.set_sizes(sizes)
                 return old_size - cur_size
-            except:
+            except BaseException:
                 return 0
 
     def show_ws(self, name, size=450):
@@ -215,7 +215,6 @@ class Desktop:
         dialog.add_callback("activated", move_page, cbox, names)
         common.view.add_window(dialog)
         dialog.show()
-
 
     def move_page(self, src_ws, page, dst_ws):
         src_ws.move_page(page, dst_ws)

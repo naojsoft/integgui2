@@ -37,7 +37,7 @@ regex_log = re.compile(r'^mon\.log\.(\w+)$')
 #
 statvars_t = [(1, 'STATOBS.%s.OBSINFO1'), (2, 'STATOBS.%s.OBSINFO2'),
               (3, 'STATOBS.%s.OBSINFO3'), (4, 'STATOBS.%s.OBSINFO4'),
-              (5, 'STATOBS.%s.OBSINFO5'), # 6 is error log string
+              (5, 'STATOBS.%s.OBSINFO5'),  # 6 is error log string
               (7, 'STATOBS.%s.TIMER_SEC'), (8, 'FITS.%s.PROP-ID'),
               ]
 
@@ -67,6 +67,7 @@ typical_monlogs.update(inscfg.getNames())
 
 class ControllerError(Exception):
     pass
+
 
 class IntegController:
     """
@@ -113,7 +114,6 @@ class IntegController:
         self.deletechars = ''.join(set(maketrans(b'', b'').decode('iso-8859-1')) -
                                    acceptchars)
         self.reset_conn()
-
 
     def reset_conn(self):
         self.tm = ro.remoteObjectProxy(self.options.taskmgr)
@@ -181,7 +181,6 @@ class IntegController:
             # TODO: popup error here?
             self.gui.gui_do(self.gui.popup_error, str(e))
 
-
     def get_all_queued_tags(self):
         # TODO: may need a lock?
         tags = set([])
@@ -190,7 +189,6 @@ class IntegController:
 
         return tags
 
-
     def remove_by_tags(self, tags):
         # TODO: may need a lock?
         cmdObjs = set([])
@@ -198,7 +196,6 @@ class IntegController:
             deleted = queueObj.removeFilter(lambda x: not (str(x) in tags))
             cmdObjs.update(deleted)
         return cmdObjs
-
 
     def ctl_do(self, func, *args, **kwdargs):
         try:
@@ -212,6 +209,7 @@ class IntegController:
 
     def tm_cancel(self, queueName):
         self.playSound(common.sound.tm_cancel, priority=16)
+
         def cancel():
             self.tm2.cancel(queueName)
 
@@ -285,7 +283,6 @@ class IntegController:
             self.statvars = statvars
             self.insname = insname
 
-
     def get_instrument(self):
         return self.insname
 
@@ -304,7 +301,7 @@ class IntegController:
 
         except ro.remoteObjectError as e:
             self.logger.error("Error getting session info for session '%s': %s" % (
-                    self.sessionName, str(e)))
+                self.sessionName, str(e)))
 
         self._session_config(info)
 
@@ -314,7 +311,6 @@ class IntegController:
         for frameid in framelist:
             fitspath = self.insconfig.getFileByFrameId(frameid)
             self.gui.gui_do(self.gui.load_fits, fitspath)
-
 
     def _update_obsinfo(self, info):
         self.logger.debug("info=%s" % str(info))
@@ -399,7 +395,6 @@ class IntegController:
                 self.gui.gui_do(self.gui.load_log, self.gui.logpage,
                                 logpath)
 
-
         # Set appropriate areas for loading OPE files
         procdir = os.path.join(os.environ['HOME'], 'Procedure')
         propiddir = os.path.join(procdir, 'ANA', propid, 'Procedure')
@@ -407,7 +402,6 @@ class IntegController:
             self.gui.set_procdir(propiddir, inst)
         else:
             self.gui.set_procdir(procdir, inst)
-
 
     def getvals(self, path):
         return self.monitor.getitems_suffixOnly(path)
@@ -430,7 +424,7 @@ class IntegController:
         # Task terminated.  Get all items currently associated with this
         # transaction.
         vals = self.monitor.getitems_suffixOnly(tag)
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             self.logger.error("Could not get task transaction info")
             return ro.ERROR
 
@@ -472,8 +466,8 @@ class IntegController:
 
         self.gui.update_obsinfo(d)
 
-
     # this one is called if new data becomes available about tasks
+
     def arr_taskinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
         try:
@@ -543,8 +537,8 @@ class IntegController:
 
             self.playSound(common.sound.tm_ready, priority=22)
 
-
     # this one is called if new log data becomes available
+
     def arr_loginfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
         try:
@@ -566,8 +560,8 @@ class IntegController:
             #bnch.value['msgstr'] = buf.translate(None, self.deletechars)
             self.gui.update_loginfo(logname, bnch.value)
 
-
     # this one is called if new data becomes available about frames
+
     def arr_fitsinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
 
@@ -628,8 +622,8 @@ class IntegController:
         self.logger.error("No match for path '%s'" % bnch.path)
         return
 
-
     # this one is called if new data becomes available about the session
+
     def arr_sessinfo(self, payload, name, channels):
         self.logger.debug("received values '%s'" % str(payload))
 
@@ -645,7 +639,6 @@ class IntegController:
 
             info = bnch.value
             self._update_obsinfo(info)
-
 
     def audible_warn(self, cmd_str, vals):
         """Called when we get a failed command and should/could issue an audible
@@ -670,7 +663,6 @@ class IntegController:
         soundfile = 'ogg/en/%s_error.ogg' % subsys
         #soundfile = 'E_ERR%s.au' % subsys.upper()
         self.playSound(soundfile, priority=20)
-
 
     def playSound(self, soundfile, priority=20):
         soundpath = os.path.join(os.environ['CONFHOME'],
@@ -744,7 +736,6 @@ class IntegController:
 
         self.histidx += 1
         self.gui.update_history(self.histidx, d)
-
 
     def get_sound_failure(self, res, cmdstr, sound_failure):
         if res == 3:
@@ -830,7 +821,6 @@ class IntegController:
         # When queue is empty and no errors then play success sound
         self.playSound(sound_success, priority=22)
 
-
     def exec_one(self, cmdObj, tm_queueName, sound_success, sound_failure):
         try:
             res = 1
@@ -875,21 +865,19 @@ class IntegController:
             self.feedback_error(tm_queueName, cmdstr, cmdObj, res,
                                 str(e), sound_failure, time_start, time_end)
 
-
     def edit_one(self, cmdObj):
         try:
             cmdstr = cmdObj.get_cmdstr()
 
         except Exception as e:
             common.view.popup_error("Error editing command: %s" % (
-                    str(e)))
+                str(e)))
             return
 
         self.gui.gui_do(self.gui.edit_command, cmdstr)
 
-
     def _soundfn(self, filename):
-        return lambda : self.playSound(filename)
+        return lambda: self.playSound(filename)
 
     def obs_timer(self, tag, title, iconfile, soundfile, time_sec):
         def callback(*args):
@@ -907,15 +895,14 @@ class IntegController:
         except Exception as e:
             raise Exception("failed to start timer: %s" % (str(e)))
 
-
     def obs_confirmation(self, tag, title, iconfile, soundfile, btnlist):
         def callback(idx, vallist):
-            if idx == None:
+            if idx is None:
                 self.monitor.setvals(['g2task'], tag, status=-1,
                                      complete=time.time(),
                                      msg="User cancelled dialog!")
             else:
-                self.monitor.setvals(['g2task'], tag, status=idx+1,
+                self.monitor.setvals(['g2task'], tag, status=idx + 1,
                                      msg="OK",
                                      complete=time.time())
 
@@ -930,12 +917,12 @@ class IntegController:
 
     def obs_userinput(self, tag, title, iconfile, soundfile, itemlist):
         def callback(idx, vallist, resDict):
-            if idx == None:
+            if idx is None:
                 self.monitor.setvals(['g2task'], tag, status=-1,
                                      msg="User cancelled dialog!",
                                      complete=time.time())
             else:
-                self.monitor.setvals(['g2task'], tag, status=idx+1,
+                self.monitor.setvals(['g2task'], tag, status=idx + 1,
                                      msg="OK", values=resDict,
                                      complete=time.time())
 
@@ -949,15 +936,14 @@ class IntegController:
         except Exception as e:
             raise Exception("failed to start userinput dialog: %s" % (str(e)))
 
-
     def obs_combobox(self, tag, title, iconfile, soundfile, itemlist):
         def callback(idx, vallist, resDict):
-            if idx == None:
+            if idx is None:
                 self.monitor.setvals(['g2task'], tag, status=-1,
                                      msg="User cancelled dialog!",
                                      complete=time.time())
             else:
-                self.monitor.setvals(['g2task'], tag, status=idx+1,
+                self.monitor.setvals(['g2task'], tag, status=idx + 1,
                                      msg="OK", values=resDict,
                                      complete=time.time())
 
@@ -974,7 +960,7 @@ class IntegController:
     def obs_fileselection(self, tag, title, initialdir=None,
                           initialfile=None, multiple=True, button='open'):
         def callback(rsp, filepath):
-            if rsp == None or rsp == 0:
+            if rsp is None or rsp == 0:
                 self.monitor.setvals(['g2task'], tag, status=-1,
                                      msg="User cancelled dialog!", values=None,
                                      complete=time.time())

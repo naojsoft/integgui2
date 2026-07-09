@@ -119,8 +119,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.ojws = self.ds.addws('ul', 'obsjrn', "Upper Left Workspace")
         self.oiws = self.ds.addws('ur', 'obsinfo', "Upper Right Workspace")
         #self.umws = self.ds.addws('um', 'umws', "Upper Middle Workspace")
-        self.lmws  = self.ds.addws('lm', 'lmws', "Lower Middle Workspace")
-        self.lws  = self.ds.addws('ll', 'launchers', "Lower Left Workspace")
+        self.lmws = self.ds.addws('lm', 'lmws', "Lower Middle Workspace")
+        self.lws = self.ds.addws('ll', 'launchers', "Lower Left Workspace")
         self.exws = self.ds.addws('lr', 'executor', "Lower Right Workspace")
 
         # Populate "Observation Journal" ws
@@ -212,7 +212,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             os.path.join(topprocdir, inst),
             os.path.join(topprocdir, inst, 'COMMON'),
             os.path.join(topprocdir, 'COMMON'),
-            ]
+        ]
         self.logger.info("include_dirs: %s" % str(self.include_dirs))
 
     def add_menus(self, menubar):
@@ -229,7 +229,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
              #'fits': self.fitspage,
              'handsets': self.handsets,
              'queues': self.queuepage,
-            }
+             }
         self.add_load_menus(filemenu, d)
 
         item = filemenu.add_name("Config from session")
@@ -256,8 +256,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         item = miscmenu.add_name("Reset Executer")
         item.add_callback('activated',
-                     lambda w: common.controller.reset_executer())
-
+                          lambda w: common.controller.reset_executer())
 
     def add_load_menus(self, filemenu, where):
 
@@ -270,7 +269,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
                 bnch[name] = where[name]
             else:
                 raise Exception("I don't know how to find the workspace '%s' in %s" % (
-                name, where))
+                    name, where))
 
         ws = Bunch.Bunch()
 
@@ -333,11 +332,11 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         item = newsrcmenu.add_name("Command page")
         item.add_callback('activated', lambda w: self.new_source('command',
-                                                                   ws.executers))
+                                                                 ws.executers))
 
         item = newsrcmenu.add_name("OPE file")
         item.add_callback('activated', lambda w: self.new_source('ope',
-                                                                   ws.executers))
+                                                                 ws.executers))
 
         # end of New->Source
 
@@ -667,9 +666,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load log '%s': %s" % (
-                    logname, str(e)))
+                logname, str(e)))
             return None
-
 
     def gui_load_log(self, workspace):
         f = self.filesel['log']
@@ -699,7 +697,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
+                filepath, str(e)))
             return None
 
     def gui_load_ope(self, workspace):
@@ -738,16 +736,16 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         f = self.filesel['inf']
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
-                                                          filepaths[0],
-                                                          InfPage))
+                                                              filepaths[0],
+                                                              InfPage))
         f.popup()
 
     def gui_load_ephem(self, workspace):
         f = self.filesel['eph']
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
-                                                          filepaths[0],
-                                                          EphemPage))
+                                                              filepaths[0],
+                                                              EphemPage))
         f.popup()
 
     def gui_load_tscTrack(self, workspace):
@@ -756,7 +754,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         def callback(w, rsp, filepaths):
             if rsp == 2:
-                for filepath in filepaths: # OPEN button
+                for filepath in filepaths:  # OPEN button
                     self.load_generic(workspace, filepath, TSCTrackPage)
         f.set_callback('activated', callback)
         f.popup()
@@ -765,7 +763,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         f = self.filesel['launcher_source']
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
-                                                             filepaths[0],
+                                                              filepaths[0],
                                                               # ???!!!
                                                               CodePage.CodePage))
         f.popup()
@@ -796,9 +794,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
+                filepath, str(e)))
             return None
-
 
     def kill(self):
         controller = common.controller
@@ -845,8 +842,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
-
+                filepath, str(e)))
 
     def load_folder(self, workspace, dirpath, pattern='*'):
         try:
@@ -859,9 +855,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load directory '%s': %s" % (
-                    dirpath, str(e)))
+                dirpath, str(e)))
             return None
-
 
     def gui_load_launcher(self, workspace):
         f = self.filesel['launcher']
@@ -889,9 +884,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
+                filepath, str(e)))
             return None
-
 
     def gui_load_handset(self, workspace):
         f = self.filesel['handset']
@@ -919,9 +913,8 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load '%s': %s" % (
-                    filepath, str(e)))
+                filepath, str(e)))
             return None
-
 
     def new_source(self, pagetype, workspace, title=None):
         if pagetype == 'command':
@@ -971,7 +964,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load tag page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def add_frameinfo(self, workspace):
@@ -985,7 +978,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load frame info page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def add_options(self, workspace):
@@ -997,7 +990,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load options page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def add_obsinfo(self, workspace):
@@ -1011,7 +1004,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load obs info page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def add_monitor(self, workspace):
@@ -1025,7 +1018,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot load monitor page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def get_launcher_paths(self, insname, launcherpfx):
@@ -1086,14 +1079,14 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot create dialog '%s': %s" % (
-                    title, str(e)))
+                title, str(e)))
             return None
 
     def close_pages_workspace(self, workspace, pageKlass, exclude=[]):
         try:
             for page in workspace.getPages():
                 if isinstance(page, pageKlass) and \
-                       (not page.name in exclude):
+                        (page.name not in exclude):
                     self.logger.debug("closing page '%s'" % (page.name))
                     page.close()
 
@@ -1144,7 +1137,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             try:
                 ws, page = self.ds.getPage(name)
                 page.clear()
-            except:
+            except BaseException:
                 # possibly they don't have this page open
                 pass
 
@@ -1209,7 +1202,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot add queue page '%s': %s" % (
-                    name, str(e)))
+                name, str(e)))
             return None
 
     def gui_create_workspace(self, workspace):
@@ -1248,7 +1241,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         except Exception as e:
             self.popup_error("Cannot create workspace page: %s" % (
-                    str(e)))
+                str(e)))
             return None
 
     def edit_command(self, cmdstr):
@@ -1268,7 +1261,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             self.exws.select(page.name)
         except Exception as e:
             self.popup_error("Cannot edit command: %s" % (
-                    str(e)))
+                str(e)))
 
     def delete_event(self, widget, event, data=None):
         self.ev_quit.set()
@@ -1484,7 +1477,6 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def update_history(self, key, info):
         if hasattr(self, 'history'):
             self.gui_do(self.history.update_command, info)
-
 
     def update_loginfo(self, logname, infodict):
         if hasattr(self, 'logpage'):

@@ -25,7 +25,7 @@ class ObsInfoPage(Page.ButtonPage):
 
         # rgb triplets we use
         self.black = (0.0, 0.0, 0.0)
-        self.blue  = (0.0, 0.0, 1.0)
+        self.blue = (0.0, 0.0, 1.0)
         self.green = (0.0, 0.5, 0.0)
         self.white = (1.0, 1.0, 1.0)
         self.orange = (0.824, 0.412, 0.1176)
@@ -75,7 +75,7 @@ class ObsInfoPage(Page.ButtonPage):
                                      font="Roboto;italic;bold",
                                      fontsize=24, color=self.black,
                                      coord='window'),
-            }
+        }
         for item in self.items.values():
             self.canvas.add(item, redraw=True)
 

@@ -19,20 +19,20 @@ import Gen2.astro.TSCTrackFile as TSCTrackFile
 
 class CopyTSCTrackPage(Page.ButtonPage):
 
-    STATUS__OK                  = 0
-    STATUS__FILE_READY_TO_COPY  = 1
-    STATUS__FILE_PENDING        = 2
+    STATUS__OK = 0
+    STATUS__FILE_READY_TO_COPY = 1
+    STATUS__FILE_PENDING = 2
     STATUS__FILE_NOTFOUND_ERROR = 3
-    STATUS__FILE_FORMAT_ERROR   = 4
-    STATUS__FILE_COPY_ERROR     = 5
+    STATUS__FILE_FORMAT_ERROR = 4
+    STATUS__FILE_COPY_ERROR = 5
     STATUS_INFO = {
-        STATUS__OK:                  'Ok',
-        STATUS__FILE_READY_TO_COPY:  'Ready to Copy...',
-        STATUS__FILE_PENDING:        'Pending...',
+        STATUS__OK: 'Ok',
+        STATUS__FILE_READY_TO_COPY: 'Ready to Copy...',
+        STATUS__FILE_PENDING: 'Pending...',
         STATUS__FILE_NOTFOUND_ERROR: 'File Not Found',
-        STATUS__FILE_FORMAT_ERROR:   'Format Error',
-        STATUS__FILE_COPY_ERROR:     'Copy Error'
-        }
+        STATUS__FILE_FORMAT_ERROR: 'Format Error',
+        STATUS__FILE_COPY_ERROR: 'Copy Error'
+    }
 
     def __init__(self, frame, name, title):
 

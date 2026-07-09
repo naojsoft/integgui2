@@ -21,7 +21,7 @@ history_tags = [
     ('OK', Bunch.Bunch(foreground='black')),
     ('CN', Bunch.Bunch(foreground='orange3')),
     ('NG', Bunch.Bunch(foreground='red', background='lightyellow')),
-    ]
+]
 
 
 class CommandHistoryPage(LogPage.NotePage):

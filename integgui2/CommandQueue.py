@@ -5,6 +5,7 @@
 #
 import threading
 
+
 class QueueEmpty(Exception):
     pass
 
@@ -47,7 +48,6 @@ class CommandQueue:
             for view in self.views:
                 view.redraw()
             self.mark_status(self.queue, 'queued')
-
 
     def enabledP(self):
         return self.flag.isSet()
@@ -187,7 +187,6 @@ class CommandQueue:
                 return cmdObj
             except IndexError:
                 raise QueueEmpty('Queue %s is empty' % self.name)
-
 
     def __len__(self):
         with self.lock:

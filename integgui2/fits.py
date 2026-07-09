@@ -15,8 +15,8 @@ from g2base.astro.frame import Frame
 from .view import common
 
 # Headers we show
-headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
-            'OBJECT', 'FILTERS', 'MEMO' ]
+headers = ['DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
+           'OBJECT', 'FILTERS', 'MEMO']
 
 
 class IntegGUINotify:
@@ -68,7 +68,6 @@ class IntegGUINotify:
 
             return d
 
-
     def _sort_helper(self, finfo):
         return finfo.get('time_alloc', sys.float_info.max)
 
@@ -102,7 +101,6 @@ class IntegGUINotify:
             if 'row' not in d:
                 self.output_line(d)
 
-
     def transfer_started(self, frameid):
         """Called when the _frameid_ transfer from the OBCP has been
         initiated.
@@ -113,7 +111,6 @@ class IntegGUINotify:
             if d.status == 'A':
                 d.status = 'X'
                 self.output_line(d)
-
 
     def transfer_done(self, frameid, status):
         """Called when the _frameid_ transfer from the OBCP has
@@ -132,7 +129,6 @@ class IntegGUINotify:
 
                 self.output_line(d)
 
-
     def fits_info(self, frameid, frameinfo):
         """Called when there is some information about the frame.
         """
@@ -144,7 +140,6 @@ class IntegGUINotify:
                 self.output_line(d)
             return ro.OK
 
-
     def in_stars(self, frameid, status):
         """Called when the _frameid_ has finished a transaction with STARS."""
 
@@ -154,7 +149,6 @@ class IntegGUINotify:
 
             self.output_line(d)
             return ro.OK
-
 
     def frameSvc_hdlr(self, vals):
         """Called with information provided by the frame service."""
@@ -174,7 +168,6 @@ class IntegGUINotify:
             if 'time_alloc' in info:
                 self.frame_allocated(frameid, info['time_alloc'])
 
-
     def INSint_hdlr(self, frameid, vals):
         """Called with information provided by the instrument interface."""
 
@@ -185,14 +178,12 @@ class IntegGUINotify:
         elif 'time_start' in vals:
             self.transfer_started(frameid)
 
-
     def Archiver_hdlr(self, frameid, vals):
         """Called with information provided by the Archiver."""
 
         # TODO: check vals['PROP-ID'] against propid for this
         # integgui before proceeding
         self.fits_info(frameid, vals)
-
 
     def STARSint_hdlr(self, frameid, vals):
         """Called with information provided by the STARS interface."""
@@ -204,10 +195,10 @@ class IntegGUINotify:
                 # --> there was an error in the STARS interface
                 self.in_stars(frameid, 'E')
             elif (Monitor.has_keys(vals, ['end_result', 'end_status1',
-                                       'end_status2']) and
-                (vals['end_result'] == 0) and
-                (vals['end_status1'] == 0) and
-                (vals['end_status2'] == 0)):
+                                          'end_status2']) and
+                  (vals['end_result'] == 0) and
+                  (vals['end_status1'] == 0) and
+                  (vals['end_status2'] == 0)):
                 # --> STARS may have the file
                 self.in_stars(frameid, 'T')
 
@@ -222,7 +213,6 @@ class HSC_IntegGUINotify(IntegGUINotify):
                                 PFSA=8, PFSB=4, PFSC=1, PFSD=1, PFSF=1,
                                 #PFSA=7, PFSB=2, PFSC=1, PFSD=1, PFSF=1,
                                 SWSB=2, SWSR=2)
-
 
     def get_hsc_expid(self, frameid):
         """
@@ -255,7 +245,6 @@ class HSC_IntegGUINotify(IntegGUINotify):
             # other instruments: e.g. VGW, etc.
             return frameid
 
-
     def _getframe(self, frameid, **kwdargs):
 
         frameid = self.get_hsc_expid(frameid)
@@ -267,7 +256,6 @@ class HSC_IntegGUINotify(IntegGUINotify):
             if 'count_stars' not in d:
                 d.count_stars = 0
             return d
-
 
     def transfer_done(self, frameid, status):
 
@@ -283,7 +271,6 @@ class HSC_IntegGUINotify(IntegGUINotify):
                     d.status = 'E'
 
                 self.output_line(d)
-
 
     def in_stars(self, frameid, status):
 

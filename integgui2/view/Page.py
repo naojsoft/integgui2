@@ -11,7 +11,7 @@ from ginga.gw import Widgets
 from . import common
 
 # constants
-LEFT  = 'left'
+LEFT = 'left'
 RIGHT = 'right'
 
 
@@ -260,7 +260,6 @@ class TextPage(Page):
         return self.save_as(self, dirpath=dirpath,
                             filename=filename)
 
-
     def _get_save_directory(self):
         if hasattr(self, 'filepath') and self.filepath:
             # Use directory of current file, if one exists
@@ -314,12 +313,12 @@ class TextPage(Page):
 
             except Exception as e:
                 return common.view.popup_error("Cannot write '%s': %s" % (
-                        filepath, str(e)))
+                    filepath, str(e)))
 
         if os.path.exists(filepath):
             common.view.popup_confirm("Confirm overwrite",
                                       "File '%s' exists.\nOK to Overwrite ?" % (
-                filepath), _save)
+                                          filepath), _save)
         else:
             _save('yes')
 

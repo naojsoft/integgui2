@@ -8,8 +8,10 @@ from . import Page
 
 from ginga.gw import Widgets
 
+
 class DialogError(Exception):
     pass
+
 
 class DialogPage(Page.Page):
 

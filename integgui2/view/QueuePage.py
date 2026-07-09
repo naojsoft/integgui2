@@ -95,7 +95,6 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         item = menu.add_name("Pop and edit command")
         item.add_callback("activated", lambda w: self.editCommand())
 
-
     def set_queue(self, queueName, queueObj):
         self.queueName = queueName
         self.queueObj = queueObj
@@ -175,7 +174,6 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         end = self.tw.get_ref_line_end(line)
         self.tw.apply_tag('cursor', start, end)
 
-
     def redraw(self):
         common.gui_do(self._redraw)
 
@@ -220,7 +218,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.sel_j = None
 
     def has_selection(self):
-        return self.sel_i != None
+        return self.sel_i is not None
 
     def cut(self):
         if not self.has_selection():
@@ -232,7 +230,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             #print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
-            self.clip = self.queueObj.delete(i, j+1)
+            self.clip = self.queueObj.delete(i, j + 1)
         else:
             common.view.popup_error("Please make a selection first!")
 
@@ -246,7 +244,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             #print("i=%d j=%d" % (i, j))
             self.clear_selection()
 
-            self.clip = self.queueObj.getslice(i, j+1)
+            self.clip = self.queueObj.getslice(i, j + 1)
         else:
             common.view.popup_error("Please make a selection first!")
 
@@ -255,7 +253,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.clip = clip
 
     def paste(self, clip=None):
-        if clip == None:
+        if clip is None:
             clip = self.clip
         if len(clip) == 0:
             common.view.popup_error("Please cut/copy the selection first.")
@@ -275,20 +273,19 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         #print("i=%d j=%d" % (i, j))
         self.clear_selection()
 
-        deleted = self.queueObj.delete(i, j+1)
+        deleted = self.queueObj.delete(i, j + 1)
 
         k = self.tw.get_cursor().get_line()
 
         self.queueObj.insert(k, deleted)
 
-
     def insbreak(self, line=None):
-        if line == None:
+        if line is None:
             line = self.tw.get_cursor().get_line()
 
         try:
             cmdobj = CommandObject.BreakCommandObject('brk%d', self.queueName,
-                                                     self.logger, self)
+                                                      self.logger, self)
             self.queueObj.insert(line, [cmdobj])
         except Exception as e:
             common.view.popup_error(str(e))
@@ -343,7 +340,6 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
                                         tm_queueName=self.tm_queueName)
         except Exception as e:
             common.view.popup_error(str(e))
-
 
     def resume(self):
         return self._resume()

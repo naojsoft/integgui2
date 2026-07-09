@@ -20,18 +20,18 @@ color_white = 'white'
 color_bg = 'light grey'
 
 # color objects used to set widgets dynamically
-launcher_colors = Bunch.Bunch(error = 'salmon',
-                              done = 'skyblue',
-                              normal = '#dcdad5',
-                              executing =  'palegreen',
+launcher_colors = Bunch.Bunch(error='salmon',
+                              done='skyblue',
+                              normal='#dcdad5',
+                              executing='palegreen',
 
                               #execbtn = 'royalblue',
                               #execbtn = 'steelblue1',
-                              execbtn = '#82a8db',
-                              cancelbtn = 'palevioletred',
-                              killbtn = 'salmon',
+                              execbtn='#82a8db',
+                              cancelbtn='palevioletred',
+                              killbtn='salmon',
 
-                              badtags = 'red1')
+                              badtags='red1')
 
 # Colors used in the OpePage.  These are the syntax-highlighting tags applied
 # by OpePage.color(); comments are italicized to match the look the old Qt
@@ -42,7 +42,7 @@ decorative_tags = [
     ('comment1', Bunch.Bunch(foreground='darkgreen', italic=True)),
     ('varref', Bunch.Bunch(foreground='royalblue')),
     ('badref', Bunch.Bunch(foreground='darkorange')),
-    ]
+]
 
 # Colors used in the QueuePage
 queue_tags = [
@@ -53,37 +53,37 @@ queue_tags = [
     ('badref', Bunch.Bunch(foreground='red1')),
     ('selected', Bunch.Bunch(background='pink1')),
     ('cursor', Bunch.Bunch(background='#bf94e3')),
-    ]
+]
 
 # Colors used in the OpePage for execution
 execution_tags = [
     ('queued', Bunch.Bunch(background='lightyellow2')),
     ('executing', Bunch.Bunch(background='palegreen')),
-    ('done',     Bunch.Bunch(foreground='blue2')),
-    ('error',   Bunch.Bunch(foreground='red')),
-    ]
+    ('done', Bunch.Bunch(foreground='blue2')),
+    ('error', Bunch.Bunch(foreground='red')),
+]
 
 # Colors used in the LogPage
 log_tags = [
     ('error', Bunch.Bunch(foreground='red', background='lightyellow')),
     ('cancel', Bunch.Bunch(foreground='orange3')),
     ('normal', Bunch.Bunch(foreground='black')),
-    ]
+]
 
 # If a log message matches one of these regexes, then color it.
 # Tags are defined in the log_tags above
 error_regexes = [
     (re.compile(r'^.*\|\sE\s\|.*$'), ['error']),
     (re.compile(r'^.*(error|exception).*$', re.I), ['error']),
-    ]
+]
 
 # Colors used in the DirectoryPage
 directory_tags = [
     ('normal', Bunch.Bunch(foreground='black')),
     ('executable', Bunch.Bunch(foreground='darkgreen')),
-    ('directory',  Bunch.Bunch(foreground='blue2')),
-    ('cursor',  Bunch.Bunch(foreground='yellow', background='darkgreen')),
-    ]
+    ('directory', Bunch.Bunch(foreground='blue2')),
+    ('cursor', Bunch.Bunch(foreground='yellow', background='darkgreen')),
+]
 
 # colors used in the SkMonitorPage
 monitor_tags = Bunch.Bunch(
@@ -94,7 +94,7 @@ monitor_tags = Bunch.Bunch(
     end_time=Bunch.Bunch(foreground='blue1', background='white'),
     task_end=Bunch.Bunch(foreground='blue2', background='white'),
     error=Bunch.Bunch(foreground='red', background='lightyellow')
-    )
+)
 
 # Define sounds used in IntegGUI
 sound = Bunch.Bunch(success_executer='ogg/ocs/doorbell-1.ogg',
@@ -118,16 +118,20 @@ sound = Bunch.Bunch(success_executer='ogg/ocs/doorbell-1.ogg',
 view = None
 controller = None
 
+
 def set_view(pview):
     global view
     view = pview
+
 
 def set_controller(pcontroller):
     global controller
     controller = pcontroller
 
+
 def gui_do(method, *args, **kwdargs):
     return view.gui_do(method, *args, **kwdargs)
+
 
 def gui_do_res(method, *args, **kwdargs):
     return view.gui_do_res(method, *args, **kwdargs)
@@ -135,6 +139,7 @@ def gui_do_res(method, *args, **kwdargs):
 
 class TagError(Exception):
     pass
+
 
 class SelectionError(Exception):
     pass
@@ -225,6 +230,7 @@ def update_line(tw, row, text, tags=None):
     stop = tw.get_ref_line_end(row)
     tw.delete_range(start, stop)
     tw.insert_text(start, text, tags=tags)
+
 
 def modify_bg(widget, color):
     # NOTE: there is a hard-coded hack here to force the background color

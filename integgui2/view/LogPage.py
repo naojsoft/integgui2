@@ -49,7 +49,6 @@ class NotePage(Page.ButtonPage, Page.TextPage):
         item.add_callback("activated", lambda w: self.close())
         self.menu_close = item
 
-
     def set_editable(self, value):
         self.tw.set_editable(value)
 
@@ -65,7 +64,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
     def addtag(self, name, **properties):
         try:
             self.tw.create_tag(name, **properties)
-        except:
+        except BaseException:
             # tag may already exist--that's ok
             pass
 
@@ -139,7 +138,6 @@ class LogPage(NotePage):
         # auto coloring of log entries
         self.regexes = []
 
-
     def clear_regexes(self):
         self.regexes = []
 
@@ -157,7 +155,7 @@ class LogPage(NotePage):
         if self.logsize:
             try:
                 self.file.seek(- self.logsize, 2)
-            except:
+            except BaseException:
                 pass
             self.size = self.file.tell()
         else:
@@ -167,7 +165,7 @@ class LogPage(NotePage):
     def close(self):
         try:
             self.file.close()
-        except:
+        except BaseException:
             pass
 
         super().close()
@@ -182,7 +180,6 @@ class LogPage(NotePage):
                 return
 
         self.append(line, [])
-
 
     def poll(self):
         if self.closed:

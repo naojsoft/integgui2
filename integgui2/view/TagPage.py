@@ -5,6 +5,7 @@
 
 from . import LogPage
 
+
 class TagPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):

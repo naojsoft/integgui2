@@ -11,8 +11,8 @@ from ginga.misc import Bunch
 from g2base import ssdlog
 from oscript.parse.sk_common import ASTNode
 
-lex_tab_module  = 'lex_tab_launcher'
-yacc_tab_module  = 'yacc_tab_launcher'
+lex_tab_module = 'lex_tab_launcher'
+yacc_tab_module = 'yacc_tab_launcher'
 
 
 #===================================================#
@@ -21,6 +21,7 @@ yacc_tab_module  = 'yacc_tab_launcher'
 
 class ScanError(Exception):
     pass
+
 
 class launcherScanner:
 
@@ -90,7 +91,6 @@ class launcherScanner:
     def build(self, **kwdargs):
         self.lexer = lex.lex(object=self, **kwdargs)
 
-
     def __init__(self, logger=None, lextab=lex_tab_module, **kwdargs):
 
         if not logger:
@@ -138,7 +138,6 @@ class launcherScanner:
         #return (self.errors, res, self.errinfo)
         return res
 
-
     def scan_buf(self, buf):
 
         tokens = self.tokenize(buf)
@@ -146,7 +145,6 @@ class launcherScanner:
         res = Bunch.Bunch(tokens=tokens, errors=self.errors,
                           errinfo=self.errinfo)
         return res
-
 
     def scan_file(self, launcherpath):
 
@@ -167,11 +165,12 @@ class launcherScanner:
 class ParseError(Exception):
     pass
 
+
 class launcherParser:
 
     def p_launchers_def1(self, p):
         '''launchers : launcher'''
-        p[0]  = ASTNode('launchers', p[1])
+        p[0] = ASTNode('launchers', p[1])
 
     def p_launchers_def2(self, p):
         '''launchers : launchers  launcher'''
@@ -215,27 +214,27 @@ class launcherParser:
 
     def p_control_def1(self, p):
         '''control_def : param INPUT width def_val ctrl_label NEWLINE'''
-        p[0]  = ASTNode('input', p[1], p[3], p[4], p[5])
+        p[0] = ASTNode('input', p[1], p[3], p[4], p[5])
 
     def p_control_def2(self, p):
         '''control_def : param INPUT width def_val NEWLINE'''
-        p[0]  = ASTNode('input', p[1], p[3], p[4], '')
+        p[0] = ASTNode('input', p[1], p[3], p[4], '')
 
     def p_control_def3(self, p):
         '''control_def : param SELECT val_list ctrl_label NEWLINE'''
-        p[0]  = ASTNode('select', p[1], p[3], p[4])
+        p[0] = ASTNode('select', p[1], p[3], p[4])
 
     def p_control_def4(self, p):
         '''control_def : param SELECT val_list NEWLINE'''
-        p[0]  = ASTNode('select', p[1], p[3], '')
+        p[0] = ASTNode('select', p[1], p[3], '')
 
     def p_control_def5(self, p):
         '''control_def : param LIST val_list ctrl_label NEWLINE'''
-        p[0]  = ASTNode('list', p[1], p[3], p[4])
+        p[0] = ASTNode('list', p[1], p[3], p[4])
 
     def p_control_def6(self, p):
         '''control_def : param LIST val_list NEWLINE'''
-        p[0]  = ASTNode('list', p[1], p[3], '')
+        p[0] = ASTNode('list', p[1], p[3], '')
 
     def p_val_list1(self, p):
         '''val_list : pure_val_list
@@ -323,14 +322,13 @@ class launcherParser:
     def p_error(self, p):
         if isinstance(p, lex.LexToken):
             self.logger.error("Syntax error at line %d: '%s'" % (
-                    p.lineno, p.value))
+                p.lineno, p.value))
             # ? Try to recover to some sensible state
             self.parser.errok()
         else:
             self.logger.error("Syntax error; p=%s" % (str(p)))
             #? Try to recover to some sensible state
             self.parser.restart()
-
 
     def __init__(self, lexer, logger=None, tabmodule=yacc_tab_module,
                  **kwdargs):
@@ -348,7 +346,6 @@ class launcherParser:
         self.build(tabmodule=self.tabmodule, **kwdargs)
         self.reset()
 
-
     def reset(self, lineno=1):
         self.errors = 0
         self.errinfo = []
@@ -357,11 +354,9 @@ class launcherParser:
 
         self.lexer.reset(lineno=lineno)
 
-
     def build(self, **kwdargs):
         self.parser = yacc.yacc(module=self, start='launchers',
                                 logger=self.logger, **kwdargs)
-
 
     def parse(self, buf, startline=1):
 
@@ -372,12 +367,10 @@ class launcherParser:
 
         return res
 
-
     def parse_buf(self, buf, name=''):
 
         res = self.parse(buf)
         return res
-
 
     def parse_file(self, launcherpath, name=None):
 
@@ -435,17 +428,17 @@ def main(options, args):
             try:
                 if options.action == 'scan':
                     res = scanner.scan_file(filename)
-                    if (res.tokens != None) and options.verbose:
+                    if (res.tokens is not None) and options.verbose:
                         printTokens(res.tokens)
 
                 elif options.action == 'parse':
                     res = parser.parse_file(filename)
-                    if (res != None) and options.verbose:
+                    if (res is not None) and options.verbose:
                         pprint.pprint(res)
 
                 else:
                     raise ScanError("I don't understand action='%s'" % (
-                            options.action))
+                        options.action))
 
             except (ScanError, ParseError) as e:
                 # Print error message and continue to next file
@@ -456,7 +449,7 @@ def main(options, args):
         try:
             res = scanner.scan_buf(buf)
 
-            if (res.tokens != None) and options.verbose:
+            if (res.tokens is not None) and options.verbose:
                 printTokens(res.tokens)
 
                 print("%d errors" % (res.errors))

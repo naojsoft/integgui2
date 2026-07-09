@@ -13,6 +13,7 @@ from . import TSCTrackPage
 import Gen2.astro.jplHorizonsIF as jplHorizonsIF
 import Gen2.astro.TSCTrackFile as TSCTrackFile
 
+
 class EphemPage(CodePage.CodePage):
 
     def __init__(self, frame, name, title):
@@ -73,7 +74,7 @@ class EphemPage(CodePage.CodePage):
             self.convertToTSC()
         except Exception as e:
             return common.view.popup_error("Cannot convert input to TSC format: %s" % (
-                    str(e)))
+                str(e)))
 
         # Check the format of the file and popup a warning box if a
         # problem is detected.

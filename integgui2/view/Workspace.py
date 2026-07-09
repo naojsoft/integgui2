@@ -40,12 +40,10 @@ class Workspace:
         self.nb = nb
         frame.add_widget(self.nb, stretch=1)
 
-
     def build_tabmenu(self):
         tabmenu = Widgets.Menu()
         item = tabmenu.add_name("Nop")
         return tabmenu
-
 
     def set_tab_pos(self, pos):
         self.nb.set_tab_position(pos)
@@ -61,7 +59,6 @@ class Workspace:
                     return possname
 
             raise Exception("A page with name '%s' already exists!" % name)
-
 
     def _addpage(self, name, title, child, pageobj, adjname=True):
         with self.lock:
@@ -98,7 +95,6 @@ class Workspace:
 
             return pageobj
 
-
     def addpage(self, name, title, klass, adjname=True):
         with self.lock:
             if name in self.pages:
@@ -122,9 +118,9 @@ class Workspace:
             except Exception as e:
                 try:
                     (type, value, tb) = sys.exc_info()
-                    print("Traceback:\n%s" % \
-                                      "".join(traceback.format_tb(tb)))
-                    self.logger.debug("Traceback:\n%s" % \
+                    print("Traceback:\n%s" %
+                          "".join(traceback.format_tb(tb)))
+                    self.logger.debug("Traceback:\n%s" %
                                       "".join(traceback.format_tb(tb)))
                     tb = None
                     raise e
@@ -138,7 +134,6 @@ class Workspace:
 
             self._addpage(name, title, child, pageobj)
             return pageobj
-
 
     def delpage(self, name):
         with self.lock:
@@ -196,8 +191,7 @@ class Workspace:
             self.transients.insert(0, name)
             # "Remember" old current page if it was not in the list of
             # transients
-            if (currentPage != None) and (not currentPage.name in
-                                          self.transients):
+            if (currentPage is not None) and (currentPage.name not in self.transients):
                 self.lastPage = currentPage
 
             # Go to the new page
@@ -209,12 +203,12 @@ class Workspace:
         with self.lock:
             try:
                 self.transients.remove(name)
-            except:
+            except BaseException:
                 pass
 
             print("Transients: %s" % str(self.transients))
             if len(self.transients) == 0:
-                if self.lastPage != None:
+                if self.lastPage is not None:
                     print("Moving back to page: %s" % self.lastPage.name)
                     self.select(self.lastPage.name)
 
@@ -230,7 +224,7 @@ class Workspace:
         if len(self.pages) > 0:
             common.view.popup_confirm("Close Workspace",
                                       "Workspace '%s' has pages.  Really close?" % (
-                self.name), _close)
+                                          self.name), _close)
 
     def move_page(self, page, workspace):
         self.logger.info("moving page '%s' to workspace '%s'" % (
@@ -238,18 +232,17 @@ class Workspace:
         self.delpage(page.name)
         workspace._addpage(page.name, page.title, page.frame, page)
 
-
     def _page_switched(self, nb, child):
         with self.lock:
             page_num = nb.index_of(child)
             for page in self.getPages():
                 if self.nb.index_of(page.frame) == page_num:
-                    if not page.name in self.transients:
+                    if page.name not in self.transients:
                         self.lastPage = page
                     break
 
-
     # DRAG AND DROP TABS
+
     def _page_added(self, nb, src_nb, child):
         page_num = self.nb.index_of(child)
         self.logger.debug("page added %d" % page_num)

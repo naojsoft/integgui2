@@ -23,26 +23,26 @@ from integgui2 import CommandQueue
 
 # our ginga toolkit layout
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=2000, height=1100),
-                    dict(row=['hbox', dict(name='menu')], stretch=0),
-                    dict(row=['vpanel', {},
-                              ['hpanel', dict(name='ulh', height=400),
-                               ['vbox', dict(name='ul', width=1000)],
-                               # ['vbox', dict(name='um', width=0)],
-                               ['vbox', dict(name='ur', width=1000)],
-                               ],
-                              ['hpanel', dict(name='llh', height=600),
-                               ['vbox', dict(name='ll', width=600)],
-                               ['vbox', dict(name='lm', width=500)],
-                               ['vbox', dict(name='lr', width=600)],
-                               ],
-                              ], stretch=1),
-                    dict(row=['hbox', dict(name='status')], stretch=0),
-                    ]]
+                  ['vbox', dict(name='top', width=2000, height=1100),
+                   dict(row=['hbox', dict(name='menu')], stretch=0),
+                   dict(row=['vpanel', {},
+                             ['hpanel', dict(name='ulh', height=400),
+                              ['vbox', dict(name='ul', width=1000)],
+                              # ['vbox', dict(name='um', width=0)],
+                              ['vbox', dict(name='ur', width=1000)],
+                              ],
+                             ['hpanel', dict(name='llh', height=600),
+                              ['vbox', dict(name='ll', width=600)],
+                              ['vbox', dict(name='lm', width=500)],
+                              ['vbox', dict(name='lr', width=600)],
+                              ],
+                             ], stretch=1),
+                   dict(row=['hbox', dict(name='status')], stretch=0),
+                   ]]
 
 # TODO: this will eventually hold plugins for different kinds of pages
 plugins = [
-    ]
+]
 
 
 def main(options, args):
@@ -57,7 +57,7 @@ def main(options, args):
         ro.init([options.gen2host])
 
     except ro.remoteObjectError as e:
-        logger.error("Error initializing remote objects subsystem: %s" % \
+        logger.error("Error initializing remote objects subsystem: %s" %
                      str(e))
         sys.exit(1)
 
@@ -91,7 +91,7 @@ def main(options, args):
                                  logger=logger)
     # command queues
     queues = Bunch.Bunch(default=CommandQueue.CommandQueue('default',
-                                                            logger), )
+                                                           logger), )
     if options.logmon:
         logtype = 'monlog'
     else:

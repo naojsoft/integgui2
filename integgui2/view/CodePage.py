@@ -22,6 +22,7 @@ Please choose one of the following options:
 
 """
 
+
 class CodePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
@@ -98,7 +99,6 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         # item = menu.add_name("Print ...")
         # item.add_callback("activated", lambda w: self.print_cb())
 
-
     def loadbuf(self, buftxt):
 
         # "cleanse" text--delete invisible chars that are sometimes
@@ -142,23 +142,23 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         except IOError as e:
             # ? raise exception instead ?
             return common.view.popup_error("Cannot read '%s': %s" % (
-                    self.filepath, str(e)))
+                self.filepath, str(e)))
 
         self.loadbuf(buf)
 
     def _do_save(self):
-            # TODO: make backup?
+        # TODO: make backup?
 
-            # get text to save
-            buf = self.tw.get_text()
+        # get text to save
+        buf = self.tw.get_text()
 
-            try:
-                with open(self.filepath, 'w') as out_f:
-                    out_f.write(buf)
-                #self.statusMsg("%s saved." % self.filepath)
-            except IOError as e:
-                return common.view.popup_error("Cannot write '%s': %s" % (
-                        self.filepath, str(e)))
+        try:
+            with open(self.filepath, 'w') as out_f:
+                out_f.write(buf)
+            #self.statusMsg("%s saved." % self.filepath)
+        except IOError as e:
+            return common.view.popup_error("Cannot write '%s': %s" % (
+                self.filepath, str(e)))
 
     def save(self):
         def _save(res):

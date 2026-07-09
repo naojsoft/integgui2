@@ -53,6 +53,7 @@ def _make_hline():
 class LauncherError(Exception):
     pass
 
+
 class Launcher:
 
     def __init__(self, llist, name, title, execfn):
@@ -98,7 +99,6 @@ class Launcher:
         hbox.add_widget(Widgets.Label(''), stretch=1)
         self.llist.frame.add_widget(hbox, stretch=0)
 
-
     def addParam(self, name):
         self.paramList.append(name)
         key = functools.cmp_to_key(lambda x, y: len(y) - len(x))
@@ -111,17 +111,17 @@ class Launcher:
     def add_break(self):
         self.row += 2
         self.col = 1
-        self.table.resize_grid(self.row+1, self.max_col+1)
+        self.table.resize_grid(self.row + 1, self.max_col + 1)
 
     def bump_col(self):
         self.col += 1
         self.max_col = max(self.col, self.max_col)
-        self.table.resize_grid(self.row+1, self.max_col+1)
+        self.table.resize_grid(self.row + 1, self.max_col + 1)
 
     def add_input(self, name, width, defVal, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
         field = Widgets.TextEntry()
         #field.set_length(width)
         field.resize(120, 20)
@@ -138,7 +138,7 @@ class Launcher:
                      label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         checkbox = Widgets.CheckBox(checkbox_label)
         checkbox.resize(width, height)
@@ -156,7 +156,7 @@ class Launcher:
     def add_toggle(self, name, toggle_label, toggle_dict, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         toggle = Widgets.ToggleButton(toggle_label)
         toggle.resize(width, height)
@@ -173,7 +173,7 @@ class Launcher:
     def add_switch(self, name, switch_dict, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         #switch = Gtk.Switch()
         switch = Widgets.ToggleButton("[---]")
@@ -189,11 +189,10 @@ class Launcher:
                                         dict=switch_dict)
         self.addParam(name)
 
-
     def add_scale(self, name, value, lower, upper, step, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         scale = Widgets.Slider(orientation='horizontal', dtype=type(value))
         scale.set_limits(lower, upper, incr_value=step)
@@ -212,7 +211,7 @@ class Launcher:
     def add_spin(self, name, value, lower, upper, step, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         d = decimal.Decimal(str(step))
         d = d.as_tuple().exponent * -1
@@ -231,10 +230,10 @@ class Launcher:
                                         get_fn=self.get_spin)
         self.addParam(name)
 
-    def add_combobox(self, name, combobox_list,  width, height, label):
+    def add_combobox(self, name, combobox_list, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         combobox = Widgets.ComboBox(editable=True)
         for cl in combobox_list:
@@ -252,7 +251,7 @@ class Launcher:
     def add_list(self, name, optionList, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         combobox = Widgets.ComboBox()
         options = []
@@ -272,7 +271,7 @@ class Launcher:
     def add_radio(self, name, optionList, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         group = None
         options = []
@@ -292,7 +291,7 @@ class Launcher:
     def add_dial_select(self, name, optionList, width, height, label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         dial = Widgets.Dial()
         dial.resize(width, height)
@@ -321,7 +320,7 @@ class Launcher:
                        label):
 
         lbl = Widgets.Label(label)
-        self.table.add_widget(lbl, self.row-1, self.col)
+        self.table.add_widget(lbl, self.row - 1, self.col)
 
         dial = Widgets.Dial(dtype=type(value))
         dial.resize(width, height)
@@ -340,17 +339,17 @@ class Launcher:
         return value
 
     def get_checkbox(self, bnch):
-        active =  bnch.widget.get_state()
+        active = bnch.widget.get_state()
         checkbox = bnch.dict.get(active)
         return checkbox
 
     def get_toggle(self, bnch):
-        active =  bnch.widget.get_state()
+        active = bnch.widget.get_state()
         toggle = bnch.dict.get(active)
         return toggle
 
     def get_switch(self, bnch):
-        active =  bnch.widget.get_state()
+        active = bnch.widget.get_state()
         switch = bnch.dict.get(active)
         return switch
 
@@ -532,7 +531,7 @@ class LauncherList:
             return elt
 
         elt_s = str(elt)
-        if not '=' in elt_s:
+        if '=' not in elt_s:
             return [elt_s, elt_s]
         else:
             return elt_s.split('=')
@@ -548,15 +547,15 @@ class LauncherList:
 
     def addLauncherFromYAMLdef(self, d):
         assert isinstance(d, dict) and 'label' in d, \
-               LauncherError("Malformed launcher def: expected key 'label': %s" % (
-            str(d)))
+            LauncherError("Malformed launcher def: expected key 'label': %s" % (
+                str(d)))
         name = d['label']
 
         launcher = self.addLauncher(name, name)
 
         assert 'cmd' in d, \
                LauncherError("Malformed launcher def: expected key 'cmd': %s" % (
-            str(d)))
+                   str(d)))
         launcher.add_cmd(d['cmd'])
 
         if 'params' in d:
@@ -686,7 +685,7 @@ class LauncherList:
                         wd, ht = self._validate_size(size, (10, -1))
                         lbl = param[4] if len(param) > 4 else ''
 
-                        launcher.add_combobox(var, combobox_list, wd, ht,  lbl)
+                        launcher.add_combobox(var, combobox_list, wd, ht, lbl)
 
                     elif p_type == 'checkbox':
                         check_lbl = param[2]
@@ -753,7 +752,6 @@ class LauncherPage(Page.CommandPage):
         item = menu.add_name("Close")
         item.add_callback("activated", lambda w: self.close())
 
-
     def load(self, buf):
         ymldef = yaml.safe_load(buf)
         self.llist.loadLauncher(ymldef)
@@ -794,7 +792,7 @@ class LauncherCommandObject(CommandObject.CommandObject):
         self.cmdstr = cmdstr
 
         super().__init__(format, queueName,
-                                                    logger)
+                         logger)
 
     def mark_status(self, txttag):
         # This MAY be called from a non-gui thread

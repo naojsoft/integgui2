@@ -52,4 +52,4 @@ class InfPage(CodePage.CodePage):
 
         except Exception as e:
             return common.view.popup_error("Cannot generate ope file: %s" % (
-                    str(e)))
+                str(e)))

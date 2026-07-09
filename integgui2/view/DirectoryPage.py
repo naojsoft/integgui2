@@ -69,7 +69,6 @@ class DirectoryPage(LogPage.NotePage):
         self.listdir(self.dirpath, self.pattern)
         self._redraw()
 
-
     def _redraw(self):
         # restore cursor and highlight its line
         self.cursor = min(self.cursor, self.tw.get_end_lineno())
@@ -139,7 +138,6 @@ class DirectoryPage(LogPage.NotePage):
         ##     common.controller.ctl_do(self.clickfn, text)
 
         return False
-
 
     def keypress(self, w, event):
         keyname = event.key

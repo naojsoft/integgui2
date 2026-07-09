@@ -169,7 +169,7 @@ class DDCommandPage(Page.CommandPage):
             cmdObj = self.get_dd_command()
 
             queue = common.controller.queue[self.queueName]
-            if loc == None:
+            if loc is None:
                 queue.append(cmdObj)
             else:
                 queue.insert(loc, [cmdObj])
