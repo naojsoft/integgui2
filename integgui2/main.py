@@ -6,7 +6,7 @@
 import sys, os
 import threading
 
-from ginga.misc import Bunch, ModuleManager, Datasrc, Settings
+from ginga.misc import Bunch, ModuleManager, Settings
 import ginga.toolkit as ginga_toolkit
 
 # SSD/Gen2 imports
@@ -17,7 +17,6 @@ from g2base import ssdlog
 import g2client.soundsink as SoundSink
 
 # Local integgui2 imports
-import integgui2
 from integgui2 import fits
 from integgui2 import controller as igctrl
 from integgui2 import CommandQueue

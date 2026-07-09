@@ -2,9 +2,7 @@
 # E. Jeschke
 #
 
-from ginga.gw import Widgets
 
-from . import common
 from . import LogPage
 
 class TagPage(LogPage.NotePage):

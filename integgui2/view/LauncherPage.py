@@ -1,7 +1,6 @@
 #
 # E. Jeschke
 #
-import threading
 import yaml
 import functools
 import decimal

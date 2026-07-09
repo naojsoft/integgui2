@@ -1,7 +1,7 @@
 #
 # E. Jeschke
 #
-import sys, traceback
+import sys
 
 import os, re
 

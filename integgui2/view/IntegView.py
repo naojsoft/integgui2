@@ -3,17 +3,16 @@
 #
 
 # Standard library imports
-import sys, os, glob
+import os
+import glob
 import re
 import threading
 import queue as Queue
-import traceback
 
 from ginga.gw import Widgets, GwMain, Desktop as GwDesktop
-from ginga.util.paths import icondir as ginga_icon_dir
 
 # SSD/Gen2 imports
-from ginga.misc import Bunch, Future
+from ginga.misc import Bunch
 
 # Local integgui2 imports
 from . import common

@@ -1,7 +1,6 @@
 #
 # E. Jeschke
 #
-import re
 from ply import lex
 from ply import yacc
 import logging
@@ -320,7 +319,6 @@ class launcherParser:
 
     def p_epslion(self, p):
         """empty :"""
-        pass
 
     def p_error(self, p):
         if isinstance(p, lex.LexToken):

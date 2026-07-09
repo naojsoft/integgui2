@@ -1,9 +1,8 @@
 #
 # E. Jeschke
 #
-import sys
 import glob
-import os, re
+import os
 
 from . import common
 from . import LogPage

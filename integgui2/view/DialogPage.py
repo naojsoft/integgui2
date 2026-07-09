@@ -4,11 +4,9 @@
 # E. Jeschke
 #
 
-from . import common
 from . import Page
 
 from ginga.gw import Widgets
-from ginga.misc import Bunch
 
 class DialogError(Exception):
     pass

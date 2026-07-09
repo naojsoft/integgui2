@@ -4,7 +4,6 @@
 import time
 import threading
 
-from ginga.gw import Widgets
 
 import os.path
 

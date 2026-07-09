@@ -2,9 +2,8 @@
 # E. Jeschke
 #
 # Standard library imports
-import sys, os
+import os
 import re, time
-import threading
 
 from ginga.gw import Widgets
 

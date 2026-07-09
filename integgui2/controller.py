@@ -10,7 +10,6 @@ import string
 from integgui2.view import common
 from integgui2 import CommandQueue
 
-from ginga.misc import Bunch
 
 # SSD/Gen2 imports
 from g2base.remoteObjects import remoteObjects as ro

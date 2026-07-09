@@ -2,9 +2,8 @@
 # E. Jeschke
 #
 
-import time
 
-from ginga.gw import Widgets, Viewers
+from ginga.gw import Viewers
 
 from . import common
 from . import Page

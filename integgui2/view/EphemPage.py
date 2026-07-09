@@ -1,11 +1,10 @@
 #
 # Russell Kackley (rkackley@naoj.org)
 #
-import os, glob
+import os
 
 from ginga.gw import Widgets
 
-from g2base import myproc
 
 from . import common
 from . import CodePage

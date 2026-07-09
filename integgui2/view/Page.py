@@ -5,7 +5,7 @@ import os
 import threading
 from collections import OrderedDict
 
-from ginga.misc import Bunch, Callback
+from ginga.misc import Callback
 from ginga.gw import Widgets
 
 from . import common

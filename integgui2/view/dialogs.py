@@ -1,7 +1,6 @@
 #
 # E. Jeschke
 #
-import time
 import threading
 
 from ginga.gw import Widgets

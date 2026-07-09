@@ -44,7 +44,6 @@ class CommandObject:
         """This is called when our command changes status.  _txttag_ should
         be queued, unqueued, normal, executing, done, error
         """
-        pass
 
     def __str__(self):
         return self.guitag
