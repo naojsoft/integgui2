@@ -6,6 +6,7 @@
 import os
 import glob
 import re
+import time
 import threading
 import queue as Queue
 
@@ -16,9 +17,30 @@ from ginga.misc import Bunch
 
 # Local integgui2 imports
 from . import common
-from .pages import *
-from . import Page as PG
-from . import Workspace as WS
+# Page modules used as ``Module.Class`` (formerly via ``from .pages import *``)
+from . import OpePage, CodePage, WorkspacePage
+# Page classes used by name
+from .Desktop import Desktop
+from .TagPage import TagPage
+from .SkPage import SkPage
+from .TaskPage import TaskPage
+from .DirectoryPage import DirectoryPage
+from .QueuePage import QueuePage
+from .InfPage import InfPage
+from .EphemPage import EphemPage
+from .TSCTrackPage import TSCTrackPage
+from .CopyTSCTrackPage import CopyTSCTrackPage
+from .HandsetPage import HandsetPage
+from .FrameInfoPage import FrameInfoPage
+from .CommandHistoryPage import CommandHistoryPage
+from .LauncherPage import LauncherPage
+from .ObsInfoPage import ObsInfoPage
+from .SkMonitorPage import SkMonitorPage
+from .LogPage import LogPage, MonLogPage
+from .DialogPage import DialogPage
+from .OptionsPage import OptionsPage
+from . import Page
+from . import Workspace
 from . import dialogs
 from ..version import __version__
 
@@ -240,7 +262,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def add_load_menus(self, filemenu, where):
 
         def _get_ws(bnch, name, where):
-            if isinstance(where, WS.Workspace):
+            if isinstance(where, Workspace.Workspace):
                 bnch[name] = where
             ## elif isinstance(where, Desktop):
             ##     bnch[name] = where.getws(name)
@@ -1281,7 +1303,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
             # Perform a global reset across all command-type pages
             for ws in self.ds.getWorkspaces():
                 for page in ws.getPages():
-                    if isinstance(page, PG.CommandPage):
+                    if isinstance(page, Page.CommandPage):
                         page.reset_pause()
         except Exception as e:
             self.logger.error("Error resetting pages: %s" % str(e))
