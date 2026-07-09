@@ -662,7 +662,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         #   txtbuf
         def f(cmdObj):
             tag = str(cmdObj)
-            if not (tag in tags):
+            if tag not in tags:
                 return cmdObj
 
             cmdstr = self.process_cmdstr(txtbuf, cmds[tag])

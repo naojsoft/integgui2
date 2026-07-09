@@ -193,7 +193,7 @@ class IntegController:
         # TODO: may need a lock?
         cmdObjs = set([])
         for queueObj in self.queue.values():
-            deleted = queueObj.removeFilter(lambda x: not (str(x) in tags))
+            deleted = queueObj.removeFilter(lambda x: str(x) not in tags)
             cmdObjs.update(deleted)
         return cmdObjs
 
