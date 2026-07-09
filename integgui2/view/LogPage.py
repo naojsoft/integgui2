@@ -16,7 +16,7 @@ from .TextSource import TextSource
 class NotePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
-        super(NotePage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # How many lines should we keep in this buffer beyond which
         # we cull from the top.  A value of 0 disables auto-culling.
@@ -123,7 +123,7 @@ class NotePage(Page.ButtonPage, Page.TextPage):
 class LogPage(NotePage):
 
     def __init__(self, frame, name, title):
-        super(LogPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # interval between checking for log file updates (ms)
         self.poll_interval = 500
@@ -171,7 +171,7 @@ class LogPage(NotePage):
         except:
             pass
 
-        super(LogPage, self).close()
+        super().close()
 
     def push(self, msgstr):
         line = msgstr + '\n'

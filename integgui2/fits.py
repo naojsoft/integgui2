@@ -18,7 +18,7 @@ headers = [ 'DATE-OBS', 'UT-STR', 'EXPTIME', 'OBS-MOD',
             'OBJECT', 'FILTERS', 'MEMO' ]
 
 
-class IntegGUINotify(object):
+class IntegGUINotify:
 
     def __init__(self, gui, fitsdir):
         self.gui = gui
@@ -214,7 +214,7 @@ class IntegGUINotify(object):
 class HSC_IntegGUINotify(IntegGUINotify):
 
     def __init__(self, gui, fitsdir):
-        super(HSC_IntegGUINotify, self).__init__(gui, fitsdir)
+        super().__init__(gui, fitsdir)
 
         # Total number of frames in exposure
         self.total_count = dict(SUPA=10, HSCA=112,
@@ -260,7 +260,7 @@ class HSC_IntegGUINotify(IntegGUINotify):
         frameid = self.get_hsc_expid(frameid)
 
         with self.lock:
-            d = super(HSC_IntegGUINotify, self)._getframe(frameid, **kwdargs)
+            d = super()._getframe(frameid, **kwdargs)
             if 'count_xfers' not in d:
                 d.count_xfers = 0
             if 'count_stars' not in d:

@@ -17,7 +17,7 @@ class DialogPage(Page.Page):
 
     def __init__(self, frame, name, title):
 
-        super(DialogPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         scrolled_window = Widgets.ScrollArea()
 

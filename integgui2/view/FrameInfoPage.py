@@ -30,7 +30,7 @@ class FrameInfoPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
 
-        super(FrameInfoPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.header = header
         self.format_str = format_str
@@ -127,7 +127,7 @@ class FrameInfoPage(LogPage.NotePage):
         common.controller.load_frames(frames)
 
     def clear(self):
-        super(FrameInfoPage, self).clear()
+        super().clear()
 
         # Re-create the header
         self.append(self.header + '\n', [])

@@ -16,7 +16,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def __init__(self, frame, name, title):
 
-        super(QueuePage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.paused = False
 
@@ -110,7 +110,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def close(self):
         self.queueObj.del_view(self)
-        super(QueuePage, self).close()
+        super().close()
 
     def editCommand(self):
         try:

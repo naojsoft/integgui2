@@ -23,7 +23,7 @@ yacc_tab_module  = 'yacc_tab_launcher'
 class ScanError(Exception):
     pass
 
-class launcherScanner(object):
+class launcherScanner:
 
     tokens = ('COMMA', 'NEWLINE', 'ID', 'STR', 'IDREF',
               'BREAK', 'LCONT', 'COMMENT', 'SEMICOLON', 'SEPARATOR',
@@ -168,7 +168,7 @@ class launcherScanner(object):
 class ParseError(Exception):
     pass
 
-class launcherParser(object):
+class launcherParser:
 
     def p_launchers_def1(self, p):
         '''launchers : launcher'''
@@ -393,7 +393,7 @@ class launcherParser(object):
         return res
 
 
-class LauncherManager(object):
+class LauncherManager:
 
     def __init__(self, logger):
         self.logger = logger

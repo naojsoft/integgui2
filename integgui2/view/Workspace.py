@@ -13,7 +13,7 @@ from . import common
 drag_src = None
 
 
-class Workspace(object):
+class Workspace:
 
     def __init__(self, frame, name, title):
 
@@ -225,7 +225,7 @@ class Workspace(object):
     def close(self):
         def _close(res):
             if res == 'yes':
-                return super(Workspace, self).close()
+                return super().close()
 
         if len(self.pages) > 0:
             common.view.popup_confirm("Close Workspace",

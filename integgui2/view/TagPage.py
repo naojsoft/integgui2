@@ -10,7 +10,7 @@ from . import LogPage
 class TagPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
-        super(TagPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # clicking a line in the tag list jumps to the corresponding line
         # in the source OPE page
@@ -22,7 +22,7 @@ class TagPage(LogPage.NotePage):
         self.opepage = None
 
     def initialize(self, opepage):
-        super(TagPage, self).clear()
+        super().clear()
 
         self.tagidx = {}
         self.opepage = opepage

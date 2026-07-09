@@ -28,7 +28,7 @@ class CommandHistoryPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
 
-        super(CommandHistoryPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.header = header
         self.format_str = format_str
@@ -55,7 +55,7 @@ class CommandHistoryPage(LogPage.NotePage):
             self.append(text + '\n', [tag])
 
     def clear(self):
-        super(CommandHistoryPage, self).clear()
+        super().clear()
 
         # Re-create the header
         self.append(self.header + '\n', [])

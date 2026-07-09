@@ -18,7 +18,7 @@ class EphemPage(CodePage.CodePage):
 
     def __init__(self, frame, name, title):
 
-        super(EphemPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # add some bottom buttons
         self.btn_convertToTSC = Widgets.Button("Convert to TSC format")

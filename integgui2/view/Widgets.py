@@ -13,7 +13,7 @@ from qtpy.QtWidgets import QToolTip
 from qtpy.QtGui import QTextCharFormat, QTextOption
 
 
-class TextBufferRef(object):
+class TextBufferRef:
     """Live reference to a character offset in a QTextSource buffer.
 
     The ref follows inserts and deletes performed through the owning text

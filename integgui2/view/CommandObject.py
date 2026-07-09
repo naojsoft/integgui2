@@ -5,7 +5,7 @@
 #
 import threading
 
-class CommandObject(object):
+class CommandObject:
 
     # static class vars
     lock = threading.RLock()
@@ -27,7 +27,7 @@ class CommandObject(object):
         a queue name.  Normally this class should be subclassed to provide
         proper behavior for executing a command.
         """
-        super(CommandObject, self).__init__()
+        super().__init__()
 
         self.guitag = CommandObject.get_tag(format)
         self.queueName = queueName
@@ -55,7 +55,7 @@ class SimpleCommandObject(CommandObject):
     def __init__(self, format, queueName, logger, cmdstr):
         self.cmdstr = cmdstr
 
-        super(SimpleCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()
@@ -71,7 +71,7 @@ class BreakCommandObject(CommandObject):
     def __init__(self, format, queueName, logger, page):
         self.page = page
 
-        super(BreakCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()
@@ -87,7 +87,7 @@ class CommentCommandObject(CommandObject):
     def __init__(self, format, queueName, logger, text):
         self.text = text
 
-        super(CommentCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.text

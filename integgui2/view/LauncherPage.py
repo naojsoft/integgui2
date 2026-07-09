@@ -54,7 +54,7 @@ def _make_hline():
 class LauncherError(Exception):
     pass
 
-class Launcher(object):
+class Launcher:
 
     def __init__(self, llist, name, title, execfn):
         self.llist = llist
@@ -408,7 +408,7 @@ class Launcher(object):
                          common.launcher_colors['normal'])
 
 
-class LauncherList(object):
+class LauncherList:
 
     def __init__(self, frame, name, title, execfn):
         self.llist = []
@@ -715,7 +715,7 @@ class LauncherPage(Page.CommandPage):
 
     def __init__(self, frame, name, title):
 
-        super(LauncherPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.queueName = 'launcher'
         self.tm_queueName = 'launcher'
@@ -769,7 +769,7 @@ class LauncherPage(Page.CommandPage):
         self.llist.addFromDefs(llist)
 
     def close(self):
-        super(LauncherPage, self).close()
+        super().close()
 
     def reset(self):
         for launcher in self.llist.getLaunchers():
@@ -794,7 +794,7 @@ class LauncherCommandObject(CommandObject.CommandObject):
         self.launcher = launcher
         self.cmdstr = cmdstr
 
-        super(LauncherCommandObject, self).__init__(format, queueName,
+        super().__init__(format, queueName,
                                                     logger)
 
     def mark_status(self, txttag):

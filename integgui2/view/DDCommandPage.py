@@ -14,7 +14,7 @@ class DDCommandPage(Page.CommandPage):
 
     def __init__(self, frame, name, title):
 
-        super(DDCommandPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.queueName = 'default'
         self.tm_queueName = 'executer'
@@ -184,7 +184,7 @@ class DDCommandObject(CommandObject.CommandObject):
         self.page = page
         self.cmdstr = cmdstr
 
-        super(DDCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()

@@ -23,7 +23,7 @@ class MonitorPage(Page.Page):
     or button frame.  Used for the Monitor's command AST sub-pages."""
 
     def __init__(self, frame, name, title):
-        super(MonitorPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.tw = IGWidgets.TextSource(editable=False, wrap=False)
         frame.add_widget(self.tw, stretch=1)
@@ -183,7 +183,7 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
     def delpage(self, name):
         with self.lock:
             try:
-                super(SkMonitorPage, self).delpage(name)
+                super().delpage(name)
             except Exception as e:
                 # may have already been removed
                 pass
@@ -206,7 +206,7 @@ class SkMonitorPage(WorkspacePage.WorkspacePage):
                 oldname = self.pagelist.pop(0)
                 self.delpage(oldname)
 
-            page = super(SkMonitorPage, self).addpage(name, title, MonitorPage)
+            page = super().addpage(name, title, MonitorPage)
 
             self.pagelist.append(name)
 

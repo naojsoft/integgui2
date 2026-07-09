@@ -30,7 +30,7 @@ class HandsetPage(Page.CommandPage):
 
     def __init__(self, frame, name, title):
 
-        super(HandsetPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.queueName = 'launcher'
         self.tm_queueName = 'launcher'
@@ -376,7 +376,7 @@ class HandsetCommandObject(CommandObject.CommandObject):
         self.widget = widget
         self.cmdstr = cmdstr
 
-        super(HandsetCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
     def get_preview(self):
         return self.get_cmdstr()

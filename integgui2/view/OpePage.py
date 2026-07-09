@@ -61,7 +61,7 @@ Please choose one of the following options:
 class OpePage(CodePage.CodePage, Page.CommandPage):
 
     def __init__(self, frame, name, title):
-        super(OpePage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.queueName = 'default'
         self.tm_queueName = 'executer'
@@ -165,11 +165,11 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         self.btn_prepend.set_enabled(tf)
 
     def load(self, filepath, buf):
-        super(OpePage, self).load(filepath, buf)
+        super().load(filepath, buf)
         self.cond_color()
 
     def _reload(self):
-        super(OpePage, self).reload()
+        super().reload()
         self.cond_color()
         common.remove_all_marks(self.tw)
 
@@ -236,7 +236,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         return True
 
     def _close(self):
-        super(OpePage, self).close()
+        super().close()
 
     def close(self):
         if not self.close_check():
@@ -491,7 +491,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         common.clear_tags(self.tw, ('executing',))
         self._clear_exec_marks()
         # this will reset Pause button, etc.
-        super(OpePage, self).reset()
+        super().reset()
 
     def _mark_icon(self, name):
         """Lazily load and cache the gutter icon image for an execution
@@ -890,7 +890,7 @@ class OpeCommandObject(CommandObject.CommandObject):
     def __init__(self, format, queueName, logger, opepage):
         self.page = opepage
 
-        super(OpeCommandObject, self).__init__(format, queueName, logger)
+        super().__init__(format, queueName, logger)
 
 
     def get_preview(self):
@@ -986,7 +986,7 @@ class OpeCommentCommandObject(CommandObject.CommandObject):
     def __init__(self, format, queueName, logger, opepage):
         self.page = opepage
 
-        super(OpeCommentCommandObject, self).__init__(format,
+        super().__init__(format,
                                                       queueName, logger)
 
 

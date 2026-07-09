@@ -12,7 +12,7 @@ class OptionsPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
-        super(OptionsPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         scrolled_window = Widgets.ScrollArea()
 

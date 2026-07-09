@@ -12,7 +12,7 @@ from . import LogPage
 class DirectoryPage(LogPage.NotePage):
 
     def __init__(self, frame, name, title):
-        super(DirectoryPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.listing = []
         self.pattern = '*'

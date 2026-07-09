@@ -11,7 +11,7 @@ from . import common
 from . import Workspace
 
 
-class Desktop(object):
+class Desktop:
 
     def __init__(self, w_dict, name, title):
         self.w_dict = w_dict

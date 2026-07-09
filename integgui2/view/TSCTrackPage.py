@@ -16,7 +16,7 @@ class TSCTrackPage(CodePage.CodePage):
 
     def __init__(self, frame, name, title):
 
-        super(TSCTrackPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         # add a bottom button
         self.btn_copyTSC = Widgets.Button("Copy to TSC")

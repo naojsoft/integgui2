@@ -60,7 +60,7 @@ class ButtonPage(Page):
 
     def __init__(self, frame, name, title):
         Page.__init__(self, frame, name, title)
-        #super(ButtonPage, self).__init__(frame, name, title)
+        #super().__init__(frame, name, title)
 
         self.add_menubar()
 
@@ -145,7 +145,7 @@ class CommandPage(ButtonPage):
         # *** subclass should define self.tm_queueName ***
 
         ButtonPage.__init__(self, frame, name, title)
-        #super(CommandPage, self).__init__(frame, name, title)
+        #super().__init__(frame, name, title)
 
     def cancel(self):
         #controller = self.parent.get_controller()
@@ -249,7 +249,7 @@ class TextPage(Page):
     """
 
     ## def __init__(self, frame, name, title):
-    ##     super(TextPage, self).__init__(frame, name, title)
+    ##     super().__init__(frame, name, title)
 
     def save(self, dirpath=None, filename=None):
         # If we have a filepath associated with this buffer, try to

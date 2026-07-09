@@ -14,7 +14,7 @@ class ObsInfoPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
-        super(ObsInfoPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.logger = common.view.logger
 

@@ -9,7 +9,7 @@ class QueueEmpty(Exception):
     pass
 
 
-class CommandQueue(object):
+class CommandQueue:
 
     def __init__(self, name, logger):
         self.name = name

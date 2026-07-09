@@ -69,7 +69,7 @@ typical_monlogs.update(inscfg.getNames())
 class ControllerError(Exception):
     pass
 
-class IntegController(object):
+class IntegController:
     """
     IMPORTANT NOTE: The GUI thread makes calls into this object, but these
     SHOULD NOT BLOCK or the GUI becomes unresponsive!  ALL CALLS IN should

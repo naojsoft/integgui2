@@ -202,16 +202,16 @@ class CodePage(Page.ButtonPage, Page.TextPage):
                               self._close_check_res).show()
             return False
 
-        super(CodePage, self).close()
+        super().close()
         return True
 
     def _close_check_res(self, w, rsp):
         if rsp == 2:
-            super(CodePage, self).close()
+            super().close()
 
         elif rsp == 3:
             self._do_save()
-            super(CodePage, self).close()
+            super().close()
 
         return True
 

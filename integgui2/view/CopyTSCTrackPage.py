@@ -36,7 +36,7 @@ class CopyTSCTrackPage(Page.ButtonPage):
 
     def __init__(self, frame, name, title):
 
-        super(CopyTSCTrackPage, self).__init__(frame, name, title)
+        super().__init__(frame, name, title)
 
         self.okFileCount = 0
         self.filepaths = []
