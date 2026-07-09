@@ -22,7 +22,7 @@ class ObsInfoPage(Page.ButtonPage):
         self.obsdict = {}
         for key in ('OBSINFO1', 'OBSINFO2', 'OBSINFO3', 'OBSINFO4', 'OBSINFO5',
                     'TIMER', 'PROP-ID'):
-            self.obsdict[key] = 'BLeah!'
+            self.obsdict[key] = ''
 
         # rgb triplets we use
         self.black = (0.0, 0.0, 0.0)
