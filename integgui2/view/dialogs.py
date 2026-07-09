@@ -181,8 +181,9 @@ class SearchReplace:
         self.cvbox.add_widget(self._replace_widget, stretch=0)
 
         self._case_sensitive = Widgets.CheckBox("Case sensitive")
+        # checked by default (case-sensitive); uncheck for a case-insensitive
+        # search -- CodePage passes `not is_case_sensitive()` through to find
         self._case_sensitive.set_state(True)
-        self._case_sensitive.set_enabled(False)
         self.cvbox.add_widget(self._case_sensitive, stretch=0)
 
         self._reverse = Widgets.CheckBox("Reverse")
