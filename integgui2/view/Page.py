@@ -236,7 +236,7 @@ class TablePage(ButtonPage):
     def color_row(self, key, fg='black', bg=None):
         self.colortbl[key] = dict(fg=fg, bg=bg)
         #self.table.set_path_background()
-        self.table.highlight_path(path, True, font_color=fg)
+        self.table.highlight_path(key, True, font_color=fg)
 
     def clear(self):
         self.colortbl = dict()

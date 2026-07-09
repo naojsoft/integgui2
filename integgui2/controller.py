@@ -443,11 +443,11 @@ class IntegController:
         if 'task_code' in vals:
             res = vals['task_code']
         else:
-            logger.error("Task has no task result code; assuming error")
+            self.logger.error("Task has no task result code; assuming error")
             res = ro.ERROR
 
         if not isinstance(res, int):
-            logger.error("Task result code (%s) not int; assuming error" % (
+            self.logger.error("Task result code (%s) not int; assuming error" % (
                 res))
             res = ro.ERROR
 
@@ -479,7 +479,7 @@ class IntegController:
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
@@ -525,7 +525,7 @@ class IntegController:
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
@@ -550,7 +550,7 @@ class IntegController:
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
@@ -574,7 +574,7 @@ class IntegController:
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return
@@ -636,7 +636,7 @@ class IntegController:
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return

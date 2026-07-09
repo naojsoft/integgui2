@@ -84,11 +84,12 @@ class Desktop:
             old_size = pinfo.sizes[idx]
             #print("Maybe restore position for pane %s" % (pinfo.name))
             try:
+                cur_size = pane_w.get_sizes()[idx]
                 sizes = list(pinfo.sizes)
                 sizes[idx] = old_size
                 self.logger.debug("Restoring pane to size %d" % (old_size))
                 pane_w.set_sizes(sizes)
-                return size - old_size
+                return old_size - cur_size
             except:
                 return 0
 

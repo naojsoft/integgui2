@@ -63,7 +63,7 @@ class Workspace:
             raise Exception("A page with name '%s' already exists!" % name)
 
 
-    def _addpage(self, name, title, child, pageobj):
+    def _addpage(self, name, title, child, pageobj, adjname=True):
         with self.lock:
             if name in self.pages:
                 if not adjname:

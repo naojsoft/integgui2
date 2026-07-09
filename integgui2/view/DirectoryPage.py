@@ -32,7 +32,7 @@ class DirectoryPage(LogPage.NotePage):
             properties.update(bnch)
             self.addtag(tag, **properties)
 
-    def regist_clickfn(fn):
+    def regist_clickfn(self, fn):
         """Register a function to be called on the files when you click them."""
         self.clickfn = fn
 

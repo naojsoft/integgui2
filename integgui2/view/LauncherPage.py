@@ -327,7 +327,7 @@ class Launcher:
         dial.resize(width, height)
         self.table.add_widget(dial, self.row, self.col)
         self.bump_col()
-        dial.set_limits(lower, upper, incr_valuestep)
+        dial.set_limits(lower, upper, step)
         dial.set_value(value)
 
         name = name.lower()

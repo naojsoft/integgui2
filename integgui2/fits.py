@@ -2,6 +2,7 @@
 # E. Jeschke
 #
 
+import sys
 import threading
 
 from ginga.misc import Bunch
