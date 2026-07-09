@@ -5,6 +5,7 @@ import time
 import threading
 
 from ginga.gw import Widgets
+from ginga.gw.widget_helpers import DIALOG_FLAGS_ONTOP
 
 from . import common
 
@@ -125,19 +126,20 @@ class FileSelection:
 
 
 class MyDialog(Widgets.Dialog):
-    def __init__(self, title=None, flags=None, buttons=None,
-                 callback=None):
+    def __init__(self, title=None, flags=DIALOG_FLAGS_ONTOP, buttons=None,
+                 callback=None, parent=None, modal=False):
 
-        super().__init__(title=title, flags=flags, buttons=buttons)
+        super().__init__(title=title, flags=flags, buttons=buttons,
+                         parent=parent, modal=modal)
         if callback:
             self.add_callback("activated", callback)
 
 
-class SearchReplace(object):
+class SearchReplace:
 
-    def __init__(self, title='Search and/or Replace'):
+    def __init__(self, title='Search and/or Replace', parent=None):
         self.title = title
-
+        self.parent = parent
         self.what = ''
         self.replacement = ''
 
@@ -148,8 +150,9 @@ class SearchReplace(object):
         embed_dialogs = settings.get('embed_dialogs', False)
 
         if not embed_dialogs:
-            self.w = MyDialog(title=self.title, flags=0,
-                              buttons=buttons, callback=callback)
+            self.w = MyDialog(title=self.title,
+                              buttons=buttons, callback=callback,
+                              parent=self.parent)
         else:
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
@@ -230,12 +233,13 @@ class SearchReplace(object):
         self.w = None
 
 
-class Confirmation(object):
+class Confirmation:
 
     def __init__(self, title='OBS Confirmation',
-                 logger=None, soundfn=None, timefreq=5):
+                 logger=None, soundfn=None, timefreq=5, parent=None):
         self.title = title
         self.logger = logger
+        self.parent = parent
 
         self.soundfn = soundfn
         # repeating sound timer (a ginga timer); interval is in seconds
@@ -250,9 +254,9 @@ class Confirmation(object):
 
         if not embed_dialogs:
             self.w = MyDialog(title=self.title,
-                              flags=0,
                               buttons=buttons,
-                              callback=callback)
+                              callback=callback,
+                              parent=self.parent)
         else:
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
@@ -345,9 +349,10 @@ class Confirmation(object):
 
 class UserInput(Confirmation):
 
-    def __init__(self, title='OBS UserInput', logger=None, soundfn=None):
-        super(UserInput, self).__init__(title=title, logger=logger,
-                                        soundfn=soundfn)
+    def __init__(self, title='OBS UserInput', logger=None, soundfn=None,
+                 parent=None):
+        super().__init__(title=title, logger=logger, soundfn=soundfn,
+                         parent=parent)
 
     def popup(self, title, iconfile, soundfn, itemlist, callfn, tag=None):
         button_vals = [1, 0]
@@ -402,9 +407,10 @@ class UserInput(Confirmation):
 
 class Timer(Confirmation):
 
-    def __init__(self, title='OBS Timer', logger=None, soundfn=None):
-        super(Timer, self).__init__(title=title, logger=logger,
-                                    soundfn=soundfn)
+    def __init__(self, title='OBS Timer', logger=None, soundfn=None,
+                 parent=None):
+        super().__init__(title=title, logger=logger, soundfn=soundfn,
+                         parent=parent)
         # override time interval to 1 sec
         self.interval = 1
         self.soundfn = soundfn
@@ -483,9 +489,10 @@ class Timer(Confirmation):
 
 class ComboBox(Confirmation):
 
-    def __init__(self, title='OBS ComboBox', logger=None, soundfn=None):
-        super(ComboBox, self).__init__(title=title, logger=logger,
-                                        soundfn=soundfn)
+    def __init__(self, title='OBS ComboBox', logger=None, soundfn=None,
+                 parent=None):
+        super().__init__(title=title, logger=logger, soundfn=soundfn,
+                         parent=parent)
         self.selectedValue = None
         self.itemlist = []
 

@@ -1378,17 +1378,17 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.gui_do(self._obs_timer_tick, timer)
 
     def obs_confirmation(self, tag, title, iconfile, soundfn, btnlist, callfn):
-        dialog = dialogs.Confirmation(logger=self.logger)
+        dialog = dialogs.Confirmation(logger=self.logger, parent=self.w.root)
         self.gui_do(dialog.popup, title, iconfile, soundfn, btnlist, callfn,
                     tag=tag)
 
     def obs_userinput(self, tag, title, iconfile, soundfn, itemlist, callfn):
-        dialog = dialogs.UserInput(logger=self.logger)
+        dialog = dialogs.UserInput(logger=self.logger, parent=self.w.root)
         self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
                     tag=tag)
 
     def obs_combobox(self, tag, title, iconfile, soundfn, itemlist, callfn):
-        dialog = dialogs.ComboBox(logger=self.logger)
+        dialog = dialogs.ComboBox(logger=self.logger, parent=self.w.root)
         self.gui_do(dialog.popup, title, iconfile, soundfn, itemlist, callfn,
                     tag=tag)
 
