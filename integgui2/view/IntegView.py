@@ -92,6 +92,12 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.set_procdir(procdir, 'SUKA')
 
     def build_toplevel(self, layout):
+        # Give every button built from here on a hover highlight (dark green
+        # background, yellow text), as the GTK version did.  Left set for the
+        # whole UI; bracket with Button.set_hover_color(None, None) to exclude
+        # a region.
+        Widgets.Button.set_hover_color('forestgreen', 'yellow')
+
         # Dynamically create the desktop layout
         self.desk = GwDesktop.Desktop(self)
         self.desk.make_desktop(layout, widget_dict=self.w)
