@@ -91,6 +91,23 @@ class DirectoryPage(LogPage.NotePage):
         end = self.tw.get_ref_line_end(line)
         self.tw.apply_tag('cursor', start, end)
 
+    def _move_cursor_line(self, delta):
+        # Move the cursor (and the line highlight) to the previous/next line,
+        # mimicking a mouse click on that line.  A programmatic set_cursor() is
+        # suppressed from the widget's 'cursor_moved' callback, so update the
+        # highlight -- and keep the target line visible -- explicitly here.
+        cur = self.tw.get_cursor()
+        line = cur.get_line()
+        target = max(0, min(line + delta, self.tw.get_end_lineno()))
+        if target == line:
+            return
+        cur.set_line(target)
+        cur.to_line_start()
+        self.tw.set_cursor(cur)
+        self.cursor = target
+        self._highlight_cursor_line(target)
+        self.tw.scroll_to_lineno(target)
+
     def show_cursor(self, w):
         # Called on the widget's 'cursor_moved' callback; highlight the line
         # the cursor is on and remember it.
@@ -141,9 +158,17 @@ class DirectoryPage(LogPage.NotePage):
 
     def keypress(self, w, event):
         keyname = event.key
-        if keyname in ('up', 'down', 'shift_l', 'shift_r',
-                       'alt_l', 'alt_r', 'control_l', 'control_r'):
-            # navigation and modifiers: let the widget handle them
+        if keyname == 'up':
+            # move the cursor/highlight to the previous line (like a click)
+            self._move_cursor_line(-1)
+            return True
+        if keyname == 'down':
+            # move the cursor/highlight to the next line (like a click)
+            self._move_cursor_line(1)
+            return True
+        if keyname in ('shift_l', 'shift_r', 'alt_l', 'alt_r',
+                       'control_l', 'control_r'):
+            # bare modifiers: let the widget handle them
             return False
         if keyname in ('left', 'right'):
             # ignore these

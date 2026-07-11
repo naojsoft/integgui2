@@ -187,21 +187,20 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
             first, last = bounds
             # Clear the text selection
             common.clear_selection(self.tw)
+            # If a multi-line selection ends at the very start of a line, it
+            # visually covers only through the end of the previous line, so
+            # back the end off by one line.
+            if (last.get_line() > first.get_line() and
+                    last.get_line_column()[1] == 0):
+                last.set_line(last.get_line() - 1)
         else:
             # If there is no selection, then use the cursor line
             cur = self.tw.get_cursor()
             first = cur.copy()
             last = cur.copy()
 
-        lrow = last.get_line()
-
         # Adjust to beginning and end of lines
         first.to_line_start()
-        if last.get_line_column()[1] == 0:
-            # Hack to fix problem where selection covers the newline
-            # but not the first character of the next line
-            lrow -= 1
-            last.set_line(lrow)
         last.to_line_end()
 
         # Apply color to rows and save selection indexes
@@ -349,9 +348,17 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
     def keypress(self, w, event):
         keyname = event.key
-        if keyname in ('up', 'down', 'shift_l', 'shift_r',
-                       'alt_l', 'alt_r', 'control_l', 'control_r'):
-            # navigation and modifiers: let the widget handle them
+        if keyname == 'up':
+            # move the cursor/highlight to the previous line (like a click)
+            self._move_cursor_line(-1)
+            return True
+        if keyname == 'down':
+            # move the cursor/highlight to the next line (like a click)
+            self._move_cursor_line(1)
+            return True
+        if keyname in ('shift_l', 'shift_r', 'alt_l', 'alt_r',
+                       'control_l', 'control_r'):
+            # bare modifiers: let the widget handle them
             return False
         if keyname in ('left', 'right'):
             # ignore these
@@ -385,6 +392,23 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
 
         common.view.statusMsg("I don't understand that key: %s" % keyname)
         return True
+
+    def _move_cursor_line(self, delta):
+        # Move the cursor (and the line highlight) to the previous/next line,
+        # mimicking a mouse click on that line.  A programmatic set_cursor() is
+        # suppressed from the widget's 'cursor_moved' callback, so update the
+        # highlight -- and keep the target line visible -- explicitly here.
+        cur = self.tw.get_cursor()
+        line = cur.get_line()
+        target = max(0, min(line + delta, self.tw.get_end_lineno()))
+        if target == line:
+            return
+        cur.set_line(target)
+        cur.to_line_start()
+        self.tw.set_cursor(cur)
+        self.cursor = target
+        self._highlight_cursor_line(target)
+        self.tw.scroll_to_lineno(target)
 
     def show_cursor(self, w):
         # Called on the widget's 'cursor_moved' callback; highlight the line
