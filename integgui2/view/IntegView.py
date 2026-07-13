@@ -708,6 +708,11 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_ope(self, workspace):
         f = self.filesel['ope']
+        # procdir can change at runtime (e.g. when the proposal/instrument is
+        # set), so refresh the dialog's directory to the current value instead
+        # of using the one captured when the dialog was created
+        if self.procdir is not None and os.path.isdir(self.procdir):
+            f.set_directory(self.procdir)
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -732,6 +737,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_folder(self, workspace, pattern):
         f = self.filesel['folder']
+        # refresh to the current procdir (it can change at runtime)
+        if self.procdir is not None and os.path.isdir(self.procdir):
+            f.set_directory(self.procdir)
         f.set_callback('activated',
                        lambda w, dirpaths: self.load_folder(workspace,
                                                             dirpaths[0],
@@ -748,6 +756,9 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_ephem(self, workspace):
         f = self.filesel['eph']
+        # refresh to the current procdir (it can change at runtime)
+        if self.procdir is not None and os.path.isdir(self.procdir):
+            f.set_directory(self.procdir)
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -755,13 +766,14 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         f.popup()
 
     def gui_load_tscTrack(self, workspace):
-        f = self.filesel['eph']
-        self.tsc_filepath = None
+        f = self.filesel['tsc']
+        # refresh to the current procdir (it can change at runtime)
+        if self.procdir is not None and os.path.isdir(self.procdir):
+            f.set_directory(self.procdir)
 
-        def callback(w, rsp, filepaths):
-            if rsp == 2:
-                for filepath in filepaths:  # OPEN button
-                    self.load_generic(workspace, filepath, TSCTrackPage)
+        def callback(w, filepaths):
+            for filepath in filepaths:
+                self.load_generic(workspace, filepath, TSCTrackPage)
         f.set_callback('activated', callback)
         f.popup()
 
