@@ -390,7 +390,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         # Folders
         f = Widgets.FileDialog(parent=self.w.root)
-        f.set_mode('file')
+        f.set_mode('directory')
         f.set_title("Load folder")
         f.set_directory(self.procdir)
         f.clear_filters()
