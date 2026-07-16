@@ -46,7 +46,7 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #w.set_label_align(0.1, 0.5)
 
         # Create the widgets for the code file text
-        tw = TextSource(wrap=False, editable=True)
+        tw = TextSource(editable=True, wrap='none')
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)

@@ -23,7 +23,7 @@ class QueuePage(Page.ButtonPage, Page.TextPage):
         self.tm_queueName = 'executer'
 
         # Create the widgets for the text
-        tw = TextSource(editable=False, wrap=False)
+        tw = TextSource(editable=False, wrap='none')
         # TODO
         #tw.set_left_margin(4)
         #tw.set_right_margin(4)

@@ -24,7 +24,7 @@ class MonitorPage(Page.Page):
     def __init__(self, frame, name, title):
         super().__init__(frame, name, title)
 
-        self.tw = IGWidgets.TextSource(editable=False, wrap=False)
+        self.tw = IGWidgets.TextSource(editable=False, wrap='none')
         frame.add_widget(self.tw, stretch=1)
 
 

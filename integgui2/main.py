@@ -97,6 +97,17 @@ def main(options, args):
     else:
         logtype = 'normal'
 
+    # general settings control initialization of viewer
+    settings = prefs.create_category('general')
+    settings.set_defaults(appname='integgui2',
+                          title='IntegGUI2',
+                          # this only takes effect if we are using
+                          # the pgwidgets backend
+                          http_server=True,
+                          token='none',
+                          load_bundled_fonts=True)
+    settings.load(onError='silent')
+
     # choose toolkit backend
     ginga_toolkit.use(options.toolkit)
     # now we can import our GUI files
@@ -231,7 +242,26 @@ def main(options, args):
         ro_server_started = True
 
         try:
-            print("STARTING MAINLOOP")
+            # if there is a network component, start it
+            if hasattr(gui, 'start'):
+                print("STARTING NETWORK INTERFACE...")
+                logger.info("starting network interface...")
+                gui.start()
+            else:
+                print("GUI HAS NO start METHOD!")
+
+            if hasattr(gui, 'get_url'):
+                base_url = gui.get_url()
+                if base_url is not None:
+                    print(f"visit {base_url} to view the application")
+                    logger.info(f"visit {base_url} to view the application")
+                else:
+                    print("get_url() RETURNED NONE!")
+            else:
+                print("GUI HAS NO get_url METHOD!")
+
+            # Main loop to handle GUI events
+            logger.info("entering mainloop...")
             gui.mainloop(timeout=0.001)
 
         except KeyboardInterrupt:

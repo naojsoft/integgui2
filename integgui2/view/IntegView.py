@@ -50,8 +50,10 @@ class IntegView(GwMain.GwMain, Widgets.Application):
     def __init__(self, logger, preferences,
                  ev_quit, queues, logtype='normal'):
 
+        app_settings = preferences.create_category('general')
+
         # Create the top level app
-        Widgets.Application.__init__(self, logger=logger)
+        Widgets.Application.__init__(self, logger=logger, settings=app_settings)
         GwMain.GwMain.__init__(self, logger=logger, ev_quit=ev_quit, app=self)
 
         self.queue = queues
@@ -499,6 +501,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         hbox.add_widget(self.w.status, stretch=1)
 
         btns = Widgets.ButtonBox()
+        btns.set_margins(2, 2, 2, 2)
         btns.set_spacing(5)
 
         self.btn_kill = Widgets.Button("Kill")

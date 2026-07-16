@@ -76,6 +76,7 @@ class ButtonPage(Page):
 
         btns = Widgets.ButtonBox()
         btns.set_spacing(5)
+        btns.set_margins(2, 2, 2, 2)
         self.leftbtns = btns
 
         self.btnframe.add_widget(self.leftbtns, stretch=0)
@@ -85,6 +86,7 @@ class ButtonPage(Page):
 
         btns = Widgets.ButtonBox()
         btns.set_spacing(5)
+        btns.set_margins(2, 2, 2, 2)
         self.rightbtns = btns
 
         self.btnframe.add_widget(self.rightbtns, stretch=0)
