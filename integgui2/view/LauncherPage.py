@@ -17,28 +17,17 @@ default_width = 150
 
 
 def _make_hline():
-    """Return a thin horizontal-rule widget (like an HTML <hr>).
-
-    ginga has no separator widget, so we style a Label's underlying QLabel
-    (a QFrame) as a sunken horizontal line.
-    """
-    from qtpy.QtWidgets import QFrame
-    line = Widgets.Label("")
-    w = line.get_widget()
-    w.setFrameShape(QFrame.HLine)
-    w.setFrameShadow(QFrame.Sunken)
-    w.setContentsMargins(0, 0, 0, 0)
+    """Return a thin horizontal-rule widget (like an HTML <hr>)."""
+    line = Widgets.HSeparator()
 
     # Centered rule spanning ~90% of the width: put it between two stretch
-    # spacers (5% : 90% : 5%).  The row is clamped to the rule's height so the
-    # empty spacer labels don't re-inflate it to a full font line-height.
+    # spacers (5% : 90% : 5%).
     row = Widgets.HBox()
     row.set_spacing(0)
     row.set_border_width(0)
     row.add_widget(Widgets.Label(''), stretch=5)
     row.add_widget(line, stretch=90)
     row.add_widget(Widgets.Label(''), stretch=5)
-    row.get_widget().setFixedHeight(2)
 
     # A little space *above* the rule and none below (the following launcher's
     # top margin -- 0 right after a separator -- supplies the space after).

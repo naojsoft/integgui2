@@ -84,6 +84,10 @@ class HandsetPage(Page.CommandPage):
         except Exception as e:
             img = Widgets.Button(name)
 
+        # tighten the padding so icon buttons hug their icon and don't
+        # overlap in this dense absolute layout (pg backend; no-op on qt)
+        img.set_padding(2)
+
         return img
 
     def build_handset(self):
@@ -130,6 +134,9 @@ class HandsetPage(Page.CommandPage):
             #ent.set_alignment(1.0)
             # this seems to force size
             ent.set_limits(-1000, 1000, 1)
+            # cap the width so the two spinboxes (100px apart) don't overlap
+            # each other or the arrow buttons; None leaves height free
+            ent.set_max_size(90, None)
             ents[name] = ent
             self.lw.add_widget(ent, x, y)
 
