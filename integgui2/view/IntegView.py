@@ -1406,7 +1406,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
         self.gui_do(timer.start)
 
-        dialog = dialogs.Timer(logger=self.logger)
+        dialog = dialogs.Timer(logger=self.logger, parent=self.w.root)
         self.gui_do(dialog.popup, title, iconfile, soundfn, timer, callfn,
                     tag=tag)
         # per-second display tick, tied to the timer itself (not the dialog)

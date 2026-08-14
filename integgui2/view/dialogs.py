@@ -153,9 +153,16 @@ class SearchReplace:
         embed_dialogs = settings.get('embed_dialogs', False)
 
         if not embed_dialogs:
+            # NOTE: a dialog needs its parent to float above the
+            # application -- without one there is nothing for it to stay
+            # on top of.  Resolved here rather than at construction, as
+            # the page is built before the root window is on screen.
+            parent = self.parent
+            if parent is None:
+                parent = common.view.w.root
             self.w = MyDialog(title=self.title,
                               buttons=buttons, callback=callback,
-                              parent=self.parent)
+                              parent=parent)
         else:
             dialog_count += 1
             name = 'Dialog_%d' % dialog_count
