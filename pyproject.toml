@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64",
+requires = ["setuptools>=77",
             "setuptools_scm[toml]>=7",
             "wheel"]
 build-backend = "setuptools.build_meta"
@@ -14,7 +14,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=5.3.1",
-    "ginga>=7.1.0",
+    "ginga>=7.3.0",
 ]
 dynamic = ["version"]
 
