@@ -11,6 +11,9 @@ from . import Page
 from . import dialogs
 from .TextSource import TextSource
 
+# color of the text caret in a code buffer (see set_cursor_style)
+cursor_color = 'indianred'
+
 warning_close = """
 WARNING: Buffer is modified
 
@@ -52,6 +55,11 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         #tw.set_right_margin(4)
 
         tw.set_font('DejaVu Sans Mono', 10)
+        # A colored block caret: unlike the toolkit's own caret it does not
+        # blink and stays visible when the buffer does not have the keyboard
+        # focus, so a Find result is easy to spot while the Find/Replace
+        # dialog holds the focus.
+        tw.set_cursor_style('block', color=cursor_color)
         self.tw = tw
 
         self.sr = dialogs.SearchReplace("Find and/or Replace")
@@ -291,7 +299,9 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
         start_off, end_off, start_ref, end_ref = chosen
         self.tw.set_selection_range(start_ref, end_ref)
-        self.scroll_to_lineno(start_ref.get_line())
+        # center the match vertically, so it is not left sitting on the
+        # first or last visible line of the buffer
+        self.tw.scroll_to_ref(start_ref, align='center')
         # Advance the search position so the next find moves on.
         self._search_offset = start_off if reverse else end_off
         dialog.set_message("Found in line %d" % (start_ref.get_line() + 1))
