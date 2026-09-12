@@ -40,9 +40,14 @@ if __name__ == '__main__':
                         help="Show values for PATH in monitor")
     argprs.add_argument("--monport", dest="monport", type=int, default=10017,
                         help="Register monitor using PORT", metavar="PORT")
+    argprs.add_argument("--minthreads", dest="minthreads", type=int,
+                        default=30,
+                        help="Keep at least NUM threads in the pool, growing "
+                        "to --numthreads as work arrives", metavar="NUM")
     argprs.add_argument("--numthreads", dest="numthreads", type=int,
                         default=50,
-                        help="Start NUM threads in thread pool", metavar="NUM")
+                        help="Use at most NUM threads in thread pool",
+                        metavar="NUM")
     argprs.add_argument("--port", dest="port", type=int, default=12050,
                         help="Register using PORT", metavar="PORT")
     argprs.add_argument("--session", dest="session", metavar="NAME",

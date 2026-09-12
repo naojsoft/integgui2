@@ -80,7 +80,9 @@ def main(options, args):
     pub_channels = ['g2task']
 
     # Create a local monitor
-    mymon = Monitor.Minimon(myMonName, logger, numthreads=options.numthreads)
+    mymon = Monitor.Minimon(myMonName, logger,
+                            numthreads=options.numthreads,
+                            minthreads=options.minthreads)
 
     threadPool = mymon.get_threadPool()
 
@@ -194,7 +196,12 @@ def main(options, args):
                 options.session, str(e)))
 
     # Start up a remote object server for certain services provided by
-    # integgui2
+    # integgui2.
+    #
+    # Called by clients of both ages, so it answers both ways;
+    # ro.compat_transports puts XML-RPC first, which is what keeps it the
+    # primary an un-upgraded caller reads.  The monitor above needs no such
+    # thing -- it is ours, and only the new stack subscribes to it.
     svc = ro.remoteObjectServer(svcname=options.svcname,
                                 obj=controller, logger=logger,
                                 method_list=['get_ope_paths',
@@ -210,6 +217,7 @@ def main(options, args):
                                              'sound_check'],
                                 port=options.port,
                                 ev_quit=ev_quit,
+                                transport=ro.compat_transports,
                                 usethread=True, threadPool=threadPool)
 
     # Load any files specified on the command line
