@@ -362,6 +362,13 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         self.filesel = dict()
 
         # OPE files
+        # These dialogs are made once and reused for the life of the
+        # window, and each gui_load_* below sets its handler when it pops
+        # one up.  set_callback adds a handler rather than replacing one --
+        # it de-duplicates by comparing the function, and the fresh lambda
+        # each of those passes never matches -- so the handlers accumulated
+        # and a file chosen after the third popup was opened three times.
+        # Hence the clear_callback before each set_callback down there.
         f = Widgets.FileDialog(parent=self.w.root)
         f.set_mode('file')
         f.set_title("Load OPE file")
@@ -680,6 +687,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_log(self, workspace):
         f = self.filesel['log']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda filepaths: self.load_log(workspace, filepaths[0]))
         f.popup()
@@ -716,6 +724,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # of using the one captured when the dialog was created
         if self.procdir is not None and os.path.isdir(self.procdir):
             f.set_directory(self.procdir)
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -724,6 +733,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_sk(self, workspace):
         f = self.filesel['sk']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -732,6 +742,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_task(self, workspace):
         f = self.filesel['task']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -743,6 +754,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # refresh to the current procdir (it can change at runtime)
         if self.procdir is not None and os.path.isdir(self.procdir):
             f.set_directory(self.procdir)
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, dirpaths: self.load_folder(workspace,
                                                             dirpaths[0],
@@ -751,6 +763,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_inf(self, workspace):
         f = self.filesel['inf']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -762,6 +775,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         # refresh to the current procdir (it can change at runtime)
         if self.procdir is not None and os.path.isdir(self.procdir):
             f.set_directory(self.procdir)
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -777,11 +791,13 @@ class IntegView(GwMain.GwMain, Widgets.Application):
         def callback(w, filepaths):
             for filepath in filepaths:
                 self.load_generic(workspace, filepath, TSCTrackPage)
+        f.clear_callback('activated')
         f.set_callback('activated', callback)
         f.popup()
 
     def gui_load_launcher_source(self, workspace):
         f = self.filesel['launcher_source']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -791,6 +807,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_handset_source(self, workspace):
         f = self.filesel['handset_source']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_generic(workspace,
                                                               filepaths[0],
@@ -881,6 +898,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_launcher(self, workspace):
         f = self.filesel['launcher']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_launcher(workspace,
                                                                filepaths[0]))
@@ -910,6 +928,7 @@ class IntegView(GwMain.GwMain, Widgets.Application):
 
     def gui_load_handset(self, workspace):
         f = self.filesel['handset']
+        f.clear_callback('activated')
         f.set_callback('activated',
                        lambda w, filepaths: self.load_handset(workspace,
                                                               filepaths[0]))
