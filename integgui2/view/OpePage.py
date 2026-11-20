@@ -71,7 +71,7 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
         settings = common.view.get_settings()
         wrap_lines = settings.get('wrap_lines', False)
         if wrap_lines:
-            self.line_wrapping('full')
+            self.line_wrapping('word')
 
         number_lines = settings.get('show_line_numbers', False)
         self.line_numbering(number_lines)

@@ -94,15 +94,17 @@ class CodePage(Page.ButtonPage, Page.TextPage):
         item = menu.add_name("Find/Replace ...")
         item.add_callback("activated", lambda w: self.find())
 
+        # Kept so that line_wrapping() and line_numbering() can show the
+        # state a page was opened with (e.g. from the user's settings).
         item = menu.add_name("Wrap lines", checkable=True)
-        wrap_lines = False
-        item.set_state(wrap_lines)
+        item.set_state(False)
         item.add_callback("activated", self.toggle_line_wrapping)
+        self.wrap_item = item
 
         item = menu.add_name("Show line numbers", checkable=True)
-        number_lines = False
-        item.set_state(number_lines)
+        item.set_state(False)
         item.add_callback("activated", self.toggle_line_numbering)
+        self.number_item = item
 
         # item = menu.add_name("Print ...")
         # item.add_callback("activated", lambda w: self.print_cb())
@@ -228,13 +230,18 @@ class CodePage(Page.ButtonPage, Page.TextPage):
 
     def line_numbering(self, onoff):
         self.tw.show_line_numbers(onoff)
+        self.number_item.set_state(onoff)
 
     def toggle_line_numbering(self, widget, tf):
         self.line_numbering(tf)
         return True
 
+    def line_wrapping(self, kind):
+        self.tw.set_wrap(kind)
+        self.wrap_item.set_state(kind != 'none')
+
     def toggle_line_wrapping(self, widget, tf):
-        self.tw.set_wrap(tf)
+        self.line_wrapping('word' if tf else 'none')
         return True
 
     ##### Find and Replace callbacks
