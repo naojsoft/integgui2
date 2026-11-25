@@ -34,6 +34,39 @@ class TagPage(LogPage.NotePage):
         # make an entry in the tags index
         self.tagidx[taglineno] = lineno
 
+    def add_mappings(self, mappings):
+        """Append many ``(lineno, line, tags)`` entries in a single edit.
+
+        Equivalent to calling add_mapping() for each entry, but the text goes
+        into the widget in one insertion and the tags in one batch, so a large
+        OPE file's tag list costs one relayout instead of one per line.
+        """
+        if not mappings:
+            return
+        tw = self.tw
+        taglineno = tw.get_end_lineno()
+        base = tw.get_length()
+        spans = []
+        chunks = []
+        offset = base
+        for i, (lineno, line, tags) in enumerate(mappings):
+            self.tagidx[taglineno + i] = lineno
+            spans.append((offset, offset + len(line), tags))
+            chunks.append(line + '\n')
+            offset += len(line) + 1
+        with tw.batch_update():
+            end = tw.get_ref_end()
+            tw.insert_text(end, ''.join(chunks))
+            tw.remove_ref(end)
+            for start_off, end_off, tags in spans:
+                # mirror append_text(tags=...), which tags the newline too
+                start = tw.create_ref(start_off)
+                end = tw.create_ref(end_off + 1)
+                for tag in tags:
+                    tw.apply_tag(tag, start, end)
+                tw.remove_ref(start)
+                tw.remove_ref(end)
+
     ## def scroll_to_lineno(self, lineno):
     ##     # Scroll tag table to errors
     ##     loc = self.buf.get_end_iter()

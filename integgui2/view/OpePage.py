@@ -335,65 +335,76 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
             self.logger.debug("Preparing tags.")
             tagpage.initialize(self)
 
-            # remove decorative tags
-            for tag, bnch in removetags:
-                try:
-                    if self.tw.has_tag(tag):
-                        self.tw.remove_tag_def(tag)
-                except Exception:
-                    # tag may not exist--that's ok
-                    pass
+            # Batch all tag changes on both text widgets: each tag op then
+            # only updates the model, and the widgets reformat/relayout
+            # once at the end of the block instead of once per tag (which
+            # froze the GUI for seconds on a large OPE file).
+            with self.tw.batch_update(), tagpage.tw.batch_update():
+                # remove decorative tags
+                for tag, bnch in removetags:
+                    try:
+                        if self.tw.has_tag(tag):
+                            self.tw.remove_tag_def(tag)
+                    except Exception:
+                        # tag may not exist--that's ok
+                        pass
 
-            # add tags back in
-            for tag, bnch in tags:
-                properties = {}
-                properties.update(bnch)
-                try:
-                    self.tw.create_tag(tag, **properties)
-                except Exception:
-                    # tag may already exist--that's ok
-                    pass
+                # add tags back in
+                for tag, bnch in tags:
+                    properties = {}
+                    properties.update(bnch)
+                    try:
+                        self.tw.create_tag(tag, **properties)
+                    except Exception:
+                        # tag may already exist--that's ok
+                        pass
 
-                try:
-                    tagpage.addtag(tag, **properties)
-                except Exception:
-                    # tag may already exist--that's ok
-                    pass
+                    try:
+                        tagpage.addtag(tag, **properties)
+                    except Exception:
+                        # tag may already exist--that's ok
+                        pass
 
-            # Update the tag coloring and the tag list.  Syntax highlighting
-            # is done entirely through the tag table (the same mechanism used
-            # for execution marking), driven by the OPE parser results.
-            self.logger.debug("Coloring tags.")
-            start, end = self.tw.get_ref_bounds()
+                # Update the tag coloring and the tag list.  Syntax
+                # highlighting is done entirely through the tag table (the
+                # same mechanism used for execution marking), driven by the
+                # OPE parser results.
+                self.logger.debug("Coloring tags.")
+                start, end = self.tw.get_ref_bounds()
 
-            # Line-level tags (comment1/comment2/comment3) applied to the
-            # whole line.
-            for bnch in res.taglist:
-                lineno = bnch.lineno - 1
-                # apply desired tags to entire line in main text buffer
-                start.set_line(lineno)
-                end.set_line(lineno)
-                end.to_line_end()
+                # Line-level tags (comment1/comment2/comment3) applied to the
+                # whole line.
+                mappings = []
+                for bnch in res.taglist:
+                    lineno = bnch.lineno - 1
+                    # apply desired tags to entire line in main text buffer
+                    start.set_line(lineno)
+                    end.set_line(lineno)
+                    end.to_line_end()
 
-                for tag in bnch.tags:
-                    self.tw.apply_tag(tag, start, end)
+                    for tag in bnch.tags:
+                        self.tw.apply_tag(tag, start, end)
 
-                tagpage.add_mapping(lineno, bnch.text, bnch.tags)
+                    mappings.append((lineno, bnch.text, bnch.tags))
 
-            # Character-level tags for variable references: 'varref' for every
-            # $VAR, plus 'badref' overlaid where the reference is undefined.
-            # bnch.start/bnch.end are column offsets within the line.
-            self.logger.debug("Coloring refs.")
-            for bnch in res.reflist:
-                lineno = bnch.lineno - 1
-                start.set_line(lineno)
-                base = start.get_offset()
-                start.set_offset(base + bnch.start)
-                end.set_offset(base + bnch.end)
+                # one bulk append to the Tags page instead of one per line
+                tagpage.add_mappings(mappings)
 
-                self.tw.apply_tag('varref', start, end)
-                if bnch.varref in res.badset:
-                    self.tw.apply_tag('badref', start, end)
+                # Character-level tags for variable references: 'varref' for
+                # every $VAR, plus 'badref' overlaid where the reference is
+                # undefined.  bnch.start/bnch.end are column offsets within
+                # the line.
+                self.logger.debug("Coloring refs.")
+                for bnch in res.reflist:
+                    lineno = bnch.lineno - 1
+                    start.set_line(lineno)
+                    base = start.get_offset()
+                    start.set_offset(base + bnch.start)
+                    end.set_offset(base + bnch.end)
+
+                    self.tw.apply_tag('varref', start, end)
+                    if bnch.varref in res.badset:
+                        self.tw.apply_tag('badref', start, end)
 
             self.logger.debug("Summarizing.")
             common.view.statusMsg('')
