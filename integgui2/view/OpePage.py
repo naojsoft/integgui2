@@ -578,20 +578,6 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
 
         return True
 
-    def copy(self):
-        # A hack to get around accidentally copying rich text tags along
-        # with the text
-
-        # Get the selection.  If there is none, we're done.
-        bounds = self.tw.get_selection_bounds()
-        if bounds is None:
-            return
-
-        # Set the clipboard to the plain ASCII text
-        start, end = bounds
-        text = self.tw.get_text_range(start, end)
-        common.view.clipboard.set_text(text, -1)
-
     def keypress(self, w, event):
         keyname = event.key
 
@@ -620,9 +606,8 @@ class OpePage(CodePage.CodePage, Page.CommandPage):
                 common.view.raise_page('handset')
                 return True
 
-            elif keyname == 'c':
-                self.copy()
-                return True
+            # Ctrl+C/X/V are left to the text widget, which copies plain
+            # text only (no highlighting).
 
             elif keyname == 'f':
                 self.find()
